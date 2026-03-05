@@ -1,0 +1,13 @@
+# Ignore generated data
+data/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+
+# OS junk
+.DS_Store
+Thumbs.db
