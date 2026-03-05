@@ -1,0 +1,5 @@
+ai: ai, artificial intelligence, genai, openai, nvidia, deepseek
+rates: rates, rate, yield, yields, treasury, interest rate, fed funds, borrowing costs
+inflation: inflation, cpi, pce, price pressures, disinflation
+energy: energy, oil, crude, natural gas, opec
+recession: recession, downturn, slowdown, contraction

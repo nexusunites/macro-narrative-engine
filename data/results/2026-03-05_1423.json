@@ -1,0 +1,52 @@
+{
+  "timestamp": "2026-03-05_1423",
+  "rss_urls": [
+    "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+    "https://www.cnbc.com/id/100003114/device/rss/rss.html"
+  ],
+  "headline_count": 50,
+  "matched_headlines": 12,
+  "coverage_pct": 24.0,
+  "theme_counts": {
+    "ai": 6,
+    "rates": 2,
+    "inflation": 0,
+    "energy": 5,
+    "recession": 0
+  },
+  "sorted_nonzero": [
+    [
+      "ai",
+      6
+    ],
+    [
+      "energy",
+      5
+    ],
+    [
+      "rates",
+      2
+    ]
+  ],
+  "dominant_theme": "ai",
+  "dominant_count": 6,
+  "total_mentions": 13,
+  "dominant_share": 0.4615,
+  "concentration_gap": 1,
+  "examples": {
+    "ai": [
+      "Stocks Sink in Broad AI Rout Sparked by China's DeepSeek",
+      "DeepSeek Won't Sink U.S. AI Titans",
+      "Swiss franc, Japanese yen Rise as DeepSeek News Boosts Safe Havens"
+    ],
+    "rates": [
+      "U.S. Treasury Yields Fall But Direction for Long-End Yields Still Seen Upward",
+      "Why Iran war oil price shock won't stop Trump's Fed pick Warsh from cutting interest rates"
+    ],
+    "energy": [
+      "Natural Gas Falls on Shifting Weather Forecasts",
+      "Natural-Gas Firm Diversified Energy Strikes Deal for Permian Basin Player",
+      "Russia's Crude Exports Fairly Stable Despite U.S. Sanctions, Goldman Says"
+    ]
+  }
+}
