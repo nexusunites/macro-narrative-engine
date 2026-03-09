@@ -8,6 +8,18 @@ import feedparser
 print("STARTING main.py")
 
 
+rss_urls = [
+        "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",          # WSJ Markets
+        "https://www.cnbc.com/id/100003114/device/rss/rss.html",  # CNBC Top News
+        "https://feeds.reuters.com/reuters/businessNews",
+        "https://www.ft.com/?format=rss",                          # Financial Times
+        "https://www.bloomberg.com/feed/podcast/etf-report.xml",  # Bloomberg ETF Report
+        "https://www.bbc.co.uk/news/business/rss.xml",           # BBC Business
+        "https://www.npr.org/rss/rss.php?id=1001",              # NPR Business
+        "https://www.economist.com/finance-and-economics/rss.xml",  # Economist Finance
+]
+
+
 def trigger_matches(text: str, trigger: str) -> bool:
     trigger = trigger.lower().strip()
 
@@ -96,17 +108,13 @@ def get_last_two_result_files(results_dir: Path):
         return None, None
     return files[-1], files[-2]
 
-
 def main():
     print("=== Daily Narrative Snapshot ===")
 
-    rss_urls = [
-        "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",          # WSJ Markets
-        "https://www.cnbc.com/id/100003114/device/rss/rss.html",  # CNBC Top News
-    ]
+    headlines = fetch_headlines_from_rss(rss_urls)
 
-    headlines = fetch_headlines_from_rss(rss_urls, limit_per_feed=30)
-    print(f"Loaded headlines from RSS: {len(headlines)}")
+    for headline in headlines:
+        print(headline)
 
     stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
 
