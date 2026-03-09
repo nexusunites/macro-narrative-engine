@@ -4,6 +4,7 @@ from pathlib import Path
 
 from mne.rss_fetch import fetch_headlines_from_rss
 from mne.theme_analysis import load_themes, analyze_themes
+from mne.storage import load_json, get_last_two_result_files
 
 print("STARTING main.py")
 
@@ -18,17 +19,6 @@ rss_urls = [
     "https://www.npr.org/rss/rss.php?id=1001",                   # NPR Business
     "https://www.economist.com/finance-and-economics/rss.xml",   # Economist Finance
 ]
-
-def load_json(path: Path):
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def get_last_two_result_files(results_dir: Path):
-    files = sorted(results_dir.glob("*.json"))
-    if len(files) < 2:
-        return None, None
-    return files[-1], files[-2]
 
 
 def main():
