@@ -3,20 +3,20 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-import feedparser
+from mne.rss_fetch import fetch_headlines_from_rss
 
 print("STARTING main.py")
 
 
 rss_urls = [
-        "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",          # WSJ Markets
-        "https://www.cnbc.com/id/100003114/device/rss/rss.html",  # CNBC Top News
-        "https://feeds.reuters.com/reuters/businessNews",
-        "https://www.ft.com/?format=rss",                          # Financial Times
-        "https://www.bloomberg.com/feed/podcast/etf-report.xml",  # Bloomberg ETF Report
-        "https://www.bbc.co.uk/news/business/rss.xml",           # BBC Business
-        "https://www.npr.org/rss/rss.php?id=1001",              # NPR Business
-        "https://www.economist.com/finance-and-economics/rss.xml",  # Economist Finance
+    "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",             # WSJ Markets
+    "https://www.cnbc.com/id/100003114/device/rss/rss.html",     # CNBC Top News
+    "https://feeds.reuters.com/reuters/businessNews",
+    "https://www.ft.com/?format=rss",                            # Financial Times
+    "https://www.bloomberg.com/feed/podcast/etf-report.xml",     # Bloomberg ETF Report
+    "https://www.bbc.co.uk/news/business/rss.xml",               # BBC Business
+    "https://www.npr.org/rss/rss.php?id=1001",                   # NPR Business
+    "https://www.economist.com/finance-and-economics/rss.xml",   # Economist Finance
 ]
 
 
@@ -30,21 +30,6 @@ def trigger_matches(text: str, trigger: str) -> bool:
     # Whole-word match for single words (e.g., "ai", "rates")
     pattern = rf"\b{re.escape(trigger)}\b"
     return re.search(pattern, text) is not None
-
-
-def fetch_headlines_from_rss(rss_urls, limit_per_feed=25):
-    headlines = []
-    for url in rss_urls:
-        feed = feedparser.parse(url)
-
-        for entry in feed.entries[:limit_per_feed]:
-            title = getattr(entry, "title", "").strip()
-            if title:
-                headlines.append(title)
-
-    # De-dupe while preserving order
-    deduped = list(dict.fromkeys(headlines))
-    return deduped
 
 
 def load_themes(filename):
@@ -108,13 +93,12 @@ def get_last_two_result_files(results_dir: Path):
         return None, None
     return files[-1], files[-2]
 
+
 def main():
     print("=== Daily Narrative Snapshot ===")
+    print()
 
     headlines = fetch_headlines_from_rss(rss_urls)
-
-    for headline in headlines:
-        print(headline)
 
     stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
 
@@ -122,17 +106,29 @@ def main():
     headlines_dir = Path("data/headlines")
     headlines_dir.mkdir(parents=True, exist_ok=True)
     headlines_file = headlines_dir / f"{stamp}.txt"
+
     with open(headlines_file, "w", encoding="utf-8") as f:
         for headline in headlines:
             f.write(headline + "\n")
+
+    print(f"Loaded {len(headlines)} headlines from RSS")
+    print(f"Loaded {len(rss_urls)} RSS feeds")
     print(f"Headlines saved to {headlines_file}")
+    print()
 
     # Theme analysis
     themes = load_themes("themes.txt")
-    results, examples, matched_headlines = analyze_themes(headlines, themes, examples_per_theme=3)
+    results, examples, matched_headlines = analyze_themes(
+        headlines, themes, examples_per_theme=3
+    )
 
     coverage_pct = (matched_headlines / len(headlines) * 100) if headlines else 0
-    print(f"Coverage: {matched_headlines}/{len(headlines)} ({coverage_pct:.1f}%) headlines matched at least one theme")
+    print(
+        f"Coverage: {matched_headlines}/{len(headlines)} "
+        f"({coverage_pct:.1f}%) headlines matched at least one theme"
+    )
+    
+    print()
 
     sorted_results = sorted(results.items(), key=lambda x: x[1], reverse=True)
     nonzero = [(k, c) for k, c in sorted_results if c > 0]
@@ -158,18 +154,23 @@ def main():
         else:
             concentration = top_count
 
-        print(f"\nDominant Narrative: {top_theme} ({top_count} mentions)")
+        print()
+        print("=== Narrative Concentration ===")
+        print(f"Dominant Narrative: {top_theme} ({top_count} mentions)")
         print(f"Total Mentions: {total_mentions}")
         print(f"Dominant Narrative Share: {share * 100:.1f}%")
         print(f"Concentration Gap: {concentration}")
 
-        print("\nExamples for top themes:")
+        print()
+        print("=== Examples for Top Themes ===")
         for theme, count in nonzero[:3]:
-            print(f"\n[{theme}] ({count})")
+            print()
+            print(f"[{theme}] ({count})")
             for i, h in enumerate(examples[theme], start=1):
                 print(f"  {i}. {h}")
     else:
-        print("\nNo narratives detected today.")
+        print()
+        print("No narratives detected today.")
 
     # Save results JSON
     results_dir = Path("data/results")
@@ -188,19 +189,24 @@ def main():
         "total_mentions": total_mentions,
         "dominant_share": round(float(share), 4),
         "concentration_gap": int(concentration),
-        # keep examples for top 3 themes
         "examples": {k: v for k, v in examples.items() if k in dict(nonzero[:3])},
     }
 
     results_file = results_dir / f"{stamp}.json"
     with open(results_file, "w", encoding="utf-8") as f:
         json.dump(run, f, ensure_ascii=False, indent=2)
-    print(f"\nResults saved to {results_file}")
+
+    print()
+    print(f"Results saved to {results_file}")
 
     # Momentum (compare latest run vs previous run)
     latest, previous = get_last_two_result_files(results_dir)
+
+    print()
+    print("=== Momentum (vs previous run) ===")
+
     if previous is None:
-        print("Momentum: not enough history yet (need 2 runs).")
+        print("Not enough history yet (need 2 runs).")
     else:
         current = load_json(latest)
         prior = load_json(previous)
@@ -209,7 +215,6 @@ def main():
         prev_counts = prior.get("theme_counts", {})
         all_themes = sorted(set(cur_counts.keys()) | set(prev_counts.keys()))
 
-        print("\n=== Momentum (vs previous run) ===")
         printed_any = False
         for theme in all_themes:
             cur = int(cur_counts.get(theme, 0))
@@ -231,15 +236,14 @@ def main():
         prev_cov = float(prior.get("coverage_pct", 0))
         print(f"Coverage: {cur_cov:.1f}% ({cur_cov - prev_cov:+.1f}pp)")
 
-        print(f"Dominant share: {cur_share*100:.1f}% ({(cur_share-prev_share)*100:+.1f}pp)")
+        print(f"Dominant share: {cur_share * 100:.1f}% ({(cur_share - prev_share) * 100:+.1f}pp)")
         print(f"Concentration gap: {cur_gap} ({cur_gap - prev_gap:+d})")
 
         if not printed_any:
             print("(No per-theme count changes)")
 
-        print("===============================")
-
-    print("\n=============================")
+    print()
+    print("=============================")
 
 
 if __name__ == "__main__":

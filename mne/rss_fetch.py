@@ -1,11 +1,16 @@
 # mne/rss_fetch.py
-from typing import List
+import feedparser
 
-rss_urls = [
-        "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",          # WSJ Markets
-        "https://www.cnbc.com/id/100003114/device/rss/rss.html",  # CNBC Top News
-    ]
+def fetch_headlines_from_rss(rss_urls, limit_per_feed=25):
+    headlines = []
+    for url in rss_urls:
+        feed = feedparser.parse(url)
 
-def fetch_headlines_from_rss(rss_urls, limit_per_feed=30) -> List[str]:
-    ...
-    return headlines
+        for entry in feed.entries[:limit_per_feed]:
+            title = getattr(entry, "title", "").strip()
+            if title:
+                headlines.append(title)
+
+    # De-dupe while preserving order
+    deduped = list(dict.fromkeys(headlines))
+    return deduped
