@@ -4,7 +4,7 @@ from pathlib import Path
 
 from mne.rss_fetch import fetch_headlines_from_rss
 from mne.theme_analysis import load_themes, analyze_themes
-from mne.storage import load_json, get_last_two_result_files
+from mne.storage import load_json, get_last_two_result_files, get_recent_runs
 
 print("STARTING main.py")
 
@@ -19,6 +19,8 @@ rss_urls = [
     "https://www.npr.org/rss/rss.php?id=1001",                   # NPR Business
     "https://www.economist.com/finance-and-economics/rss.xml",   # Economist Finance
 ]
+
+TREND_LOOKBACK = 5
 
 
 def main():
@@ -99,6 +101,7 @@ def main():
         print()
         print("No narratives detected today.")
 
+
     # Save results JSON
     results_dir = Path("data/results")
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -168,6 +171,40 @@ def main():
 
         if not printed_any:
             print("(No per-theme count changes)")
+
+    print()
+    print("=== Narrative Trends (Recent Runs) ===")
+
+    recent_runs = get_recent_runs(results_dir, TREND_LOOKBACK)
+
+    if len(recent_runs) < 2:
+        print("Not enough history for trend analysis.")
+    else:
+
+        # collect theme history
+        theme_history = {}
+
+        for run in recent_runs:
+            counts = run.get("theme_counts", {})
+
+            for theme, count in counts.items():
+                theme_history.setdefault(theme, []).append(count)
+
+        for theme, values in sorted(theme_history.items()):
+
+            if len(values) < 2:
+                continue
+
+            trend_arrow = "→"
+
+            if values[-1] > values[-2]:
+                trend_arrow = "↑"
+            elif values[-1] < values[-2]:
+                trend_arrow = "↓"
+
+            series = " → ".join(str(v) for v in values)
+
+            print(f"{theme}: {series} {trend_arrow}")
 
     print()
     print("=============================")
