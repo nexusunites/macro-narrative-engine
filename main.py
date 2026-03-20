@@ -223,6 +223,63 @@ def main():
 
             print(f"{theme}: {series} {trend_arrow}  {label}")
 
+    print()
+    print("=== Narrative Trends (Daily - Share) ===")
+
+    recent_runs = get_recent_daily_runs(results_dir, TREND_LOOKBACK)
+
+    if len(recent_runs) < 2:
+        print("Not enough daily history for share trend analysis.")
+    else:
+        theme_share_history = {}
+
+        for run in recent_runs:
+            counts = run.get("theme_counts", {})
+
+            total = sum(c for c in counts.values() if c > 0)
+            if total == 0:
+                continue
+
+            for theme, count in counts.items():
+                share = count / total if total > 0 else 0.0
+                theme_share_history.setdefault(theme, []).append(share)
+
+        for theme, values in sorted(theme_share_history.items()):
+            if len(values) < 2:
+                continue
+
+            # Arrow (last step)
+            if values[-1] > values[-2]:
+                trend_arrow = "↑"
+            elif values[-1] < values[-2]:
+                trend_arrow = "↓"
+            else:
+                trend_arrow = "→"
+
+            # Label (same logic as counts)
+            label = "stable"
+
+            if len(values) >= 3:
+                prev = values[-2]
+                prev2 = values[-3]
+                current = values[-1]
+
+                if current > prev and prev > prev2:
+                    label = "building"
+                elif current < prev and prev < prev2:
+                    label = "fading"
+                elif current < prev and prev >= prev2:
+                    label = "cooling"
+                elif current > prev and prev <= prev2:
+                    label = "re-accelerating"
+                elif current == prev:
+                    label = "flat"
+
+            # Convert to % for display
+            series = " → ".join(f"{v*100:.1f}%" for v in values)
+
+            print(f"{theme}: {series} {trend_arrow}  {label}")
+
         print()
         print("=============================")
 
