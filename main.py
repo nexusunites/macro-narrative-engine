@@ -192,15 +192,36 @@ def main():
             if len(values) < 2:
                 continue
 
-            trend_arrow = "→"
-
+            # Arrow (last step)
             if values[-1] > values[-2]:
                 trend_arrow = "↑"
             elif values[-1] < values[-2]:
                 trend_arrow = "↓"
+            else:
+                trend_arrow = "→"
+
+            # Label (slightly smarter)
+            label = "stable"
+
+            if len(values) >= 3:
+                prev = values[-2]
+                prev2 = values[-3]
+                current = values[-1]
+
+                if current > prev and prev > prev2:
+                    label = "building"
+                elif current < prev and prev < prev2:
+                    label = "fading"
+                elif current < prev and prev >= prev2:
+                    label = "cooling"
+                elif current > prev and prev <= prev2:
+                    label = "re-accelerating"
+                elif current == prev:
+                    label = "flat"
 
             series = " → ".join(str(v) for v in values)
-            print(f"{theme}: {series} {trend_arrow}")
+
+            print(f"{theme}: {series} {trend_arrow}  {label}")
 
         print()
         print("=============================")
