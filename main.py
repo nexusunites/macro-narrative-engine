@@ -244,56 +244,19 @@ def main():
                 share = count / total if total > 0 else 0.0
                 theme_share_history.setdefault(theme, []).append(share)
 
-                
-            # sort by latest share descending
-    sorted_themes = sorted(
-        theme_share_history.items(),
-        key=lambda x: x[1][-1],
-        reverse=True
-    )
+        # sort by latest share descending
+        sorted_themes = sorted(
+            theme_share_history.items(),
+            key=lambda x: x[1][-1],
+            reverse=True
+        )
 
-    top_n = 3
+        top_n = 3
 
-    print()
-    print("Top Narratives:")
-
-    for theme, values in sorted_themes[:top_n]:
-        if len(values) < 2:
-            continue
-
-        if values[-1] > values[-2]:
-            trend_arrow = "↑"
-        elif values[-1] < values[-2]:
-            trend_arrow = "↓"
-        else:
-            trend_arrow = "→"
-
-        label = "stable"
-
-        if len(values) >= 3:
-            prev = values[-2]
-            prev2 = values[-3]
-            current = values[-1]
-
-            if current > prev and prev > prev2:
-                label = "building"
-            elif current < prev and prev < prev2:
-                label = "fading"
-            elif current < prev and prev >= prev2:
-                label = "cooling"
-            elif current > prev and prev <= prev2:
-                label = "re-accelerating"
-            elif current == prev:
-                label = "flat"
-
-        series = " → ".join(f"{v*100:.1f}%" for v in values)
-        print(f"{theme}: {series} {trend_arrow}  {label}")
-
-    if len(sorted_themes) > top_n:
         print()
-        print("Other Narratives:")
+        print("Top Narratives:")
 
-        for theme, values in sorted_themes[top_n:]:
+        for theme, values in sorted_themes[:top_n]:
             if len(values) < 2:
                 continue
 
@@ -304,8 +267,44 @@ def main():
             else:
                 trend_arrow = "→"
 
+            label = "stable"
+
+            if len(values) >= 3:
+                prev = values[-2]
+                prev2 = values[-3]
+                current = values[-1]
+
+                if current > prev and prev > prev2:
+                    label = "building"
+                elif current < prev and prev < prev2:
+                    label = "fading"
+                elif current < prev and prev >= prev2:
+                    label = "cooling"
+                elif current > prev and prev <= prev2:
+                    label = "re-accelerating"
+                elif current == prev:
+                    label = "flat"
+
             series = " → ".join(f"{v*100:.1f}%" for v in values)
-            print(f"{theme}: {series} {trend_arrow}")
+            print(f"{theme}: {series} {trend_arrow}  {label}")
+
+        if len(sorted_themes) > top_n:
+            print()
+            print("Other Narratives:")
+
+            for theme, values in sorted_themes[top_n:]:
+                if len(values) < 2:
+                    continue
+
+                if values[-1] > values[-2]:
+                    trend_arrow = "↑"
+                elif values[-1] < values[-2]:
+                    trend_arrow = "↓"
+                else:
+                    trend_arrow = "→"
+
+                series = " → ".join(f"{v*100:.1f}%" for v in values)
+                print(f"{theme}: {series} {trend_arrow}")
 
         print()
         print("=============================")
