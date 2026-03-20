@@ -4,7 +4,7 @@ from pathlib import Path
 
 from mne.rss_fetch import fetch_headlines_from_rss
 from mne.theme_analysis import load_themes, analyze_themes
-from mne.storage import load_json, get_last_two_result_files, get_recent_runs
+from mne.storage import load_json, get_last_two_result_files, get_recent_runs, get_recent_daily_runs
 
 print("STARTING main.py")
 
@@ -173,15 +173,13 @@ def main():
             print("(No per-theme count changes)")
 
     print()
-    print("=== Narrative Trends (Recent Runs) ===")
+    print("=== Narrative Trends (Daily) ===")
 
-    recent_runs = get_recent_runs(results_dir, TREND_LOOKBACK)
+    recent_runs = get_recent_daily_runs(results_dir, TREND_LOOKBACK)
 
     if len(recent_runs) < 2:
-        print("Not enough history for trend analysis.")
+        print("Not enough daily history for trend analysis.")
     else:
-
-        # collect theme history
         theme_history = {}
 
         for run in recent_runs:
@@ -191,7 +189,6 @@ def main():
                 theme_history.setdefault(theme, []).append(count)
 
         for theme, values in sorted(theme_history.items()):
-
             if len(values) < 2:
                 continue
 
@@ -203,11 +200,10 @@ def main():
                 trend_arrow = "↓"
 
             series = " → ".join(str(v) for v in values)
-
             print(f"{theme}: {series} {trend_arrow}")
 
-    print()
-    print("=============================")
+        print()
+        print("=============================")
 
 
 if __name__ == "__main__":

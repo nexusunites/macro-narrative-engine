@@ -27,3 +27,26 @@ def get_recent_runs(results_dir: Path, lookback: int):
             runs.append(json.load(fh))
 
     return runs
+
+def get_recent_daily_runs(results_dir: Path, lookback: int):
+    files = sorted(results_dir.glob("*.json"))
+
+    if not files:
+        return []
+
+    daily_latest = {}
+
+    for f in files:
+        with open(f, "r", encoding="utf-8") as fh:
+            run = json.load(fh)
+
+        timestamp = run.get("timestamp", "")
+        day = timestamp[:10]  # YYYY-MM-DD
+
+        if day:
+            daily_latest[day] = run
+
+    days = sorted(daily_latest.keys())
+    selected_days = days[-lookback:]
+
+    return [daily_latest[day] for day in selected_days]
