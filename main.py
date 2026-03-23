@@ -65,6 +65,10 @@ def main():
     for theme, count in nonzero:
         print(f"{theme}: {count}")
 
+    #Thresholds for narrative concentration (these are arbitrary and can be tuned based on historical data)
+    TREND_LOOKBACK = 5
+    TREND_EPSILON = 0.02
+
     # Defaults (keep JSON + momentum safe even if empty)
     top_theme = None
     top_count = 0
@@ -193,9 +197,11 @@ def main():
                 continue
 
             # Arrow (last step)
-            if values[-1] > values[-2]:
+            delta = values[-1] - values[-2]
+
+            if delta > TREND_EPSILON:
                 trend_arrow = "↑"
-            elif values[-1] < values[-2]:
+            elif delta < -TREND_EPSILON:
                 trend_arrow = "↓"
             else:
                 trend_arrow = "→"
@@ -203,20 +209,30 @@ def main():
             # Label (slightly smarter)
             label = "stable"
 
+            label = "stable"
+
             if len(values) >= 3:
                 prev = values[-2]
                 prev2 = values[-3]
                 current = values[-1]
 
-                if current > prev and prev > prev2:
+                d1 = current - prev
+                d2 = prev - prev2
+
+                current_up = d1 > TREND_EPSILON
+                current_down = d1 < -TREND_EPSILON
+                prev_up = d2 > TREND_EPSILON
+                prev_down = d2 < -TREND_EPSILON
+
+                if current_up and prev_up:
                     label = "building"
-                elif current < prev and prev < prev2:
+                elif current_down and prev_down:
                     label = "fading"
-                elif current < prev and prev >= prev2:
+                elif current_down and (prev_up or abs(d2) <= TREND_EPSILON):
                     label = "cooling"
-                elif current > prev and prev <= prev2:
+                elif current_up and (prev_down or abs(d2) <= TREND_EPSILON):
                     label = "re-accelerating"
-                elif current == prev:
+                elif abs(d1) <= TREND_EPSILON:
                     label = "flat"
 
             series = " → ".join(str(v) for v in values)
@@ -296,9 +312,11 @@ def main():
                 if len(values) < 2:
                     continue
 
-                if values[-1] > values[-2]:
+                delta = values[-1] - values[-2]
+
+                if delta > TREND_EPSILON:
                     trend_arrow = "↑"
-                elif values[-1] < values[-2]:
+                elif delta < -TREND_EPSILON:
                     trend_arrow = "↓"
                 else:
                     trend_arrow = "→"
