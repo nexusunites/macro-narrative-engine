@@ -22,6 +22,55 @@ rss_urls = [
 
 TREND_LOOKBACK = 5
 
+def compute_narrative_signals(top_theme, share, concentration, results):
+    signals = {}
+
+    energy_count = results.get("energy", 0)
+    ai_count = results.get("ai", 0)
+    rates_count = results.get("rates", 0)
+    inflation_count = results.get("inflation", 0)
+    recession_count = results.get("recession", 0)
+
+    # Energy Dominance
+    if top_theme == "energy" and share >= 0.60 and concentration >= 15:
+        signals["Energy Dominance"] = "HIGH"
+    elif top_theme == "energy" and share >= 0.40:
+        signals["Energy Dominance"] = "ELEVATED"
+    else:
+        signals["Energy Dominance"] = "LOW"
+
+    # AI Narrative Strength
+    if top_theme == "ai" and share >= 0.60:
+        signals["AI Narrative Strength"] = "DOMINANT"
+    elif ai_count >= 10:
+        signals["AI Narrative Strength"] = "STRONG"
+    elif ai_count >= 5:
+        signals["AI Narrative Strength"] = "ACTIVE"
+    else:
+        signals["AI Narrative Strength"] = "WEAK"
+
+    # Macro Stress
+    stress_score = 0
+
+    if energy_count >= 10:
+        stress_score += 1
+    if rates_count >= 4:
+        stress_score += 1
+    if inflation_count >= 3:
+        stress_score += 1
+    if recession_count >= 2:
+        stress_score += 1
+
+    if stress_score >= 3:
+        signals["Macro Stress"] = "HIGH"
+    elif stress_score == 2:
+        signals["Macro Stress"] = "ELEVATED"
+    elif stress_score == 1:
+        signals["Macro Stress"] = "MODERATE"
+    else:
+        signals["Macro Stress"] = "LOW"
+
+    return signals
 
 def main():
     print("=== Daily Narrative Snapshot ===")
@@ -93,6 +142,18 @@ def main():
         print(f"Total Mentions: {total_mentions}")
         print(f"Dominant Narrative Share: {share * 100:.1f}%")
         print(f"Concentration Gap: {concentration}")
+        signals = compute_narrative_signals(
+        top_theme,
+        share,
+        concentration,
+        results
+        )
+
+        print()
+        print("=== Narrative Signals ===")
+
+        for signal, value in signals.items():
+            print(f"{signal}: {value}")
 
         print()
         print("=== Examples for Top Themes ===")
