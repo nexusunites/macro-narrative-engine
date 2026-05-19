@@ -75,10 +75,13 @@ def compute_narrative_signals(top_theme, share, concentration, results):
 def main():
     print("=== Daily Narrative Snapshot ===")
     print()
+    print(f"Run Timestamp: {readable_time}")
+    print()
 
     headlines = fetch_headlines_from_rss(rss_urls)
 
     stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+    readable_time = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     # Save raw headlines
     headlines_dir = Path("data/headlines")

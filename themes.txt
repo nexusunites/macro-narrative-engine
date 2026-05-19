@@ -1,5 +1,9 @@
-ai: ai, artificial intelligence, genai, openai, nvidia, deepseek
-rates: rates, rate, yield, yields, treasury, interest rate, fed funds, borrowing costs
-inflation: inflation, cpi, pce, price pressures, disinflation
-energy: energy, oil, crude, natural gas, opec
-recession: recession, downturn, slowdown, contraction
+ai: artificial intelligence, generative ai, genai, openai, nvidia, deepseek, ai chip, ai chips, data center, data centers, machine learning, chatbot, copilot
+
+rates: treasury yield, treasury yields, bond yield, bond yields, yields, interest rates, interest rate, fed funds, borrowing costs, mortgage rates, central bank, rate cut, rate cuts, rate hike, rate hikes
+
+inflation: inflation, cpi, pce, price pressures, disinflation, deflation, prices rise, price shock, cost of living, sticky inflation
+
+energy: oil, crude oil, crude, natural gas, gas prices, energy prices, opec, petroleum, fuel prices, gasoline, brent, wti, lng
+
+recession: recession, downturn, slowdown, contraction, hard landing, soft landing, job losses, unemployment, layoffs, economic weakness
