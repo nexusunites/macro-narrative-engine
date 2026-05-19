@@ -73,15 +73,17 @@ def compute_narrative_signals(top_theme, share, concentration, results):
     return signals
 
 def main():
+
     print("=== Daily Narrative Snapshot ===")
     print()
+
+    stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+    readable_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+
     print(f"Run Timestamp: {readable_time}")
     print()
 
     headlines = fetch_headlines_from_rss(rss_urls)
-
-    stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
-    readable_time = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     # Save raw headlines
     headlines_dir = Path("data/headlines")
@@ -173,6 +175,8 @@ def main():
     # Save results JSON
     results_dir = Path("data/results")
     results_dir.mkdir(parents=True, exist_ok=True)
+    reports_dir = Path("data/reports")
+    reports_dir.mkdir(parents=True, exist_ok=True)
 
     run = {
         "timestamp": stamp,
@@ -191,11 +195,45 @@ def main():
     }
 
     results_file = results_dir / f"{stamp}.json"
+    report_file = reports_dir / f"{stamp}.txt"
     with open(results_file, "w", encoding="utf-8") as f:
         json.dump(run, f, ensure_ascii=False, indent=2)
 
     print()
     print(f"Results saved to {results_file}")
+
+    report_lines = []
+
+    report_lines.append("=== Daily Narrative Snapshot ===")
+    report_lines.append("")
+    report_lines.append(f"Run Timestamp: {readable_time}")
+    report_lines.append("")
+
+    report_lines.append(f"Loaded {len(headlines)} headlines")
+    report_lines.append(f"Coverage: {coverage_pct:.1f}%")
+    report_lines.append("")
+
+    report_lines.append("=== Narrative Signals ===")
+
+    for signal, value in signals.items():
+        report_lines.append(f"{signal}: {value}")
+
+    report_lines.append("")
+    report_lines.append("=== Top Narratives ===")
+
+    for theme, count in nonzero[:3]:
+        report_lines.append(f"{theme}: {count}")
+
+    report_lines.append("")
+    report_lines.append("=== Narrative Concentration ===")
+    report_lines.append(f"Dominant Narrative: {top_theme}")
+    report_lines.append(f"Dominant Share: {share * 100:.1f}%")
+    report_lines.append(f"Concentration Gap: {concentration}")
+
+    with open(report_file, "w", encoding="utf-8") as f:
+        f.write("\n".join(report_lines))
+
+    print(f"Report saved to {report_file}")
 
     # Momentum (compare latest run vs previous run)
     latest, previous = get_last_two_result_files(results_dir)
