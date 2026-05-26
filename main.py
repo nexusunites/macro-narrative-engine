@@ -5,6 +5,7 @@ from pathlib import Path
 from mne.rss_fetch import fetch_headlines_from_rss
 from mne.theme_analysis import load_themes, analyze_themes
 from mne.storage import load_json, get_last_two_result_files, get_recent_runs, get_recent_daily_runs
+from mne.market_context import get_market_snapshot, classify_market_move
 
 print("STARTING main.py")
 
@@ -122,6 +123,12 @@ def main():
     #Thresholds for narrative concentration (these are arbitrary and can be tuned based on historical data)
     TREND_LOOKBACK = 5
     TREND_EPSILON = 0.02
+    NASDAQ_TICKERS = {
+    "QQQ": "QQQ",
+    "NVDA": "NVDA",
+    "VIX": "^VIX",
+    "DXY": "DX-Y.NYB",
+}
 
     # Defaults (keep JSON + momentum safe even if empty)
     top_theme = None
@@ -159,6 +166,23 @@ def main():
 
         for signal, value in signals.items():
             print(f"{signal}: {value}")
+
+        print()
+        print("=== Nasdaq Context ===")
+
+        market_snapshot = get_market_snapshot(NASDAQ_TICKERS)
+
+        for name, data in market_snapshot.items():
+            if data is None:
+                print(f"{name}: unavailable")
+                continue
+
+            move_label = classify_market_move(data["pct_change"])
+
+            print(
+                f"{name}: {data['latest_close']} "
+                f"({data['pct_change']:+.2f}%) - {move_label}"
+            )
 
         print()
         print("=== Examples for Top Themes ===")

@@ -13,3 +13,10 @@ __pycache__/
 Thumbs.db
 
 data/
+
+venv/
+.venv/
+__pycache__/
+*.pyc
+.env
+data/
