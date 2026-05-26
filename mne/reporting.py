@@ -41,6 +41,16 @@ def print_narrative_signals(signals):
         print(f"{signal}: {value}")
 
 
+def print_market_environment(environment):
+    print()
+    print("=== Market Environment ===")
+    print(f"State: {environment['state']}")
+    print(f"Confidence: {environment['confidence']}")
+    print()
+    print("Reason:")
+    print(environment["reason"])
+
+
 def print_market_context(market_snapshot):
     print()
     print("=== Nasdaq Context ===")
@@ -79,6 +89,7 @@ def build_daily_report(
     concentration,
     group_scores=None,
     dominant_group=None,
+    market_environment=None,
     market_snapshot=None,
 ):
     report_lines = []
@@ -95,6 +106,15 @@ def build_daily_report(
     report_lines.append("=== Narrative Signals ===")
     for signal, value in signals.items():
         report_lines.append(f"{signal}: {value}")
+
+    if market_environment:
+        report_lines.append("")
+        report_lines.append("=== Market Environment ===")
+        report_lines.append(f"State: {market_environment['state']}")
+        report_lines.append(f"Confidence: {market_environment['confidence']}")
+        report_lines.append("")
+        report_lines.append("Reason:")
+        report_lines.append(market_environment["reason"])
 
     report_lines.append("")
     report_lines.append("=== Narrative Theme Scores ===")

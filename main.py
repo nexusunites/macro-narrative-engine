@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from mne.environment import classify_market_environment
 from mne.market_context import get_market_snapshot
 from mne.narrative_signals import (
     compute_group_scores,
@@ -12,6 +13,7 @@ from mne.reporting import (
     print_dominant_narratives,
     print_group_scores,
     print_market_context,
+    print_market_environment,
     print_narrative_concentration,
     print_narrative_signals,
     print_theme_counts,
@@ -96,6 +98,7 @@ def main():
     concentration_gap = concentration["concentration_gap"]
     signals = {}
     market_snapshot = {}
+    market_environment = None
 
     if nonzero:
         print_dominant_narratives(top_theme, dominant_group)
@@ -104,6 +107,15 @@ def main():
         print_narrative_signals(signals)
 
         market_snapshot = get_market_snapshot(NASDAQ_TICKERS)
+        market_environment = classify_market_environment(
+            theme_scores=theme_scores,
+            group_scores=group_scores,
+            signals=signals,
+            market_snapshot=market_snapshot,
+            concentration=concentration,
+            dominant_group=dominant_group,
+        )
+        print_market_environment(market_environment)
         print_market_context(market_snapshot)
         print_top_theme_examples(nonzero, examples)
     else:
@@ -128,6 +140,7 @@ def main():
         "total_mentions": total_mentions,
         "dominant_share": round(float(share), 4),
         "concentration_gap": int(concentration_gap),
+        "market_environment": market_environment,
         "examples": {k: v for k, v in examples.items() if k in dict(nonzero[:3])},
     }
 
@@ -145,6 +158,7 @@ def main():
         concentration=concentration,
         group_scores=group_scores,
         dominant_group=dominant_group,
+        market_environment=market_environment,
         market_snapshot=market_snapshot,
     )
     report_file = save_report(report_text, stamp)
