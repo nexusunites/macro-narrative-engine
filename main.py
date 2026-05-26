@@ -1,9 +1,16 @@
 from datetime import datetime
 
 from mne.market_context import get_market_snapshot
-from mne.narrative_signals import compute_narrative_concentration, compute_narrative_signals
+from mne.narrative_signals import (
+    compute_group_scores,
+    compute_narrative_concentration,
+    compute_narrative_signals,
+    get_dominant_group,
+)
 from mne.reporting import (
     build_daily_report,
+    print_dominant_narratives,
+    print_group_scores,
     print_market_context,
     print_narrative_concentration,
     print_narrative_signals,
@@ -60,7 +67,7 @@ def main():
     print()
 
     themes = load_themes("themes.txt")
-    results, examples, matched_headlines = analyze_themes(
+    results, examples, matched_headlines, theme_scores = analyze_themes(
         headlines,
         themes,
         examples_per_theme=3,
@@ -73,9 +80,13 @@ def main():
     )
     print()
 
-    sorted_results = sorted(results.items(), key=lambda item: item[1], reverse=True)
+    sorted_results = sorted(theme_scores.items(), key=lambda item: item[1], reverse=True)
     nonzero = [(theme, count) for theme, count in sorted_results if count > 0]
     print_theme_counts(nonzero)
+
+    group_scores = compute_group_scores(theme_scores)
+    dominant_group, dominant_group_score = get_dominant_group(group_scores)
+    print_group_scores(group_scores)
 
     concentration = compute_narrative_concentration(nonzero)
     top_theme = concentration["dominant_theme"]
@@ -87,8 +98,9 @@ def main():
     market_snapshot = {}
 
     if nonzero:
+        print_dominant_narratives(top_theme, dominant_group)
         print_narrative_concentration(concentration)
-        signals = compute_narrative_signals(top_theme, share, concentration_gap, results)
+        signals = compute_narrative_signals(top_theme, share, concentration_gap, theme_scores)
         print_narrative_signals(signals)
 
         market_snapshot = get_market_snapshot(NASDAQ_TICKERS)
@@ -105,9 +117,14 @@ def main():
         "matched_headlines": matched_headlines,
         "coverage_pct": round(coverage_pct, 1),
         "theme_counts": results,
+        "theme_scores": theme_scores,
+        "group_scores": group_scores,
         "sorted_nonzero": nonzero,
         "dominant_theme": top_theme,
-        "dominant_count": top_count,
+        "dominant_score": top_count,
+        "dominant_count": results.get(top_theme, 0) if top_theme else 0,
+        "dominant_group": dominant_group,
+        "dominant_group_score": dominant_group_score,
         "total_mentions": total_mentions,
         "dominant_share": round(float(share), 4),
         "concentration_gap": int(concentration_gap),
@@ -126,6 +143,8 @@ def main():
         signals=signals,
         nonzero_results=nonzero,
         concentration=concentration,
+        group_scores=group_scores,
+        dominant_group=dominant_group,
         market_snapshot=market_snapshot,
     )
     report_file = save_report(report_text, stamp)

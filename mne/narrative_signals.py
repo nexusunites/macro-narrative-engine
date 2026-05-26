@@ -1,3 +1,30 @@
+NARRATIVE_GROUPS = {
+    "AI / Tech Growth": ["ai", "semiconductors", "big_tech"],
+    "Macro Pressure": ["rates", "inflation", "recession"],
+    "Energy / Commodities": ["energy", "oil", "commodities"],
+    "Geopolitical Risk": ["war", "china", "tariffs"],
+}
+
+
+def compute_group_scores(theme_scores, narrative_groups=None):
+    narrative_groups = narrative_groups or NARRATIVE_GROUPS
+    group_scores = {}
+
+    for group, themes in narrative_groups.items():
+        score = sum(theme_scores.get(theme, 0) for theme in themes)
+        if score > 0:
+            group_scores[group] = score
+
+    return group_scores
+
+
+def get_dominant_group(group_scores):
+    if not group_scores:
+        return None, 0
+
+    return max(group_scores.items(), key=lambda item: item[1])
+
+
 def compute_narrative_concentration(nonzero_results):
     top_theme = None
     top_count = 0

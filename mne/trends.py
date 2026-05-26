@@ -1,6 +1,10 @@
 from mne.storage import get_last_two_result_files, get_recent_daily_runs, load_json
 
 
+def get_theme_metric(run):
+    return run.get("theme_scores") or run.get("theme_counts", {})
+
+
 def trend_direction(delta, epsilon=0):
     if delta > epsilon:
         return "UP"
@@ -52,8 +56,8 @@ def print_momentum(results_dir):
     current = load_json(latest)
     prior = load_json(previous)
 
-    cur_counts = current.get("theme_counts", {})
-    prev_counts = prior.get("theme_counts", {})
+    cur_counts = get_theme_metric(current)
+    prev_counts = get_theme_metric(prior)
     all_themes = sorted(set(cur_counts.keys()) | set(prev_counts.keys()))
 
     printed_any = False
@@ -95,7 +99,7 @@ def print_daily_count_trends(results_dir, lookback, epsilon):
     theme_history = {}
 
     for run in recent_runs:
-        counts = run.get("theme_counts", {})
+        counts = get_theme_metric(run)
 
         for theme, count in counts.items():
             theme_history.setdefault(theme, []).append(count)
@@ -125,7 +129,7 @@ def print_daily_share_trends(results_dir, lookback, epsilon, top_n=3):
     theme_share_history = {}
 
     for run in recent_runs:
-        counts = run.get("theme_counts", {})
+        counts = get_theme_metric(run)
         total = sum(count for count in counts.values() if count > 0)
 
         if total == 0:

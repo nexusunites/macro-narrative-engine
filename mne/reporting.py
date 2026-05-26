@@ -2,8 +2,23 @@ from mne.market_context import classify_market_move
 
 
 def print_theme_counts(nonzero_results):
+    print("=== Narrative Theme Scores ===")
     for theme, count in nonzero_results:
         print(f"{theme}: {count}")
+
+
+def print_group_scores(group_scores):
+    print()
+    print("=== Narrative Group Scores ===")
+
+    for group, score in sorted(group_scores.items(), key=lambda item: item[1], reverse=True):
+        print(f"{group}: {score}")
+
+
+def print_dominant_narratives(dominant_theme, dominant_group):
+    print()
+    print(f"Dominant Theme: {dominant_theme}")
+    print(f"Dominant Narrative Group: {dominant_group}")
 
 
 def print_narrative_concentration(concentration):
@@ -11,9 +26,9 @@ def print_narrative_concentration(concentration):
     print("=== Narrative Concentration ===")
     print(
         f"Dominant Narrative: {concentration['dominant_theme']} "
-        f"({concentration['dominant_count']} mentions)"
+        f"({concentration['dominant_count']} score)"
     )
-    print(f"Total Mentions: {concentration['total_mentions']}")
+    print(f"Total Score: {concentration['total_mentions']}")
     print(f"Dominant Narrative Share: {concentration['dominant_share'] * 100:.1f}%")
     print(f"Concentration Gap: {concentration['concentration_gap']}")
 
@@ -49,7 +64,7 @@ def print_top_theme_examples(nonzero_results, examples, limit=3):
 
     for theme, count in nonzero_results[:limit]:
         print()
-        print(f"[{theme}] ({count})")
+        print(f"[{theme}] ({count} score)")
         for i, headline in enumerate(examples[theme], start=1):
             print(f"  {i}. {headline}")
 
@@ -62,6 +77,8 @@ def build_daily_report(
     signals,
     nonzero_results,
     concentration,
+    group_scores=None,
+    dominant_group=None,
     market_snapshot=None,
 ):
     report_lines = []
@@ -80,13 +97,20 @@ def build_daily_report(
         report_lines.append(f"{signal}: {value}")
 
     report_lines.append("")
-    report_lines.append("=== Top Narratives ===")
+    report_lines.append("=== Narrative Theme Scores ===")
     for theme, count in nonzero_results[:3]:
         report_lines.append(f"{theme}: {count}")
 
+    if group_scores:
+        report_lines.append("")
+        report_lines.append("=== Narrative Group Scores ===")
+        for group, score in sorted(group_scores.items(), key=lambda item: item[1], reverse=True):
+            report_lines.append(f"{group}: {score}")
+
     report_lines.append("")
     report_lines.append("=== Narrative Concentration ===")
-    report_lines.append(f"Dominant Narrative: {concentration['dominant_theme']}")
+    report_lines.append(f"Dominant Theme: {concentration['dominant_theme']}")
+    report_lines.append(f"Dominant Narrative Group: {dominant_group}")
     report_lines.append(f"Dominant Share: {concentration['dominant_share'] * 100:.1f}%")
     report_lines.append(f"Concentration Gap: {concentration['concentration_gap']}")
 

@@ -1,5 +1,29 @@
-# mne/rss_fetch.py
+import re
+
 import feedparser
+
+
+def normalize_headline(headline):
+    headline = headline.lower()
+    headline = re.sub(r"[^a-z0-9\s]", "", headline)
+    headline = re.sub(r"\s+", " ", headline).strip()
+    return headline
+
+
+def dedupe_headlines(headlines):
+    deduped = []
+    seen = set()
+
+    for headline in headlines:
+        normalized = normalize_headline(headline)
+        if not normalized or normalized in seen:
+            continue
+
+        seen.add(normalized)
+        deduped.append(headline)
+
+    return deduped
+
 
 def fetch_headlines_from_rss(rss_urls, limit_per_feed=25):
     headlines = []
@@ -11,6 +35,4 @@ def fetch_headlines_from_rss(rss_urls, limit_per_feed=25):
             if title:
                 headlines.append(title)
 
-    # De-dupe while preserving order
-    deduped = list(dict.fromkeys(headlines))
-    return deduped
+    return dedupe_headlines(headlines)
