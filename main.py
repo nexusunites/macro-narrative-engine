@@ -4,6 +4,7 @@ from analysis.narrative_dynamics import calculate_narrative_dynamics
 from config import DATA_DIR, RESULTS_DIR
 from mne.environment import classify_market_environment
 from mne.market_context import get_market_snapshot
+from mne.narrative_market_relationship import classify_narrative_market_relationship
 from mne.narrative_signals import (
     compute_group_scores,
     compute_narrative_concentration,
@@ -16,6 +17,7 @@ from mne.reporting import (
     print_group_scores,
     print_market_context,
     print_market_environment,
+    print_narrative_market_relationship,
     print_narrative_concentration,
     print_narrative_dynamics,
     print_narrative_signals,
@@ -23,7 +25,7 @@ from mne.reporting import (
     print_top_theme_examples,
 )
 from mne.rss_fetch import fetch_headlines_from_rss
-from mne.storage import save_headlines, save_report, save_run_json
+from mne.storage import get_recent_runs, save_headlines, save_report, save_run_json
 from mne.theme_analysis import analyze_themes, load_themes
 from mne.trends import print_daily_count_trends, print_daily_share_trends, print_momentum
 
@@ -105,6 +107,7 @@ def main():
     signals = {}
     market_snapshot = {}
     market_environment = None
+    narrative_market_relationship = None
 
     if nonzero:
         print_dominant_narratives(top_theme, dominant_group)
@@ -121,9 +124,6 @@ def main():
             concentration=concentration,
             dominant_group=dominant_group,
         )
-        print_market_environment(market_environment)
-        print_market_context(market_snapshot)
-        print_top_theme_examples(nonzero, examples)
     else:
         print()
         print("No narratives detected today.")
@@ -159,6 +159,33 @@ def main():
     )
     run["narrative_dynamics"] = narrative_dynamics
 
+    if nonzero:
+        prior_runs = get_recent_runs(RESULTS_DIR, 1)
+        prior_dominant_group = prior_runs[-1].get("dominant_group") if prior_runs else None
+        narrative_market_relationship = classify_narrative_market_relationship(
+            current_run=run,
+            narrative_dynamics=narrative_dynamics,
+            market_snapshot=market_snapshot,
+            prior_dominant_group=prior_dominant_group,
+        )
+        run["narrative_market_relationship"] = narrative_market_relationship
+
+        print_market_environment(market_environment)
+        print_narrative_market_relationship(narrative_market_relationship)
+        print_market_context(market_snapshot)
+        print_top_theme_examples(nonzero, examples)
+    else:
+        neutral_relationship = {
+            "state": "Neutral / Mixed",
+            "confidence": "Low",
+            "reason": (
+                "No narratives were detected, so no narrative and market "
+                "relationship could be classified."
+            ),
+        }
+        run["narrative_market_relationship"] = neutral_relationship
+        narrative_market_relationship = neutral_relationship
+
     results_dir, results_file = save_run_json(run, stamp)
     print()
     print(f"Results saved to {results_file}")
@@ -174,6 +201,7 @@ def main():
         group_scores=group_scores,
         dominant_group=dominant_group,
         market_environment=market_environment,
+        narrative_market_relationship=narrative_market_relationship,
         narrative_dynamics=narrative_dynamics,
         top_themes=nonzero,
         top_groups=sorted_group_scores,

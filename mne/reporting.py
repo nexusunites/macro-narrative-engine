@@ -51,6 +51,16 @@ def print_market_environment(environment):
     print(environment["reason"])
 
 
+def print_narrative_market_relationship(relationship):
+    print()
+    print("=== Narrative / Market Relationship ===")
+    print(f"State: {relationship['state']}")
+    print(f"Confidence: {relationship['confidence']}")
+    print()
+    print("Reason:")
+    print(relationship["reason"])
+
+
 def print_market_context(market_snapshot):
     print()
     print("=== Nasdaq Context ===")
@@ -145,6 +155,7 @@ def build_daily_report(
     group_scores=None,
     dominant_group=None,
     market_environment=None,
+    narrative_market_relationship=None,
     narrative_dynamics=None,
     top_themes=None,
     top_groups=None,
@@ -173,6 +184,15 @@ def build_daily_report(
         report_lines.append("")
         report_lines.append("Reason:")
         report_lines.append(market_environment["reason"])
+
+    if narrative_market_relationship:
+        report_lines.append("")
+        report_lines.append("=== Narrative / Market Relationship ===")
+        report_lines.append(f"State: {narrative_market_relationship['state']}")
+        report_lines.append(f"Confidence: {narrative_market_relationship['confidence']}")
+        report_lines.append("")
+        report_lines.append("Reason:")
+        report_lines.append(narrative_market_relationship["reason"])
 
     report_lines.append("")
     report_lines.append("=== Narrative Theme Scores ===")
