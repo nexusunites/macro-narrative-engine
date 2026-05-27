@@ -1,13 +1,15 @@
 import json
 from pathlib import Path
 
+from config import HEADLINES_DIR, REPORTS_DIR, RESULTS_DIR
+
 
 def load_json(path: Path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def save_headlines(headlines, stamp, headlines_dir=Path("data/headlines")):
+def save_headlines(headlines, stamp, headlines_dir=HEADLINES_DIR):
     headlines_dir.mkdir(parents=True, exist_ok=True)
     headlines_file = headlines_dir / f"{stamp}.txt"
 
@@ -18,7 +20,7 @@ def save_headlines(headlines, stamp, headlines_dir=Path("data/headlines")):
     return headlines_file
 
 
-def save_run_json(run, stamp, results_dir=Path("data/results")):
+def save_run_json(run, stamp, results_dir=RESULTS_DIR):
     results_dir.mkdir(parents=True, exist_ok=True)
     results_file = results_dir / f"{stamp}.json"
 
@@ -28,7 +30,7 @@ def save_run_json(run, stamp, results_dir=Path("data/results")):
     return results_dir, results_file
 
 
-def save_report(report_text, stamp, reports_dir=Path("data/reports")):
+def save_report(report_text, stamp, reports_dir=REPORTS_DIR):
     reports_dir.mkdir(parents=True, exist_ok=True)
     report_file = reports_dir / f"{stamp}.txt"
 

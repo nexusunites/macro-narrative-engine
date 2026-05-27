@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from config import RESULTS_DIR
 from mne.narrative_signals import compute_group_scores
 from mne.storage import load_json
 
@@ -50,7 +51,7 @@ def classify_decay(values):
     return "NONE"
 
 
-def load_recent_runs(results_dir=Path("data/results"), lookback=5):
+def load_recent_runs(results_dir=RESULTS_DIR, lookback=5):
     files = sorted(Path(results_dir).glob("*.json"))
     return [load_json(file) for file in files[-lookback:]]
 
@@ -141,7 +142,7 @@ def calculate_narrative_crowding(current_run, dynamics, dominant_group_runs):
 
 
 def calculate_narrative_dynamics(
-    results_dir=Path("data/results"),
+    results_dir=RESULTS_DIR,
     current_run=None,
     top_themes=None,
     top_groups=None,

@@ -20,7 +20,7 @@ Recommended build order:
 
 ## Data Storage
 
-Raw headlines are saved by date and time inside `data/headlines/`.
+Raw headlines are saved by date and time inside the configured runtime data directory. By default this is `~/Google Drive/MNE-data/headlines/`, and it can be overridden with `MNE_DATA_DIR`.
 
 This preserves a historical dataset so old headlines can be reanalyzed later as theme logic, scoring, and narrative models improve.
 

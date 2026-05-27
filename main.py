@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from analysis.narrative_dynamics import calculate_narrative_dynamics
+from config import DATA_DIR, RESULTS_DIR
 from mne.environment import classify_market_environment
 from mne.market_context import get_market_snapshot
 from mne.narrative_signals import (
@@ -53,6 +54,8 @@ TREND_EPSILON = 0.02
 
 def main():
     print("=== Daily Narrative Snapshot ===")
+    print()
+    print(f"Active Data Directory: {DATA_DIR}")
     print()
 
     now = datetime.now()
@@ -148,7 +151,7 @@ def main():
     }
 
     narrative_dynamics = calculate_narrative_dynamics(
-        results_dir="data/results",
+        results_dir=RESULTS_DIR,
         current_run=run,
         top_themes=nonzero,
         top_groups=sorted_group_scores,
