@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from analysis.narrative_dynamics import calculate_narrative_dynamics
 from mne.environment import classify_market_environment
 from mne.market_context import get_market_snapshot
 from mne.narrative_signals import (
@@ -15,6 +16,7 @@ from mne.reporting import (
     print_market_context,
     print_market_environment,
     print_narrative_concentration,
+    print_narrative_dynamics,
     print_narrative_signals,
     print_theme_counts,
     print_top_theme_examples,
@@ -89,6 +91,7 @@ def main():
     group_scores = compute_group_scores(theme_scores)
     dominant_group, dominant_group_score = get_dominant_group(group_scores)
     print_group_scores(group_scores)
+    sorted_group_scores = sorted(group_scores.items(), key=lambda item: item[1], reverse=True)
 
     concentration = compute_narrative_concentration(nonzero)
     top_theme = concentration["dominant_theme"]
@@ -144,6 +147,15 @@ def main():
         "examples": {k: v for k, v in examples.items() if k in dict(nonzero[:3])},
     }
 
+    narrative_dynamics = calculate_narrative_dynamics(
+        results_dir="data/results",
+        current_run=run,
+        top_themes=nonzero,
+        top_groups=sorted_group_scores,
+        lookback=5,
+    )
+    run["narrative_dynamics"] = narrative_dynamics
+
     results_dir, results_file = save_run_json(run, stamp)
     print()
     print(f"Results saved to {results_file}")
@@ -159,6 +171,9 @@ def main():
         group_scores=group_scores,
         dominant_group=dominant_group,
         market_environment=market_environment,
+        narrative_dynamics=narrative_dynamics,
+        top_themes=nonzero,
+        top_groups=sorted_group_scores,
         market_snapshot=market_snapshot,
     )
     report_file = save_report(report_text, stamp)
@@ -167,6 +182,7 @@ def main():
     print_momentum(results_dir)
     print_daily_count_trends(results_dir, TREND_LOOKBACK, TREND_EPSILON)
     print_daily_share_trends(results_dir, TREND_LOOKBACK, TREND_EPSILON)
+    print_narrative_dynamics(narrative_dynamics, nonzero, sorted_group_scores)
 
 
 if __name__ == "__main__":

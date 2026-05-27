@@ -79,6 +79,61 @@ def print_top_theme_examples(nonzero_results, examples, limit=3):
             print(f"  {i}. {headline}")
 
 
+def print_narrative_dynamics(dynamics, top_themes=None, top_groups=None, limit=3):
+    print()
+    print("=== Narrative Dynamics ===")
+
+    top_themes = top_themes or []
+    top_groups = top_groups or []
+
+    print()
+    print("Top Theme Dynamics:")
+    for theme, _ in top_themes[:limit]:
+        values = dynamics.get("themes", {}).get(theme)
+        if not values:
+            continue
+
+        print(f"{theme}:")
+        print(f"  Current Score: {values['current_score']}")
+        print(f"  3-Run Avg: {values['rolling_avg_3']}")
+        print(f"  5-Run Avg: {values['rolling_avg_5']}")
+        print(f"  Acceleration: {values['acceleration']}")
+        print(f"  Decay: {values['decay']}")
+
+    print()
+    print("Top Group Dynamics:")
+    for group, _ in top_groups[:limit]:
+        values = dynamics.get("groups", {}).get(group)
+        if not values:
+            continue
+
+        print(f"{group}:")
+        print(f"  Current Score: {values['current_score']}")
+        print(f"  3-Run Avg: {values['rolling_avg_3']}")
+        print(f"  5-Run Avg: {values['rolling_avg_5']}")
+        print(f"  Acceleration: {values['acceleration']}")
+        print(f"  Decay: {values['decay']}")
+
+    persistence = dynamics.get("persistence", {})
+    print()
+    print("Dominance Persistence:")
+    print(
+        f"  Dominant Theme: {persistence.get('dominant_theme')} "
+        f"for {persistence.get('dominant_theme_runs', 0)} consecutive runs"
+    )
+    print(
+        f"  Dominant Group: {persistence.get('dominant_group')} "
+        f"for {persistence.get('dominant_group_runs', 0)} consecutive runs"
+    )
+
+    crowding = dynamics.get("narrative_crowding", {})
+    print()
+    print("Narrative Crowding Risk:")
+    print(f"  Risk: {crowding.get('risk')}")
+    print(f"  Reason: {crowding.get('reason')}")
+    print(f"  Note: {crowding.get('note')}")
+
+
 def build_daily_report(
     readable_time,
     headline_count,
@@ -90,6 +145,9 @@ def build_daily_report(
     group_scores=None,
     dominant_group=None,
     market_environment=None,
+    narrative_dynamics=None,
+    top_themes=None,
+    top_groups=None,
     market_snapshot=None,
 ):
     report_lines = []
@@ -133,6 +191,57 @@ def build_daily_report(
     report_lines.append(f"Dominant Narrative Group: {dominant_group}")
     report_lines.append(f"Dominant Share: {concentration['dominant_share'] * 100:.1f}%")
     report_lines.append(f"Concentration Gap: {concentration['concentration_gap']}")
+
+    if narrative_dynamics:
+        top_themes = top_themes or []
+        top_groups = top_groups or []
+
+        report_lines.append("")
+        report_lines.append("=== Narrative Dynamics ===")
+        report_lines.append("")
+        report_lines.append("Top Theme Dynamics:")
+        for theme, _ in top_themes[:3]:
+            values = narrative_dynamics.get("themes", {}).get(theme)
+            if not values:
+                continue
+            report_lines.append(f"{theme}:")
+            report_lines.append(f"  Current Score: {values['current_score']}")
+            report_lines.append(f"  3-Run Avg: {values['rolling_avg_3']}")
+            report_lines.append(f"  5-Run Avg: {values['rolling_avg_5']}")
+            report_lines.append(f"  Acceleration: {values['acceleration']}")
+            report_lines.append(f"  Decay: {values['decay']}")
+
+        report_lines.append("")
+        report_lines.append("Top Group Dynamics:")
+        for group, _ in top_groups[:3]:
+            values = narrative_dynamics.get("groups", {}).get(group)
+            if not values:
+                continue
+            report_lines.append(f"{group}:")
+            report_lines.append(f"  Current Score: {values['current_score']}")
+            report_lines.append(f"  3-Run Avg: {values['rolling_avg_3']}")
+            report_lines.append(f"  5-Run Avg: {values['rolling_avg_5']}")
+            report_lines.append(f"  Acceleration: {values['acceleration']}")
+            report_lines.append(f"  Decay: {values['decay']}")
+
+        persistence = narrative_dynamics.get("persistence", {})
+        report_lines.append("")
+        report_lines.append("Dominance Persistence:")
+        report_lines.append(
+            f"  Dominant Theme: {persistence.get('dominant_theme')} "
+            f"for {persistence.get('dominant_theme_runs', 0)} consecutive runs"
+        )
+        report_lines.append(
+            f"  Dominant Group: {persistence.get('dominant_group')} "
+            f"for {persistence.get('dominant_group_runs', 0)} consecutive runs"
+        )
+
+        crowding = narrative_dynamics.get("narrative_crowding", {})
+        report_lines.append("")
+        report_lines.append("Narrative Crowding Risk:")
+        report_lines.append(f"  Risk: {crowding.get('risk')}")
+        report_lines.append(f"  Reason: {crowding.get('reason')}")
+        report_lines.append(f"  Note: {crowding.get('note')}")
 
     if market_snapshot:
         report_lines.append("")
