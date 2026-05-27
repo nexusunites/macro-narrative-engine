@@ -61,6 +61,16 @@ def print_narrative_market_relationship(relationship):
     print(relationship["reason"])
 
 
+def print_breadth_confirmation(breadth_confirmation):
+    print()
+    print("=== Breadth Confirmation ===")
+    print(f"State: {breadth_confirmation['state']}")
+    print(f"Confidence: {breadth_confirmation['confidence']}")
+    print()
+    print("Reason:")
+    print(breadth_confirmation["reason"])
+
+
 def print_market_context(market_snapshot):
     print()
     print("=== Nasdaq Context ===")
@@ -156,6 +166,7 @@ def build_daily_report(
     dominant_group=None,
     market_environment=None,
     narrative_market_relationship=None,
+    breadth_confirmation=None,
     narrative_dynamics=None,
     top_themes=None,
     top_groups=None,
@@ -193,6 +204,15 @@ def build_daily_report(
         report_lines.append("")
         report_lines.append("Reason:")
         report_lines.append(narrative_market_relationship["reason"])
+
+    if breadth_confirmation:
+        report_lines.append("")
+        report_lines.append("=== Breadth Confirmation ===")
+        report_lines.append(f"State: {breadth_confirmation['state']}")
+        report_lines.append(f"Confidence: {breadth_confirmation['confidence']}")
+        report_lines.append("")
+        report_lines.append("Reason:")
+        report_lines.append(breadth_confirmation["reason"])
 
     report_lines.append("")
     report_lines.append("=== Narrative Theme Scores ===")

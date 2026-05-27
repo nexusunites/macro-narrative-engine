@@ -2,6 +2,7 @@ from datetime import datetime
 
 from analysis.narrative_dynamics import calculate_narrative_dynamics
 from config import DATA_DIR, RESULTS_DIR
+from mne.breadth import BREADTH_TICKERS, classify_breadth_confirmation
 from mne.environment import classify_market_environment
 from mne.market_context import get_market_snapshot
 from mne.narrative_market_relationship import classify_narrative_market_relationship
@@ -13,6 +14,7 @@ from mne.narrative_signals import (
 )
 from mne.reporting import (
     build_daily_report,
+    print_breadth_confirmation,
     print_dominant_narratives,
     print_group_scores,
     print_market_context,
@@ -108,6 +110,7 @@ def main():
     market_snapshot = {}
     market_environment = None
     narrative_market_relationship = None
+    breadth_confirmation = None
 
     if nonzero:
         print_dominant_narratives(top_theme, dominant_group)
@@ -115,7 +118,7 @@ def main():
         signals = compute_narrative_signals(top_theme, share, concentration_gap, theme_scores)
         print_narrative_signals(signals)
 
-        market_snapshot = get_market_snapshot(NASDAQ_TICKERS)
+        market_snapshot = get_market_snapshot({**NASDAQ_TICKERS, **BREADTH_TICKERS})
         market_environment = classify_market_environment(
             theme_scores=theme_scores,
             group_scores=group_scores,
@@ -147,6 +150,7 @@ def main():
         "dominant_share": round(float(share), 4),
         "concentration_gap": int(concentration_gap),
         "market_environment": market_environment,
+        "breadth_confirmation": breadth_confirmation,
         "examples": {k: v for k, v in examples.items() if k in dict(nonzero[:3])},
     }
 
@@ -169,10 +173,15 @@ def main():
             prior_dominant_group=prior_dominant_group,
         )
         run["narrative_market_relationship"] = narrative_market_relationship
+        breadth_confirmation = classify_breadth_confirmation(market_snapshot)
+        run["breadth_confirmation"] = breadth_confirmation
 
         print_market_environment(market_environment)
         print_narrative_market_relationship(narrative_market_relationship)
-        print_market_context(market_snapshot)
+        print_breadth_confirmation(breadth_confirmation)
+        print_market_context(
+            {name: market_snapshot.get(name) for name in NASDAQ_TICKERS.keys()}
+        )
         print_top_theme_examples(nonzero, examples)
     else:
         neutral_relationship = {
@@ -185,6 +194,12 @@ def main():
         }
         run["narrative_market_relationship"] = neutral_relationship
         narrative_market_relationship = neutral_relationship
+        breadth_confirmation = {
+            "state": "Neutral Breadth",
+            "confidence": "Low",
+            "reason": "No narratives were detected, so breadth was not evaluated.",
+        }
+        run["breadth_confirmation"] = breadth_confirmation
 
     results_dir, results_file = save_run_json(run, stamp)
     print()
@@ -202,10 +217,11 @@ def main():
         dominant_group=dominant_group,
         market_environment=market_environment,
         narrative_market_relationship=narrative_market_relationship,
+        breadth_confirmation=breadth_confirmation,
         narrative_dynamics=narrative_dynamics,
         top_themes=nonzero,
         top_groups=sorted_group_scores,
-        market_snapshot=market_snapshot,
+        market_snapshot={name: market_snapshot.get(name) for name in NASDAQ_TICKERS.keys()},
     )
     report_file = save_report(report_text, stamp)
     print(f"Report saved to {report_file}")

@@ -5,7 +5,11 @@ def get_market_snapshot(tickers):
     snapshot = {}
 
     for name, ticker in tickers.items():
-        data = yf.Ticker(ticker).history(period="5d")
+        try:
+            data = yf.Ticker(ticker).history(period="5d")
+        except Exception:
+            snapshot[name] = None
+            continue
 
         if data.empty or len(data) < 2:
             snapshot[name] = None
