@@ -3,6 +3,7 @@ from datetime import datetime
 from analysis.narrative_dynamics import calculate_narrative_dynamics
 from config import DATA_DIR, RESULTS_DIR
 from mne.breadth import BREADTH_TICKERS, classify_breadth_confirmation
+from mne.catalyst_environment import classify_catalyst_environment
 from mne.environment import classify_market_environment
 from mne.market_context import get_market_snapshot
 from mne.narrative_market_relationship import classify_narrative_market_relationship
@@ -15,6 +16,7 @@ from mne.narrative_signals import (
 from mne.reporting import (
     build_daily_report,
     print_breadth_confirmation,
+    print_catalyst_environment,
     print_dominant_narratives,
     print_group_scores,
     print_market_context,
@@ -111,6 +113,7 @@ def main():
     market_environment = None
     narrative_market_relationship = None
     breadth_confirmation = None
+    catalyst_environment = classify_catalyst_environment()
 
     if nonzero:
         print_dominant_narratives(top_theme, dominant_group)
@@ -151,6 +154,7 @@ def main():
         "concentration_gap": int(concentration_gap),
         "market_environment": market_environment,
         "breadth_confirmation": breadth_confirmation,
+        "catalyst_environment": catalyst_environment,
         "examples": {k: v for k, v in examples.items() if k in dict(nonzero[:3])},
     }
 
@@ -179,6 +183,7 @@ def main():
         print_market_environment(market_environment)
         print_narrative_market_relationship(narrative_market_relationship)
         print_breadth_confirmation(breadth_confirmation)
+        print_catalyst_environment(catalyst_environment)
         print_market_context(
             {name: market_snapshot.get(name) for name in NASDAQ_TICKERS.keys()}
         )
@@ -200,6 +205,7 @@ def main():
             "reason": "No narratives were detected, so breadth was not evaluated.",
         }
         run["breadth_confirmation"] = breadth_confirmation
+        print_catalyst_environment(catalyst_environment)
 
     results_dir, results_file = save_run_json(run, stamp)
     print()
@@ -218,6 +224,7 @@ def main():
         market_environment=market_environment,
         narrative_market_relationship=narrative_market_relationship,
         breadth_confirmation=breadth_confirmation,
+        catalyst_environment=catalyst_environment,
         narrative_dynamics=narrative_dynamics,
         top_themes=nonzero,
         top_groups=sorted_group_scores,

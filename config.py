@@ -12,6 +12,8 @@ else:
 HEADLINES_DIR = DATA_DIR / "headlines"
 RESULTS_DIR = DATA_DIR / "results"
 REPORTS_DIR = DATA_DIR / "reports"
+EVENTS_DIR = DATA_DIR / "events"
+EVENTS_FILE = EVENTS_DIR / "events.json"
 
-for folder in [HEADLINES_DIR, RESULTS_DIR, REPORTS_DIR]:
+for folder in [HEADLINES_DIR, RESULTS_DIR, REPORTS_DIR, EVENTS_DIR]:
     folder.mkdir(parents=True, exist_ok=True)

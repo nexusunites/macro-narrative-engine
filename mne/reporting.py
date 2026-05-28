@@ -71,6 +71,33 @@ def print_breadth_confirmation(breadth_confirmation):
     print(breadth_confirmation["reason"])
 
 
+def print_catalyst_environment(catalyst_environment):
+    print()
+    print("=== Catalyst Environment ===")
+    print(f"State: {catalyst_environment['state']}")
+    print(f"Confidence: {catalyst_environment['confidence']}")
+
+    print()
+    print("Red Folder Events:")
+    if catalyst_environment.get("red_events"):
+        for i, event in enumerate(catalyst_environment["red_events"], start=1):
+            print(f"  {i}. {event.get('time')} {event.get('currency')} {event.get('event')}")
+    else:
+        print("  None")
+
+    print()
+    print("Orange Folder Events:")
+    if catalyst_environment.get("orange_events"):
+        for i, event in enumerate(catalyst_environment["orange_events"], start=1):
+            print(f"  {i}. {event.get('time')} {event.get('currency')} {event.get('event')}")
+    else:
+        print("  None")
+
+    print()
+    print("Reason:")
+    print(catalyst_environment["reason"])
+
+
 def print_market_context(market_snapshot):
     print()
     print("=== Nasdaq Context ===")
@@ -167,6 +194,7 @@ def build_daily_report(
     market_environment=None,
     narrative_market_relationship=None,
     breadth_confirmation=None,
+    catalyst_environment=None,
     narrative_dynamics=None,
     top_themes=None,
     top_groups=None,
@@ -213,6 +241,33 @@ def build_daily_report(
         report_lines.append("")
         report_lines.append("Reason:")
         report_lines.append(breadth_confirmation["reason"])
+
+    if catalyst_environment:
+        report_lines.append("")
+        report_lines.append("=== Catalyst Environment ===")
+        report_lines.append(f"State: {catalyst_environment['state']}")
+        report_lines.append(f"Confidence: {catalyst_environment['confidence']}")
+        report_lines.append("")
+        report_lines.append("Red Folder Events:")
+        if catalyst_environment.get("red_events"):
+            for i, event in enumerate(catalyst_environment["red_events"], start=1):
+                report_lines.append(
+                    f"  {i}. {event.get('time')} {event.get('currency')} {event.get('event')}"
+                )
+        else:
+            report_lines.append("  None")
+        report_lines.append("")
+        report_lines.append("Orange Folder Events:")
+        if catalyst_environment.get("orange_events"):
+            for i, event in enumerate(catalyst_environment["orange_events"], start=1):
+                report_lines.append(
+                    f"  {i}. {event.get('time')} {event.get('currency')} {event.get('event')}"
+                )
+        else:
+            report_lines.append("  None")
+        report_lines.append("")
+        report_lines.append("Reason:")
+        report_lines.append(catalyst_environment["reason"])
 
     report_lines.append("")
     report_lines.append("=== Narrative Theme Scores ===")
