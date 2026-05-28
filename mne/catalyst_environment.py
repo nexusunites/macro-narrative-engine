@@ -1,7 +1,11 @@
 import json
 from datetime import datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 from config import EVENTS_FILE
+
+
+NEW_YORK_TZ = ZoneInfo("America/New_York")
 
 
 MAJOR_CATALYST_KEYWORDS = [
@@ -58,7 +62,15 @@ def timing_bucket(event_dt):
     return "evening"
 
 
-def event_output(event, event_dt):
+def event_timing_bucket(event_dt, now):
+    if event_dt.date() > now.date():
+        return "tomorrow"
+    if event_dt <= now:
+        return "past_today"
+    return "upcoming_today"
+
+
+def event_output(event, event_dt, now):
     return {
         "date": event.get("date"),
         "time": event.get("time"),
@@ -66,6 +78,7 @@ def event_output(event, event_dt):
         "event": event.get("event"),
         "category": event.get("category"),
         "timing": timing_bucket(event_dt),
+        "event_timing": event_timing_bucket(event_dt, now),
     }
 
 
@@ -101,7 +114,7 @@ def split_events(events, now):
             continue
 
         impact = (event.get("impact") or "").lower().strip()
-        output = event_output(event, event_dt)
+        output = event_output(event, event_dt, now)
         output["_dt"] = event_dt
         output["_major"] = is_major_catalyst(event)
 
@@ -133,6 +146,7 @@ def public_events(events):
                 "currency": event.get("currency"),
                 "event": event.get("event"),
                 "category": event.get("category"),
+                "event_timing": event.get("event_timing"),
             }
         )
 
@@ -158,7 +172,8 @@ def morning_red_released(red_today, now):
     return [
         event
         for event in red_today
-        if event.get("_dt")
+        if event.get("_major")
+        and event.get("_dt")
         and event["_dt"] <= now
         and event["_dt"].time() < time(9, 30)
     ]
@@ -172,26 +187,28 @@ def confidence_for_state(state, event=None, red_count=0):
         "Major Event Pending",
     }:
         if event and event.get("_major"):
-            return "HIGH"
-        return "MODERATE"
+            return "High"
+        return "Moderate"
 
     if state == "Moderate Catalyst Environment":
-        return "MODERATE"
+        return "Moderate"
 
     if red_count > 0:
-        return "MODERATE"
+        return "Moderate"
 
-    return "LOW"
+    return "Low"
 
 
 def classify_catalyst_environment(events_file=EVENTS_FILE, now=None):
-    now = now or datetime.now()
+    now = now or datetime.now(NEW_YORK_TZ)
+    if now.tzinfo is not None:
+        now = now.astimezone(NEW_YORK_TZ).replace(tzinfo=None)
     events = load_events(events_file)
 
     if events is None:
         return {
             "state": "No Scheduled Catalyst Environment",
-            "confidence": "LOW",
+            "confidence": "Low",
             "red_events": [],
             "orange_events": [],
             "reason": "No catalyst calendar file found.",
@@ -247,9 +264,9 @@ def classify_catalyst_environment(events_file=EVENTS_FILE, now=None):
             "red_events": red_events,
             "orange_events": orange_events,
             "reason": (
-                "A major morning catalyst has already occurred, meaning liquidity has "
-                "entered the market before the open. Price action may show stronger "
-                "conviction after the open."
+                f"A major morning catalyst occurred at {event.get('time')}, meaning "
+                "liquidity has already entered the market. Price action may show "
+                "stronger conviction after the open."
             ),
         }
 
@@ -279,7 +296,7 @@ def classify_catalyst_environment(events_file=EVENTS_FILE, now=None):
     if orange_today or orange_tomorrow:
         return {
             "state": "Moderate Catalyst Environment",
-            "confidence": "MODERATE",
+            "confidence": "Moderate",
             "red_events": red_events,
             "orange_events": orange_events,
             "reason": (
@@ -291,7 +308,7 @@ def classify_catalyst_environment(events_file=EVENTS_FILE, now=None):
     if filtered["other"]:
         return {
             "state": "Low Catalyst Environment",
-            "confidence": "LOW",
+            "confidence": "Low",
             "red_events": red_events,
             "orange_events": orange_events,
             "reason": "Only low or unknown impact events are scheduled today or tomorrow.",
@@ -299,7 +316,7 @@ def classify_catalyst_environment(events_file=EVENTS_FILE, now=None):
 
     return {
         "state": "No Scheduled Catalyst Environment",
-        "confidence": "LOW",
+        "confidence": "Low",
         "red_events": [],
         "orange_events": [],
         "reason": "No scheduled catalysts found for today or tomorrow.",
