@@ -108,6 +108,12 @@ weighted keyword scoring model:
 - `medium` = 2
 - `weak` = 1
 
+Within a single theme/headline, overlapping keyword matches use a longest-match
+wins rule before score and audit updates. This prevents broader keywords such as
+`rates` or `yields` from adding score when they are nested inside more specific
+phrases such as `interest rates` or `treasury yields`, while still allowing
+separate non-overlapping concepts in the same headline to count.
+
 `theme_analysis.py` also emits lightweight theme match audit metadata. The audit
 tracks which configured keywords or phrases matched each theme, how many times
 they matched, and a few example headlines per term. This is diagnostic output for

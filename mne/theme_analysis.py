@@ -14,9 +14,61 @@ DEFAULT_TAXONOMY_FILE = Path("config/theme_taxonomy.json")
 DEFAULT_TAXONOMY_VERSION = "unknown"
 
 
-def keyword_match(text: str, keyword: str) -> bool:
+def keyword_match_span(text: str, keyword: str):
     pattern = r"\b" + re.escape(keyword.lower().strip()) + r"\b"
-    return re.search(pattern, text.lower()) is not None
+    match = re.search(pattern, text.lower())
+    return match.span() if match else None
+
+
+def keyword_match(text: str, keyword: str) -> bool:
+    return keyword_match_span(text, keyword) is not None
+
+
+def find_theme_keyword_candidates(headline, weighted_keywords):
+    candidates = []
+
+    for strength, keywords in weighted_keywords.items():
+        weight = WEIGHTS.get(strength, 1)
+        for keyword in keywords:
+            span = keyword_match_span(headline, keyword)
+            if span:
+                candidates.append(
+                    {
+                        "keyword": keyword,
+                        "span": span,
+                        "weight": weight,
+                    }
+                )
+
+    return candidates
+
+
+def select_non_overlapping_matches(candidates):
+    kept = []
+    occupied_spans = []
+
+    sorted_candidates = sorted(
+        candidates,
+        key=lambda candidate: (
+            -len(candidate["keyword"]),
+            candidate["span"][0],
+            candidate["keyword"],
+        ),
+    )
+
+    for candidate in sorted_candidates:
+        start, end = candidate["span"]
+        overlaps_existing_match = any(
+            start < occupied_end and end > occupied_start
+            for occupied_start, occupied_end in occupied_spans
+        )
+        if overlaps_existing_match:
+            continue
+
+        kept.append(candidate)
+        occupied_spans.append(candidate["span"])
+
+    return kept
 
 
 def normalize_theme_keywords(theme_keywords):
@@ -126,22 +178,23 @@ def analyze_themes(headlines, themes, examples_per_theme=3):
 
         for theme, weighted_keywords in themes.items():
             headline_theme_score = 0
+            matched_keywords = select_non_overlapping_matches(
+                find_theme_keyword_candidates(headline, weighted_keywords)
+            )
 
-            for strength, keywords in weighted_keywords.items():
-                weight = WEIGHTS.get(strength, 1)
-                for keyword in keywords:
-                    if keyword_match(headline, keyword):
-                        headline_theme_score += weight
-                        term_audit = audit[theme]["matched_terms"].setdefault(
-                            keyword,
-                            {
-                                "count": 0,
-                                "examples": [],
-                            },
-                        )
-                        term_audit["count"] += 1
-                        if len(term_audit["examples"]) < examples_per_theme:
-                            term_audit["examples"].append(headline)
+            for match in matched_keywords:
+                keyword = match["keyword"]
+                headline_theme_score += match["weight"]
+                term_audit = audit[theme]["matched_terms"].setdefault(
+                    keyword,
+                    {
+                        "count": 0,
+                        "examples": [],
+                    },
+                )
+                term_audit["count"] += 1
+                if len(term_audit["examples"]) < examples_per_theme:
+                    term_audit["examples"].append(headline)
 
             if headline_theme_score > 0:
                 counts[theme] += 1
