@@ -110,10 +110,15 @@ def analyze_themes(headlines, themes, examples_per_theme=3):
       examples: dict[theme] -> list[str] (up to examples_per_theme headlines)
       matched_headlines: int (how many headlines matched at least one theme)
       scores: dict[theme] -> weighted keyword score
+      audit: dict[theme] -> matched keyword counts and example headlines
     """
     counts = {theme: 0 for theme in themes.keys()}
     scores = {theme: 0 for theme in themes.keys()}
     examples = {theme: [] for theme in themes.keys()}
+    audit = {
+        theme: {"matched_terms": {}}
+        for theme in themes.keys()
+    }
     matched_headlines = 0
 
     for headline in headlines:
@@ -127,6 +132,16 @@ def analyze_themes(headlines, themes, examples_per_theme=3):
                 for keyword in keywords:
                     if keyword_match(headline, keyword):
                         headline_theme_score += weight
+                        term_audit = audit[theme]["matched_terms"].setdefault(
+                            keyword,
+                            {
+                                "count": 0,
+                                "examples": [],
+                            },
+                        )
+                        term_audit["count"] += 1
+                        if len(term_audit["examples"]) < examples_per_theme:
+                            term_audit["examples"].append(headline)
 
             if headline_theme_score > 0:
                 counts[theme] += 1
@@ -139,4 +154,4 @@ def analyze_themes(headlines, themes, examples_per_theme=3):
         if matched_any:
             matched_headlines += 1
 
-    return counts, examples, matched_headlines, scores
+    return counts, examples, matched_headlines, scores, audit

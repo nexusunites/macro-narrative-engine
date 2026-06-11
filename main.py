@@ -27,6 +27,7 @@ from mne.reporting import (
     print_narrative_dynamics,
     print_narrative_signals,
     print_theme_counts,
+    print_theme_match_audit,
     print_top_theme_examples,
 )
 from mne.rss_fetch import fetch_headlines_from_rss
@@ -87,7 +88,7 @@ def main():
     print()
 
     themes, taxonomy_version = load_themes("themes.txt", include_version=True)
-    results, examples, matched_headlines, theme_scores = analyze_themes(
+    results, examples, matched_headlines, theme_scores, theme_match_audit = analyze_themes(
         headlines,
         themes,
         examples_per_theme=3,
@@ -153,6 +154,7 @@ def main():
         "coverage_pct": round(coverage_pct, 1),
         "theme_counts": results,
         "theme_scores": theme_scores,
+        "theme_match_audit": theme_match_audit,
         "group_scores": group_scores,
         "sorted_nonzero": nonzero,
         "dominant_theme": top_theme,
@@ -199,6 +201,7 @@ def main():
             {name: market_snapshot.get(name) for name in NASDAQ_TICKERS.keys()}
         )
         print_top_theme_examples(nonzero, examples)
+        print_theme_match_audit(nonzero, theme_match_audit)
     else:
         neutral_relationship = {
             "state": "Neutral / Mixed",
@@ -243,6 +246,7 @@ def main():
         raw_headline_count=deduplication["raw_headline_count"],
         deduped_headline_count=deduplication["deduped_headline_count"],
         duplicate_count=deduplication["duplicate_count"],
+        theme_match_audit=theme_match_audit,
     )
     report_file = save_report(report_text, stamp)
     print(f"Report saved to {report_file}")

@@ -87,6 +87,7 @@ Daily reports should include:
 - Narrative signals
 - Nasdaq and market context
 - Example headlines for top themes
+- Theme match audit for top themes
 - Change vs previous run
 
 ## Theme Taxonomy
@@ -106,6 +107,14 @@ weighted keyword scoring model:
 - `strong` = 3
 - `medium` = 2
 - `weak` = 1
+
+`theme_analysis.py` also emits lightweight theme match audit metadata. The audit
+tracks which configured keywords or phrases matched each theme, how many times
+they matched, and a few example headlines per term. This is diagnostic output for
+taxonomy review only. It does not change theme scores, concentration, narrative
+dynamics, market environment classification, or any downstream signal logic.
+`mne/reporting.py` formats this metadata in the `Theme Match Audit` report
+section, and saved run JSON includes `theme_match_audit` for later inspection.
 
 `themes.txt` remains supported as a legacy/simple input format. Entries in that
 file are treated as additional weak keywords, which preserves the older workflow

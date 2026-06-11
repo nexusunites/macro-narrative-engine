@@ -126,6 +126,39 @@ def print_top_theme_examples(nonzero_results, examples, limit=3):
             print(f"  {i}. {headline}")
 
 
+def format_theme_match_audit(nonzero_results, theme_match_audit, limit=3, terms_per_theme=5):
+    lines = ["=== Theme Match Audit ==="]
+
+    for theme, _ in nonzero_results[:limit]:
+        matched_terms = theme_match_audit.get(theme, {}).get("matched_terms", {})
+        if not matched_terms:
+            continue
+
+        sorted_terms = sorted(
+            matched_terms.items(),
+            key=lambda item: (-item[1].get("count", 0), item[0]),
+        )
+
+        lines.append("")
+        lines.append(f"{theme}:")
+        lines.append("  Top matched terms:")
+
+        for term, data in sorted_terms[:terms_per_theme]:
+            lines.append(f"  - {term}: {data.get('count', 0)}")
+            for headline in data.get("examples", [])[:3]:
+                lines.append(f"    example: {headline}")
+
+    return "\n".join(lines)
+
+
+def print_theme_match_audit(nonzero_results, theme_match_audit, limit=3, terms_per_theme=5):
+    if not nonzero_results or not theme_match_audit:
+        return
+
+    print()
+    print(format_theme_match_audit(nonzero_results, theme_match_audit, limit, terms_per_theme))
+
+
 def print_narrative_dynamics(dynamics, top_themes=None, top_groups=None, limit=3):
     print()
     print("=== Narrative Dynamics ===")
@@ -202,6 +235,7 @@ def build_daily_report(
     raw_headline_count=None,
     deduped_headline_count=None,
     duplicate_count=None,
+    theme_match_audit=None,
 ):
     report_lines = []
 
@@ -287,6 +321,10 @@ def build_daily_report(
         report_lines.append("=== Narrative Group Scores ===")
         for group, score in sorted(group_scores.items(), key=lambda item: item[1], reverse=True):
             report_lines.append(f"{group}: {score}")
+
+    if theme_match_audit:
+        report_lines.append("")
+        report_lines.append(format_theme_match_audit(nonzero_results, theme_match_audit))
 
     report_lines.append("")
     report_lines.append("=== Narrative Concentration ===")
