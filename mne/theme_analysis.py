@@ -1,4 +1,6 @@
+import json
 import re
+from pathlib import Path
 
 
 WEIGHTS = {
@@ -8,33 +10,8 @@ WEIGHTS = {
 }
 
 
-THEME_KEYWORDS = {
-    "ai": {
-        "strong": ["artificial intelligence", "openai", "nvidia", "deepseek", "ai chip", "ai chips"],
-        "medium": ["generative ai", "genai", "machine learning", "data center", "data centers", "copilot"],
-        "weak": ["ai", "chatbot"],
-    },
-    "rates": {
-        "strong": ["fed rate cut", "treasury yield", "treasury yields", "interest rates", "interest rate"],
-        "medium": ["bond yield", "bond yields", "fed funds", "powell", "fomc", "central bank"],
-        "weak": ["yields", "rates", "rate cut", "rate cuts", "rate hike", "rate hikes", "borrowing costs", "mortgage rates"],
-    },
-    "inflation": {
-        "strong": ["inflation", "cpi", "pce", "sticky inflation"],
-        "medium": ["price pressures", "price shock", "cost of living", "disinflation", "deflation"],
-        "weak": ["prices rise"],
-    },
-    "energy": {
-        "strong": ["crude oil", "natural gas", "opec", "brent", "wti"],
-        "medium": ["oil", "crude", "energy prices", "gas prices", "petroleum", "lng"],
-        "weak": ["fuel prices", "gasoline"],
-    },
-    "recession": {
-        "strong": ["recession", "hard landing", "economic weakness"],
-        "medium": ["downturn", "slowdown", "contraction", "unemployment", "layoffs"],
-        "weak": ["soft landing", "job losses"],
-    },
-}
+DEFAULT_TAXONOMY_FILE = Path("config/theme_taxonomy.json")
+DEFAULT_TAXONOMY_VERSION = "unknown"
 
 
 def keyword_match(text: str, keyword: str) -> bool:
@@ -63,10 +40,45 @@ def normalize_theme_keywords(theme_keywords):
     return normalized
 
 
-def load_themes(filename):
-    themes = normalize_theme_keywords(THEME_KEYWORDS)
+def load_taxonomy_config(taxonomy_file=DEFAULT_TAXONOMY_FILE):
+    taxonomy_path = Path(taxonomy_file)
 
-    with open(filename, "r", encoding="utf-8") as f:
+    with open(taxonomy_path, "r", encoding="utf-8") as f:
+        taxonomy = json.load(f)
+
+    themes = normalize_theme_keywords(taxonomy.get("themes", {}))
+    weights = taxonomy.get("weights", {})
+
+    return {
+        "taxonomy_version": taxonomy.get(
+            "taxonomy_version",
+            DEFAULT_TAXONOMY_VERSION,
+        ),
+        "themes": themes,
+        "weights": {
+            strength: int(weights.get(strength, default_weight))
+            for strength, default_weight in WEIGHTS.items()
+        },
+    }
+
+
+def get_taxonomy_version(taxonomy_file=DEFAULT_TAXONOMY_FILE):
+    return load_taxonomy_config(taxonomy_file)["taxonomy_version"]
+
+
+def load_themes(
+    filename="themes.txt",
+    taxonomy_file=DEFAULT_TAXONOMY_FILE,
+    include_version=False,
+):
+    taxonomy = load_taxonomy_config(taxonomy_file)
+    themes = taxonomy["themes"]
+
+    legacy_path = Path(filename)
+    if not legacy_path.exists():
+        return (themes, taxonomy["taxonomy_version"]) if include_version else themes
+
+    with open(legacy_path, "r", encoding="utf-8") as f:
         for raw in f:
             line = raw.strip()
             if not line or line.startswith("#"):
@@ -84,6 +96,9 @@ def load_themes(filename):
                 for trigger in trigger_list:
                     if not any(trigger in values for values in themes[theme].values()):
                         themes[theme]["weak"].append(trigger)
+
+    if include_version:
+        return themes, taxonomy["taxonomy_version"]
 
     return themes
 

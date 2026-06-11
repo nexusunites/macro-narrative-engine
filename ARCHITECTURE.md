@@ -89,6 +89,34 @@ Daily reports should include:
 - Example headlines for top themes
 - Change vs previous run
 
+## Theme Taxonomy
+
+Theme definitions live in `config/theme_taxonomy.json`.
+
+The taxonomy file contains:
+
+- `taxonomy_version`
+- weighted keyword tiers: `strong`, `medium`, and `weak`
+- theme IDs used by scoring, narrative groups, reports, and trend history
+
+`mne/theme_analysis.py` owns matching and scoring logic. It loads the structured
+taxonomy config, normalizes theme IDs and keywords, and applies the existing
+weighted keyword scoring model:
+
+- `strong` = 3
+- `medium` = 2
+- `weak` = 1
+
+`themes.txt` remains supported as a legacy/simple input format. Entries in that
+file are treated as additional weak keywords, which preserves the older workflow
+without making it the primary taxonomy source.
+
+Saved run JSON includes `taxonomy_version` so historical runs can be audited as
+theme definitions evolve. Momentum, persistence, acceleration, crowding, and
+market-confirmation logic should compare taxonomy versions before relying on
+longer historical series when future taxonomy versions materially change theme
+definitions.
+
 ## Module Direction
 
 `main.py` should orchestrate the flow. Engine logic belongs in modules:

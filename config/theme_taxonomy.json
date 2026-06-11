@@ -1,0 +1,116 @@
+{
+  "taxonomy_version": "v1.1",
+  "weights": {
+    "strong": 3,
+    "medium": 2,
+    "weak": 1
+  },
+  "themes": {
+    "ai": {
+      "strong": [
+        "artificial intelligence",
+        "openai",
+        "nvidia",
+        "deepseek",
+        "ai chip",
+        "ai chips"
+      ],
+      "medium": [
+        "generative ai",
+        "genai",
+        "machine learning",
+        "data center",
+        "data centers",
+        "copilot"
+      ],
+      "weak": [
+        "ai",
+        "chatbot"
+      ]
+    },
+    "rates": {
+      "strong": [
+        "fed rate cut",
+        "treasury yield",
+        "treasury yields",
+        "interest rates",
+        "interest rate"
+      ],
+      "medium": [
+        "bond yield",
+        "bond yields",
+        "fed funds",
+        "powell",
+        "fomc",
+        "central bank"
+      ],
+      "weak": [
+        "yields",
+        "rates",
+        "rate cut",
+        "rate cuts",
+        "rate hike",
+        "rate hikes",
+        "borrowing costs",
+        "mortgage rates"
+      ]
+    },
+    "inflation": {
+      "strong": [
+        "inflation",
+        "cpi",
+        "pce",
+        "sticky inflation"
+      ],
+      "medium": [
+        "price pressures",
+        "price shock",
+        "cost of living",
+        "disinflation",
+        "deflation"
+      ],
+      "weak": [
+        "prices rise"
+      ]
+    },
+    "energy": {
+      "strong": [
+        "crude oil",
+        "natural gas",
+        "opec",
+        "brent",
+        "wti"
+      ],
+      "medium": [
+        "oil",
+        "crude",
+        "energy prices",
+        "gas prices",
+        "petroleum",
+        "lng"
+      ],
+      "weak": [
+        "fuel prices",
+        "gasoline"
+      ]
+    },
+    "recession": {
+      "strong": [
+        "recession",
+        "hard landing",
+        "economic weakness"
+      ],
+      "medium": [
+        "downturn",
+        "slowdown",
+        "contraction",
+        "unemployment",
+        "layoffs"
+      ],
+      "weak": [
+        "soft landing",
+        "job losses"
+      ]
+    }
+  }
+}

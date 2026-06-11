@@ -86,7 +86,7 @@ def main():
     print(f"Deduped headlines saved to {deduped_headlines_file}")
     print()
 
-    themes = load_themes("themes.txt")
+    themes, taxonomy_version = load_themes("themes.txt", include_version=True)
     results, examples, matched_headlines, theme_scores = analyze_themes(
         headlines,
         themes,
@@ -143,6 +143,7 @@ def main():
 
     run = {
         "timestamp": stamp,
+        "taxonomy_version": taxonomy_version,
         "rss_urls": RSS_URLS,
         "raw_headline_count": deduplication["raw_headline_count"],
         "deduped_headline_count": deduplication["deduped_headline_count"],
