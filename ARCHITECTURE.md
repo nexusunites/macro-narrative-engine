@@ -10,7 +10,7 @@ Recommended build order:
 
 1. Stabilize RSS ingestion.
 2. Clean headline storage.
-3. Deduplicate headlines.
+3. Deduplicate headlines before narrative analysis.
 4. Count themes and narratives.
 5. Measure narrative concentration.
 6. Track historical narrative trends.
@@ -20,9 +20,20 @@ Recommended build order:
 
 ## Data Storage
 
-Raw headlines are saved by date and time inside the configured runtime data directory. By default this is `~/Google Drive/MNE-data/headlines/`, and it can be overridden with `MNE_DATA_DIR`.
+Raw and deduplicated headlines are saved by date and time inside the configured runtime data directory. By default this is `~/Google Drive/MNE-data/headlines/`, and it can be overridden with `MNE_DATA_DIR`.
 
 This preserves a historical dataset so old headlines can be reanalyzed later as theme logic, scoring, and narrative models improve.
+
+## Headline Deduplication
+
+RSS ingestion returns raw headlines. `mne/headline_deduplication.py` then removes duplicates before theme analysis using simple, inspectable normalization:
+
+- case normalization
+- whitespace normalization
+- basic punctuation normalization
+- exact matching on the normalized headline
+
+MNE stores both raw and deduplicated headline files. Downstream narrative scoring, concentration, dynamics, and reporting use the deduplicated headline list. Saved run JSON keeps `raw_headline_count`, `deduped_headline_count`, and `duplicate_count` visible for auditability.
 
 ## Market Context
 
@@ -83,6 +94,7 @@ Daily reports should include:
 `main.py` should orchestrate the flow. Engine logic belongs in modules:
 
 - `mne/rss_fetch.py`
+- `mne/headline_deduplication.py`
 - `mne/storage.py`
 - `mne/theme_analysis.py`
 - `mne/narrative_signals.py`

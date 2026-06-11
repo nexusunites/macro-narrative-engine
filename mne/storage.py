@@ -9,9 +9,10 @@ def load_json(path: Path):
         return json.load(f)
 
 
-def save_headlines(headlines, stamp, headlines_dir=HEADLINES_DIR):
+def save_headlines(headlines, stamp, headlines_dir=HEADLINES_DIR, label=None):
     headlines_dir.mkdir(parents=True, exist_ok=True)
-    headlines_file = headlines_dir / f"{stamp}.txt"
+    suffix = f"_{label}" if label else ""
+    headlines_file = headlines_dir / f"{stamp}{suffix}.txt"
 
     with open(headlines_file, "w", encoding="utf-8") as f:
         for headline in headlines:

@@ -5,6 +5,7 @@ from config import DATA_DIR, RESULTS_DIR
 from mne.breadth import BREADTH_TICKERS, classify_breadth_confirmation
 from mne.catalyst_environment import classify_catalyst_environment
 from mne.environment import classify_market_environment
+from mne.headline_deduplication import dedupe_headlines
 from mne.market_context import get_market_snapshot
 from mne.narrative_market_relationship import classify_narrative_market_relationship
 from mne.narrative_signals import (
@@ -71,12 +72,18 @@ def main():
     print(f"Run Timestamp: {readable_time}")
     print()
 
-    headlines = fetch_headlines_from_rss(RSS_URLS)
-    headlines_file = save_headlines(headlines, stamp)
+    raw_headlines = fetch_headlines_from_rss(RSS_URLS)
+    deduplication = dedupe_headlines(raw_headlines)
+    headlines = deduplication["deduped_headlines"]
+    raw_headlines_file = save_headlines(raw_headlines, stamp, label="raw")
+    deduped_headlines_file = save_headlines(headlines, stamp, label="deduped")
 
-    print(f"Loaded {len(headlines)} headlines from RSS")
+    print(f"Loaded {deduplication['raw_headline_count']} raw headlines from RSS")
+    print(f"Deduped to {deduplication['deduped_headline_count']} unique headlines")
+    print(f"Removed {deduplication['duplicate_count']} duplicates")
     print(f"Loaded {len(RSS_URLS)} RSS feeds")
-    print(f"Headlines saved to {headlines_file}")
+    print(f"Raw headlines saved to {raw_headlines_file}")
+    print(f"Deduped headlines saved to {deduped_headlines_file}")
     print()
 
     themes = load_themes("themes.txt")
@@ -137,6 +144,9 @@ def main():
     run = {
         "timestamp": stamp,
         "rss_urls": RSS_URLS,
+        "raw_headline_count": deduplication["raw_headline_count"],
+        "deduped_headline_count": deduplication["deduped_headline_count"],
+        "duplicate_count": deduplication["duplicate_count"],
         "headline_count": len(headlines),
         "matched_headlines": matched_headlines,
         "coverage_pct": round(coverage_pct, 1),
@@ -229,6 +239,9 @@ def main():
         top_themes=nonzero,
         top_groups=sorted_group_scores,
         market_snapshot={name: market_snapshot.get(name) for name in NASDAQ_TICKERS.keys()},
+        raw_headline_count=deduplication["raw_headline_count"],
+        deduped_headline_count=deduplication["deduped_headline_count"],
+        duplicate_count=deduplication["duplicate_count"],
     )
     report_file = save_report(report_text, stamp)
     print(f"Report saved to {report_file}")

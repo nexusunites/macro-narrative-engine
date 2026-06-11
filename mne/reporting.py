@@ -199,6 +199,9 @@ def build_daily_report(
     top_themes=None,
     top_groups=None,
     market_snapshot=None,
+    raw_headline_count=None,
+    deduped_headline_count=None,
+    duplicate_count=None,
 ):
     report_lines = []
 
@@ -206,7 +209,12 @@ def build_daily_report(
     report_lines.append("")
     report_lines.append(f"Run Timestamp: {readable_time}")
     report_lines.append("")
-    report_lines.append(f"Loaded {headline_count} headlines")
+    if raw_headline_count is not None and deduped_headline_count is not None:
+        report_lines.append(f"Loaded {raw_headline_count} raw headlines")
+        report_lines.append(f"Deduped to {deduped_headline_count} unique headlines")
+        report_lines.append(f"Removed {duplicate_count or 0} duplicates")
+    else:
+        report_lines.append(f"Loaded {headline_count} headlines")
     report_lines.append(f"Loaded {feed_count} RSS feeds")
     report_lines.append(f"Coverage: {coverage_pct:.1f}%")
     report_lines.append("")
