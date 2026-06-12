@@ -1,7 +1,12 @@
 from mne.catalysts import calculate_catalyst_density
 
 
-def classify_catalyst_environment(catalysts_file=None, now=None, lookahead_days=None):
+def classify_catalyst_environment(
+    catalysts_file=None,
+    now=None,
+    lookahead_days=None,
+    enable_auto_company_catalysts=None,
+):
     kwargs = {}
     if catalysts_file is not None:
         kwargs["catalysts_file"] = catalysts_file
@@ -9,5 +14,7 @@ def classify_catalyst_environment(catalysts_file=None, now=None, lookahead_days=
         kwargs["as_of"] = now
     if lookahead_days is not None:
         kwargs["lookahead_days"] = lookahead_days
+    if enable_auto_company_catalysts is not None:
+        kwargs["enable_auto_company_catalysts"] = enable_auto_company_catalysts
 
     return calculate_catalyst_density(**kwargs)

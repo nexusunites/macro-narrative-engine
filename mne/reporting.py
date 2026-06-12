@@ -72,14 +72,16 @@ def print_breadth_confirmation(breadth_confirmation):
 
 
 def format_catalyst_event(event):
+    source = event.get("source") or "manual"
+    source_label = "auto" if source == "auto_company_earnings" else "manual"
     days = event.get("days_until")
     if days is None:
-        return event.get("name")
+        return f"{event.get('name')} [{source_label}]"
     if days == 0:
-        return f"{event.get('name')} (today)"
+        return f"{event.get('name')} (today) [{source_label}]"
     if days == 1:
-        return f"{event.get('name')} (tomorrow)"
-    return f"{event.get('name')} ({days} days)"
+        return f"{event.get('name')} (tomorrow) [{source_label}]"
+    return f"{event.get('name')} ({days} days) [{source_label}]"
 
 
 def print_catalyst_environment(catalyst_environment):
@@ -104,7 +106,7 @@ def print_catalyst_environment(catalyst_environment):
     print("Red Folder Events:")
     if catalyst_environment.get("red_events"):
         for event in catalyst_environment["red_events"]:
-            print(format_catalyst_event(event))
+            print(f"  {format_catalyst_event(event)}")
     else:
         print("  None")
 
@@ -112,7 +114,7 @@ def print_catalyst_environment(catalyst_environment):
     print("Orange Folder Events:")
     if catalyst_environment.get("orange_events"):
         for event in catalyst_environment["orange_events"]:
-            print(format_catalyst_event(event))
+            print(f"  {format_catalyst_event(event)}")
     else:
         print("  None")
 
@@ -338,14 +340,14 @@ def build_daily_report(
             report_lines.append("Red Folder Events:")
             if catalyst_environment.get("red_events"):
                 for event in catalyst_environment["red_events"]:
-                    report_lines.append(format_catalyst_event(event))
+                    report_lines.append(f"  {format_catalyst_event(event)}")
             else:
                 report_lines.append("  None")
             report_lines.append("")
             report_lines.append("Orange Folder Events:")
             if catalyst_environment.get("orange_events"):
                 for event in catalyst_environment["orange_events"]:
-                    report_lines.append(format_catalyst_event(event))
+                    report_lines.append(f"  {format_catalyst_event(event)}")
             else:
                 report_lines.append("  None")
             report_lines.append("")
