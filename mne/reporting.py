@@ -71,31 +71,64 @@ def print_breadth_confirmation(breadth_confirmation):
     print(breadth_confirmation["reason"])
 
 
+def format_catalyst_event(event):
+    days = event.get("days_until")
+    if days is None:
+        return event.get("name")
+    if days == 0:
+        return f"{event.get('name')} (today)"
+    if days == 1:
+        return f"{event.get('name')} (1 day)"
+    return f"{event.get('name')} ({days} days)"
+
+
 def print_catalyst_environment(catalyst_environment):
     print()
     print("=== Catalyst Environment ===")
     print(f"State: {catalyst_environment['state']}")
     print(f"Confidence: {catalyst_environment['confidence']}")
 
+    if not catalyst_environment.get("calendar_found", True):
+        print()
+        print("Reason:")
+        print(catalyst_environment["reason"])
+        return
+
+    print()
+    print(
+        f"Catalyst Density: {catalyst_environment['density_score']} "
+        f"({catalyst_environment['density_state']})"
+    )
+
     print()
     print("Red Folder Events:")
     if catalyst_environment.get("red_events"):
-        for i, event in enumerate(catalyst_environment["red_events"], start=1):
-            print(f"  {i}. {event.get('time')} {event.get('currency')} {event.get('event')}")
+        for event in catalyst_environment["red_events"]:
+            print(format_catalyst_event(event))
     else:
         print("  None")
 
     print()
     print("Orange Folder Events:")
     if catalyst_environment.get("orange_events"):
-        for i, event in enumerate(catalyst_environment["orange_events"], start=1):
-            print(f"  {i}. {event.get('time')} {event.get('currency')} {event.get('event')}")
+        for event in catalyst_environment["orange_events"]:
+            print(format_catalyst_event(event))
     else:
         print("  None")
 
     print()
     print("Reason:")
     print(catalyst_environment["reason"])
+
+
+def print_positioning_environment(positioning_environment):
+    print()
+    print("=== Positioning Environment ===")
+    print(f"State: {positioning_environment['state']}")
+    print(f"Confidence: {positioning_environment['confidence']}")
+    print()
+    print("Reason:")
+    print(positioning_environment["reason"])
 
 
 def print_market_context(market_snapshot):
@@ -228,6 +261,7 @@ def build_daily_report(
     narrative_market_relationship=None,
     breadth_confirmation=None,
     catalyst_environment=None,
+    positioning_environment=None,
     narrative_dynamics=None,
     top_themes=None,
     top_groups=None,
@@ -289,27 +323,43 @@ def build_daily_report(
         report_lines.append("=== Catalyst Environment ===")
         report_lines.append(f"State: {catalyst_environment['state']}")
         report_lines.append(f"Confidence: {catalyst_environment['confidence']}")
-        report_lines.append("")
-        report_lines.append("Red Folder Events:")
-        if catalyst_environment.get("red_events"):
-            for i, event in enumerate(catalyst_environment["red_events"], start=1):
-                report_lines.append(
-                    f"  {i}. {event.get('time')} {event.get('currency')} {event.get('event')}"
-                )
+
+        if not catalyst_environment.get("calendar_found", True):
+            report_lines.append("")
+            report_lines.append("Reason:")
+            report_lines.append(catalyst_environment["reason"])
         else:
-            report_lines.append("  None")
+            report_lines.append("")
+            report_lines.append(
+                f"Catalyst Density: {catalyst_environment['density_score']} "
+                f"({catalyst_environment['density_state']})"
+            )
+            report_lines.append("")
+            report_lines.append("Red Folder Events:")
+            if catalyst_environment.get("red_events"):
+                for event in catalyst_environment["red_events"]:
+                    report_lines.append(format_catalyst_event(event))
+            else:
+                report_lines.append("  None")
+            report_lines.append("")
+            report_lines.append("Orange Folder Events:")
+            if catalyst_environment.get("orange_events"):
+                for event in catalyst_environment["orange_events"]:
+                    report_lines.append(format_catalyst_event(event))
+            else:
+                report_lines.append("  None")
+            report_lines.append("")
+            report_lines.append("Reason:")
+            report_lines.append(catalyst_environment["reason"])
+
+    if positioning_environment:
         report_lines.append("")
-        report_lines.append("Orange Folder Events:")
-        if catalyst_environment.get("orange_events"):
-            for i, event in enumerate(catalyst_environment["orange_events"], start=1):
-                report_lines.append(
-                    f"  {i}. {event.get('time')} {event.get('currency')} {event.get('event')}"
-                )
-        else:
-            report_lines.append("  None")
+        report_lines.append("=== Positioning Environment ===")
+        report_lines.append(f"State: {positioning_environment['state']}")
+        report_lines.append(f"Confidence: {positioning_environment['confidence']}")
         report_lines.append("")
         report_lines.append("Reason:")
-        report_lines.append(catalyst_environment["reason"])
+        report_lines.append(positioning_environment["reason"])
 
     report_lines.append("")
     report_lines.append("=== Narrative Theme Scores ===")

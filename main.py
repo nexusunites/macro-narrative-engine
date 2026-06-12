@@ -14,6 +14,7 @@ from mne.narrative_signals import (
     compute_narrative_signals,
     get_dominant_group,
 )
+from mne.positioning_environment import classify_positioning_environment
 from mne.reporting import (
     build_daily_report,
     print_breadth_confirmation,
@@ -26,6 +27,7 @@ from mne.reporting import (
     print_narrative_concentration,
     print_narrative_dynamics,
     print_narrative_signals,
+    print_positioning_environment,
     print_theme_counts,
     print_theme_match_audit,
     print_top_theme_examples,
@@ -122,6 +124,7 @@ def main():
     narrative_market_relationship = None
     breadth_confirmation = None
     catalyst_environment = classify_catalyst_environment()
+    positioning_environment = classify_positioning_environment(catalyst_environment)
 
     if nonzero:
         print_dominant_narratives(top_theme, dominant_group)
@@ -168,6 +171,7 @@ def main():
         "market_environment": market_environment,
         "breadth_confirmation": breadth_confirmation,
         "catalyst_environment": catalyst_environment,
+        "positioning_environment": positioning_environment,
         "examples": {k: v for k, v in examples.items() if k in dict(nonzero[:3])},
     }
 
@@ -197,6 +201,7 @@ def main():
         print_narrative_market_relationship(narrative_market_relationship)
         print_breadth_confirmation(breadth_confirmation)
         print_catalyst_environment(catalyst_environment)
+        print_positioning_environment(positioning_environment)
         print_market_context(
             {name: market_snapshot.get(name) for name in NASDAQ_TICKERS.keys()}
         )
@@ -220,6 +225,7 @@ def main():
         }
         run["breadth_confirmation"] = breadth_confirmation
         print_catalyst_environment(catalyst_environment)
+        print_positioning_environment(positioning_environment)
 
     results_dir, results_file = save_run_json(run, stamp)
     print()
@@ -239,6 +245,7 @@ def main():
         narrative_market_relationship=narrative_market_relationship,
         breadth_confirmation=breadth_confirmation,
         catalyst_environment=catalyst_environment,
+        positioning_environment=positioning_environment,
         narrative_dynamics=narrative_dynamics,
         top_themes=nonzero,
         top_groups=sorted_group_scores,
