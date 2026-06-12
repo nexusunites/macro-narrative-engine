@@ -1,12 +1,16 @@
 import json
+import logging
 from datetime import date, datetime
 from pathlib import Path
 
 from config import DATA_DIR
 
 
+logger = logging.getLogger(__name__)
+
 CATALYSTS_FILE = DATA_DIR / "config" / "catalysts.json"
 DEFAULT_LOOKAHEAD_DAYS = 14
+INVALID_CALENDAR_REASON = "Catalyst calendar unavailable or invalid."
 
 RED_IMPORTANCE = "red"
 ORANGE_IMPORTANCE = "orange"
@@ -36,15 +40,51 @@ def load_catalysts(catalysts_file=CATALYSTS_FILE):
     catalysts_file = Path(catalysts_file)
 
     if not catalysts_file.exists():
+        try:
+            catalysts_file.parent.mkdir(parents=True, exist_ok=True)
+            catalysts_file.write_text("[]\n", encoding="utf-8")
+            return []
+        except OSError as error:
+            logger.warning("Unable to create catalyst calendar %s: %s", catalysts_file, error)
+            return None
+
+    try:
+        with open(catalysts_file, "r", encoding="utf-8") as f:
+            catalysts = json.load(f)
+    except json.JSONDecodeError:
+        logger.warning("Catalyst calendar is empty or contains invalid JSON: %s", catalysts_file)
+        return None
+    except OSError as error:
+        logger.warning("Unable to read catalyst calendar %s: %s", catalysts_file, error)
         return None
 
-    with open(catalysts_file, "r", encoding="utf-8") as f:
-        catalysts = json.load(f)
-
     if not isinstance(catalysts, list):
+        logger.warning("Catalyst calendar must contain a JSON array: %s", catalysts_file)
+        return None
+
+    if any(not isinstance(catalyst, dict) for catalyst in catalysts):
+        logger.warning("Ignoring malformed catalyst calendar entries in %s", catalysts_file)
+
+    missing_required_fields = [
+        catalyst
+        for catalyst in catalysts
+        if isinstance(catalyst, dict)
+        and any(not catalyst.get(field) for field in ("date", "name", "importance"))
+    ]
+    if missing_required_fields:
+        logger.warning("Ignoring catalyst entries missing date, name, or importance in %s", catalysts_file)
+
+    valid_catalysts = [
+        catalyst
+        for catalyst in catalysts
+        if isinstance(catalyst, dict)
+        and all(catalyst.get(field) for field in ("date", "name", "importance"))
+    ]
+
+    if catalysts and not valid_catalysts:
         return []
 
-    return catalysts
+    return valid_catalysts
 
 
 def parse_catalyst_date(catalyst):
@@ -170,7 +210,7 @@ def calculate_catalyst_density(
             "days_to_next_red": None,
             "days_to_next_orange": None,
             "calendar_found": False,
-            "reason": "No catalyst calendar file found.",
+            "reason": INVALID_CALENDAR_REASON,
         }
 
     red_events = [event for event in upcoming if event["importance"] == RED_IMPORTANCE]

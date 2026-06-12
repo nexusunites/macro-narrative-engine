@@ -78,7 +78,7 @@ def format_catalyst_event(event):
     if days == 0:
         return f"{event.get('name')} (today)"
     if days == 1:
-        return f"{event.get('name')} (1 day)"
+        return f"{event.get('name')} (tomorrow)"
     return f"{event.get('name')} ({days} days)"
 
 
