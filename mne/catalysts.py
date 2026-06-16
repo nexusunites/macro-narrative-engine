@@ -3,8 +3,9 @@ import logging
 from datetime import date, datetime
 from pathlib import Path
 
-from config import DATA_DIR, ENABLE_AUTO_COMPANY_CATALYSTS
+from config import DATA_DIR, ENABLE_AUTO_COMPANY_CATALYSTS, ENABLE_AUTO_MACRO_CATALYSTS
 from mne.company_catalysts import get_auto_company_earnings_catalysts
+from mne.macro_catalysts import MACRO_CALENDAR_FILE, get_auto_macro_calendar_catalysts
 
 
 logger = logging.getLogger(__name__)
@@ -142,53 +143,69 @@ def normalize_catalyst(catalyst, as_of):
     return normalized
 
 
-def merge_catalysts(manual_catalysts, auto_catalysts):
+def merge_catalysts(*catalyst_groups):
     merged = []
     seen = set()
 
-    for catalyst in manual_catalysts or []:
-        merged.append(catalyst)
-        key = (
-            (catalyst.get("date") or "").strip(),
-            (catalyst.get("name") or "").strip().lower(),
-        )
-        seen.add(key)
-
-    for catalyst in auto_catalysts or []:
-        key = (
-            (catalyst.get("date") or "").strip(),
-            (catalyst.get("name") or "").strip().lower(),
-        )
-        if key in seen:
-            continue
-        merged.append(catalyst)
-        seen.add(key)
+    for catalysts in catalyst_groups:
+        for catalyst in catalysts or []:
+            key = (
+                (catalyst.get("date") or "").strip(),
+                (catalyst.get("name") or "").strip().lower(),
+            )
+            if key in seen:
+                continue
+            merged.append(catalyst)
+            seen.add(key)
 
     return merged
 
 
-def load_all_catalysts(catalysts_file=CATALYSTS_FILE, as_of=None, enable_auto_company_catalysts=None):
+def load_all_catalysts(
+    catalysts_file=CATALYSTS_FILE,
+    as_of=None,
+    enable_auto_company_catalysts=None,
+    enable_auto_macro_catalysts=None,
+    metadata=None,
+):
     manual_catalysts = load_catalysts(catalysts_file)
     if manual_catalysts is None:
         return None
 
     if enable_auto_company_catalysts is None:
         enable_auto_company_catalysts = ENABLE_AUTO_COMPANY_CATALYSTS
+    if enable_auto_macro_catalysts is None:
+        enable_auto_macro_catalysts = ENABLE_AUTO_MACRO_CATALYSTS
 
+    if metadata is not None:
+        metadata["auto_macro_enabled"] = bool(enable_auto_macro_catalysts)
+        metadata["auto_macro_events_found"] = 0
+
+    auto_macro_catalysts = []
+    if enable_auto_macro_catalysts:
+        try:
+            auto_macro_catalysts = get_auto_macro_calendar_catalysts(as_of=as_of)
+        except Exception as error:
+            logger.warning("Unable to load auto macro calendar catalysts: %s", error)
+            auto_macro_catalysts = []
+
+        if metadata is not None:
+            metadata["auto_macro_events_found"] = len(auto_macro_catalysts)
+
+    auto_company_catalysts = []
     if not enable_auto_company_catalysts:
-        return manual_catalysts
+        return merge_catalysts(manual_catalysts, auto_macro_catalysts)
 
     try:
-        auto_catalysts = get_auto_company_earnings_catalysts(as_of=as_of)
+        auto_company_catalysts = get_auto_company_earnings_catalysts(as_of=as_of)
     except Exception as error:
         logger.warning("Unable to load auto company earnings catalysts: %s", error)
-        return manual_catalysts
+        auto_company_catalysts = []
 
-    if not auto_catalysts:
-        logger.debug("No auto earnings catalysts found. Using manual catalyst calendar only.")
-        return manual_catalysts
+    if not auto_macro_catalysts and not auto_company_catalysts:
+        logger.debug("No auto catalysts found. Using manual catalyst calendar only.")
 
-    return merge_catalysts(manual_catalysts, auto_catalysts)
+    return merge_catalysts(manual_catalysts, auto_macro_catalysts, auto_company_catalysts)
 
 
 def get_upcoming_catalysts(
@@ -197,6 +214,8 @@ def get_upcoming_catalysts(
     lookahead_days=DEFAULT_LOOKAHEAD_DAYS,
     catalysts_file=CATALYSTS_FILE,
     enable_auto_company_catalysts=None,
+    enable_auto_macro_catalysts=None,
+    metadata=None,
 ):
     as_of = as_of or date.today()
     if isinstance(as_of, datetime):
@@ -207,6 +226,8 @@ def get_upcoming_catalysts(
             catalysts_file=catalysts_file,
             as_of=as_of,
             enable_auto_company_catalysts=enable_auto_company_catalysts,
+            enable_auto_macro_catalysts=enable_auto_macro_catalysts,
+            metadata=metadata,
         )
     if catalysts is None:
         return None
@@ -244,6 +265,30 @@ def confidence_for_density(score, calendar_found=True):
     return "Low"
 
 
+def _auto_macro_enabled_metadata_value(enable_auto_macro_catalysts):
+    if enable_auto_macro_catalysts is None:
+        return bool(ENABLE_AUTO_MACRO_CATALYSTS)
+    return bool(enable_auto_macro_catalysts)
+
+
+def _auto_company_enabled_value(enable_auto_company_catalysts):
+    if enable_auto_company_catalysts is None:
+        return bool(ENABLE_AUTO_COMPANY_CATALYSTS)
+    return bool(enable_auto_company_catalysts)
+
+
+def catalyst_sources_metadata(catalysts_file, enable_auto_company_catalysts):
+    return {
+        "manual": str(Path(catalysts_file).expanduser()),
+        "macro": str(Path(MACRO_CALENDAR_FILE).expanduser()),
+        "company_earnings": (
+            "enabled"
+            if _auto_company_enabled_value(enable_auto_company_catalysts)
+            else "disabled"
+        ),
+    }
+
+
 def reason_for_density(score, red_events, orange_events):
     if score == 0:
         return "No high-impact or medium-impact catalysts are approaching."
@@ -262,14 +307,22 @@ def calculate_catalyst_density(
     lookahead_days=DEFAULT_LOOKAHEAD_DAYS,
     catalysts_file=CATALYSTS_FILE,
     enable_auto_company_catalysts=None,
+    enable_auto_macro_catalysts=None,
 ):
     catalyst_source = str(Path(catalysts_file).expanduser())
+    catalyst_sources = catalyst_sources_metadata(
+        catalysts_file,
+        enable_auto_company_catalysts,
+    )
+    metadata = {}
     upcoming = get_upcoming_catalysts(
         catalysts,
         as_of,
         lookahead_days,
         catalysts_file,
         enable_auto_company_catalysts,
+        enable_auto_macro_catalysts,
+        metadata,
     )
 
     if upcoming is None:
@@ -284,7 +337,13 @@ def calculate_catalyst_density(
             "days_to_next_orange": None,
             "calendar_found": False,
             "catalyst_source": catalyst_source,
+            "catalyst_sources": catalyst_sources,
             "reason": INVALID_CALENDAR_REASON,
+            "auto_macro_enabled": metadata.get(
+                "auto_macro_enabled",
+                _auto_macro_enabled_metadata_value(enable_auto_macro_catalysts),
+            ),
+            "auto_macro_events_found": metadata.get("auto_macro_events_found", 0),
         }
 
     red_events = [event for event in upcoming if event["importance"] == RED_IMPORTANCE]
@@ -303,5 +362,11 @@ def calculate_catalyst_density(
         "days_to_next_orange": orange_events[0]["days_until"] if orange_events else None,
         "calendar_found": True,
         "catalyst_source": catalyst_source,
+        "catalyst_sources": catalyst_sources,
         "reason": reason_for_density(density_score, red_events, orange_events),
+        "auto_macro_enabled": metadata.get(
+            "auto_macro_enabled",
+            _auto_macro_enabled_metadata_value(enable_auto_macro_catalysts),
+        ),
+        "auto_macro_events_found": metadata.get("auto_macro_events_found", 0),
     }

@@ -73,7 +73,11 @@ def print_breadth_confirmation(breadth_confirmation):
 
 def format_catalyst_event(event):
     source = event.get("source") or "manual"
-    source_label = "auto" if source == "auto_company_earnings" else "manual"
+    source_labels = {
+        "auto_company_earnings": "auto",
+        "auto_macro_calendar": "macro",
+    }
+    source_label = source_labels.get(source, "manual")
     days = event.get("days_until")
     if days is None:
         return f"{event.get('name')} [{source_label}]"
@@ -84,14 +88,40 @@ def format_catalyst_event(event):
     return f"{event.get('name')} ({days} days) [{source_label}]"
 
 
+def print_catalyst_sources(catalyst_environment):
+    sources = catalyst_environment.get("catalyst_sources")
+    if not sources:
+        source = catalyst_environment.get("catalyst_source")
+        if source:
+            print(f"Catalyst Source: {source}")
+        return
+
+    print("Catalyst Sources:")
+    print(f"  Manual: {sources.get('manual')}")
+    print(f"  Macro: {sources.get('macro')}")
+    print(f"  Company Earnings: {sources.get('company_earnings')}")
+
+
+def append_catalyst_sources(report_lines, catalyst_environment):
+    sources = catalyst_environment.get("catalyst_sources")
+    if not sources:
+        source = catalyst_environment.get("catalyst_source")
+        if source:
+            report_lines.append(f"Catalyst Source: {source}")
+        return
+
+    report_lines.append("Catalyst Sources:")
+    report_lines.append(f"  Manual: {sources.get('manual')}")
+    report_lines.append(f"  Macro: {sources.get('macro')}")
+    report_lines.append(f"  Company Earnings: {sources.get('company_earnings')}")
+
+
 def print_catalyst_environment(catalyst_environment):
     print()
     print("=== Catalyst Environment ===")
     print(f"State: {catalyst_environment['state']}")
     print(f"Confidence: {catalyst_environment['confidence']}")
-    source = catalyst_environment.get("catalyst_source")
-    if source:
-        print(f"Catalyst Source: {source}")
+    print_catalyst_sources(catalyst_environment)
 
     if not catalyst_environment.get("calendar_found", True):
         print()
@@ -328,9 +358,7 @@ def build_daily_report(
         report_lines.append("=== Catalyst Environment ===")
         report_lines.append(f"State: {catalyst_environment['state']}")
         report_lines.append(f"Confidence: {catalyst_environment['confidence']}")
-        source = catalyst_environment.get("catalyst_source")
-        if source:
-            report_lines.append(f"Catalyst Source: {source}")
+        append_catalyst_sources(report_lines, catalyst_environment)
 
         if not catalyst_environment.get("calendar_found", True):
             report_lines.append("")

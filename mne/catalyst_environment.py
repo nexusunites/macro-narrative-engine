@@ -6,6 +6,7 @@ def classify_catalyst_environment(
     now=None,
     lookahead_days=None,
     enable_auto_company_catalysts=None,
+    enable_auto_macro_catalysts=None,
 ):
     kwargs = {}
     if catalysts_file is not None:
@@ -16,5 +17,7 @@ def classify_catalyst_environment(
         kwargs["lookahead_days"] = lookahead_days
     if enable_auto_company_catalysts is not None:
         kwargs["enable_auto_company_catalysts"] = enable_auto_company_catalysts
+    if enable_auto_macro_catalysts is not None:
+        kwargs["enable_auto_macro_catalysts"] = enable_auto_macro_catalysts
 
     return calculate_catalyst_density(**kwargs)
