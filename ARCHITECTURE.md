@@ -122,6 +122,8 @@ taxonomy review only. It does not change theme scores, concentration, narrative
 dynamics, market environment classification, or any downstream signal logic.
 `mne/reporting.py` formats this metadata in the `Theme Match Audit` report
 section, and saved run JSON includes `theme_match_audit` for later inspection.
+Taxonomy observations from real runs should be recorded in `TAXONOMY_NOTES.md`
+before making taxonomy definition changes or planning Taxonomy V2 work.
 
 `themes.txt` remains supported as a legacy/simple input format. Entries in that
 file are treated as additional weak keywords, which preserves the older workflow
