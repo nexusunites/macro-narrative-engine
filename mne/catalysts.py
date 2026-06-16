@@ -263,6 +263,7 @@ def calculate_catalyst_density(
     catalysts_file=CATALYSTS_FILE,
     enable_auto_company_catalysts=None,
 ):
+    catalyst_source = str(Path(catalysts_file).expanduser())
     upcoming = get_upcoming_catalysts(
         catalysts,
         as_of,
@@ -282,6 +283,7 @@ def calculate_catalyst_density(
             "days_to_next_red": None,
             "days_to_next_orange": None,
             "calendar_found": False,
+            "catalyst_source": catalyst_source,
             "reason": INVALID_CALENDAR_REASON,
         }
 
@@ -300,5 +302,6 @@ def calculate_catalyst_density(
         "days_to_next_red": red_events[0]["days_until"] if red_events else None,
         "days_to_next_orange": orange_events[0]["days_until"] if orange_events else None,
         "calendar_found": True,
+        "catalyst_source": catalyst_source,
         "reason": reason_for_density(density_score, red_events, orange_events),
     }

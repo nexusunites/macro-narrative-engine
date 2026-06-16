@@ -89,6 +89,9 @@ def print_catalyst_environment(catalyst_environment):
     print("=== Catalyst Environment ===")
     print(f"State: {catalyst_environment['state']}")
     print(f"Confidence: {catalyst_environment['confidence']}")
+    source = catalyst_environment.get("catalyst_source")
+    if source:
+        print(f"Catalyst Source: {source}")
 
     if not catalyst_environment.get("calendar_found", True):
         print()
@@ -325,6 +328,9 @@ def build_daily_report(
         report_lines.append("=== Catalyst Environment ===")
         report_lines.append(f"State: {catalyst_environment['state']}")
         report_lines.append(f"Confidence: {catalyst_environment['confidence']}")
+        source = catalyst_environment.get("catalyst_source")
+        if source:
+            report_lines.append(f"Catalyst Source: {source}")
 
         if not catalyst_environment.get("calendar_found", True):
             report_lines.append("")

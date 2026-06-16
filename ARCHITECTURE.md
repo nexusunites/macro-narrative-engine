@@ -85,6 +85,7 @@ Daily reports should include:
 - Dominant narrative share
 - Concentration gap
 - Narrative signals
+- Catalyst source path
 - Nasdaq and market context
 - Example headlines for top themes
 - Theme match audit for top themes
