@@ -1,5 +1,11 @@
 # Macro Narrative Engine
 
+## Project Documentation
+
+- [Architecture](ARCHITECTURE.md)
+- [Project Status](docs/project_status.md)
+- [Roadmap](docs/roadmap.md)
+
 ## Runtime Data Storage
 
 MNE uses GitHub for source code and a separate runtime data directory for generated history:
