@@ -8,6 +8,26 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+## Run
+
+Run engine:
+
+```powershell
+python main.py
+```
+
+Run dashboard:
+
+```powershell
+python dashboard.py
+```
+
+Open:
+
+```text
+http://localhost:8000
+```
+
 ## macOS
 
 ```bash

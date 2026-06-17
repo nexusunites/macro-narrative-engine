@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MNE Overview</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand-row">
+      <a class="brand" href="/">Macro Narrative Engine</a>
+      <nav class="nav">
+        <a href="#overview">Overview</a>
+        <a href="#narratives">Narratives</a>
+        <a href="#market">Market</a>
+        <a href="#catalysts">Catalysts</a>
+        <a href="#trends">Trends</a>
+        <a href="/admin{% if selected_file %}?run={{ selected_file }}{% endif %}">Admin</a>
+      </nav>
+    </div>
+
+    <div class="utility-row">
+      <form method="get" action="/" class="run-selector compact">
+        <label for="run">Run</label>
+        <select id="run" name="run" onchange="this.form.submit()">
+          {% for file in recent_files %}
+            <option value="{{ file }}" {% if file == selected_file %}selected{% endif %}>{{ file }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      {% if view %}
+        <p class="last-updated">Last updated: {{ view.last_updated or "Unavailable" }}</p>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="page-shell">
+    {% if message %}
+      <section class="empty-state">
+        <p class="eyebrow">No Results</p>
+        <h1>{{ message }}</h1>
+        <p>Results directory: {{ results_dir }}</p>
+      </section>
+    {% endif %}
+
+    {% if view %}
+      <section id="overview" class="hero-section">
+        <div class="hero-copy">
+          <p class="eyebrow">Today&apos;s Read</p>
+          <h1>{{ view.mode_context.read or view.regime.reason or "Market narrative context is unavailable for this run." }}</h1>
+        </div>
+        <div class="hero-metrics">
+          <article class="card hero-card">
+            <span>Mode Context State</span>
+            <strong>{{ view.mode_context.state or "Unavailable" }}</strong>
+          </article>
+          <article class="card hero-card">
+            <span>Mode Context Confidence</span>
+            <strong>{{ view.mode_context.confidence or "Unavailable" }}</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="metric-grid">
+        <article class="card metric-card featured">
+          <span>Regime Alignment Score</span>
+          <strong>{{ view.regime.score if view.regime.score is not none else "Unavailable" }}</strong>
+        </article>
+        <article class="card metric-card">
+          <span>Regime Alignment State</span>
+          <strong>{{ view.regime.state or "Unavailable" }}</strong>
+        </article>
+        <article class="card metric-card">
+          <span>Dominant Theme</span>
+          <strong>{{ view.run.dominant_theme or "Unavailable" }}</strong>
+        </article>
+        <article class="card metric-card">
+          <span>Dominant Narrative Group</span>
+          <strong>{{ view.run.dominant_group or "Unavailable" }}</strong>
+        </article>
+        <article class="card metric-card">
+          <span>Market Environment</span>
+          <strong>{{ view.market_environment_card.state or "Unavailable" }}</strong>
+        </article>
+        <article class="card metric-card">
+          <span>Catalyst Environment</span>
+          <strong>{{ view.catalyst_environment_card.state or "Unavailable" }}</strong>
+        </article>
+        <article class="card metric-card">
+          <span>Positioning Environment</span>
+          <strong>{{ view.positioning_environment_card.state or "Unavailable" }}</strong>
+        </article>
+      </section>
+
+      <section id="narratives" class="content-section two-column">
+        <div>
+          <div class="section-heading">
+            <p class="eyebrow">Narratives</p>
+            <h2>Narrative Scores</h2>
+          </div>
+          <article class="card">
+            {% if view.theme_scores %}
+              <table>
+                <tbody>
+                  {% for theme, score in view.theme_scores %}
+                    <tr><th>{{ theme }}</th><td>{{ score }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="muted">No narrative scores found in this run.</p>
+            {% endif %}
+          </article>
+        </div>
+        <div>
+          <div class="section-heading">
+            <p class="eyebrow">Groups</p>
+            <h2>Narrative Group Scores</h2>
+          </div>
+          <article class="card">
+            {% if view.group_scores %}
+              <table>
+                <tbody>
+                  {% for group, score in view.group_scores %}
+                    <tr><th>{{ group }}</th><td>{{ score }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="muted">No group scores found in this run.</p>
+            {% endif %}
+          </article>
+        </div>
+      </section>
+
+      <section id="market" class="content-section">
+        <div class="section-heading">
+          <p class="eyebrow">Nasdaq / Market Context</p>
+          <h2>Market Snapshot</h2>
+        </div>
+        <article class="card">
+          {% if view.market_context %}
+            <table>
+              <thead>
+                <tr><th>Symbol</th><th>Ticker</th><th>Last</th><th>Change</th></tr>
+              </thead>
+              <tbody>
+                {% for row in view.market_context %}
+                  <tr>
+                    <th>{{ row.symbol }}</th>
+                    <td>{{ row.ticker }}</td>
+                    <td>{{ row.latest_close if row.latest_close is not none else "Unavailable" }}</td>
+                    <td>{{ row.pct_change if row.pct_change is not none else "Unavailable" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="muted">Market snapshot data was not found in this JSON file.</p>
+          {% endif %}
+        </article>
+      </section>
+
+      <section id="catalysts" class="content-section card-grid">
+        <article class="card environment-card">
+          <span>Market</span>
+          <strong>{{ view.market_environment_card.state or "Unavailable" }}</strong>
+          {% if view.market_environment_card.reason %}<p>{{ view.market_environment_card.reason }}</p>{% endif %}
+        </article>
+        <article class="card environment-card">
+          <span>Catalysts</span>
+          <strong>{{ view.catalyst_environment_card.state or "Unavailable" }}</strong>
+          {% if view.catalyst_environment_card.reason %}<p>{{ view.catalyst_environment_card.reason }}</p>{% endif %}
+        </article>
+        <article class="card environment-card">
+          <span>Positioning</span>
+          <strong>{{ view.positioning_environment_card.state or "Unavailable" }}</strong>
+          {% if view.positioning_environment_card.reason %}<p>{{ view.positioning_environment_card.reason }}</p>{% endif %}
+        </article>
+      </section>
+
+      <section id="trends" class="content-section">
+        <div class="section-heading">
+          <p class="eyebrow">Example Headlines</p>
+          <h2>Top Theme Evidence</h2>
+        </div>
+        {% if view.examples %}
+          <div class="card-grid">
+            {% for theme, headlines in view.examples.items() %}
+              <article class="card headline-card">
+                <h3>{{ theme|title }}</h3>
+                <ul>
+                  {% for headline in headlines %}
+                    <li>{{ headline }}</li>
+                  {% endfor %}
+                </ul>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <article class="card">
+            <p class="muted">No example headlines were stored for the top themes in this run.</p>
+          </article>
+        {% endif %}
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>
