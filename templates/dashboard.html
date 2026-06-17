@@ -119,13 +119,54 @@
         </article>
       </section>
 
-      <section id="narratives" class="content-section two-column">
+      <section id="narratives" class="content-section narrative-leadership-section">
+        <div class="section-heading leadership-heading">
+          <div>
+            <p class="eyebrow">Narratives</p>
+            <h2>Narrative Leadership</h2>
+          </div>
+          <p class="leadership-read">Ranked by existing narrative group scores for this run.</p>
+        </div>
+        {% if view.narrative_leadership %}
+          <div class="leadership-grid">
+            {% for item in view.narrative_leadership %}
+              <article class="card leadership-card rank-{{ item.rank }}{% if item.is_close_challenger %} close-challenger{% endif %}">
+                <div class="leadership-topline">
+                  <span class="rank-badge">#{{ item.rank }}</span>
+                  <span class="leadership-label">{{ item.label }}</span>
+                </div>
+                <h3>{{ item.group }}</h3>
+                <div class="leadership-score-row">
+                  <strong>{{ item.score }}</strong>
+                  <span>mentions</span>
+                </div>
+                <div class="leadership-meter" aria-hidden="true">
+                  <span style="width: {{ item.relative_width }}%"></span>
+                </div>
+                {% if item.rank == 1 %}
+                  <p class="leadership-note">Current narrative leader</p>
+                {% elif item.is_close_challenger %}
+                  <p class="leadership-note">Within {{ item.leader_gap }} mentions of the leader</p>
+                {% else %}
+                  <p class="leadership-note">{{ item.leader_gap }} mentions behind the leader</p>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <article class="card">
+            <p class="muted">No narrative group scores found in this run.</p>
+          </article>
+        {% endif %}
+      </section>
+
+      <section class="content-section details-section two-column">
         <div>
           <div class="section-heading">
-            <p class="eyebrow">Narratives</p>
+            <p class="eyebrow">Details</p>
             <h2>Narrative Scores</h2>
           </div>
-          <article class="card">
+          <article class="card details-card">
             {% if view.theme_scores %}
               <table>
                 <tbody>
@@ -141,10 +182,10 @@
         </div>
         <div>
           <div class="section-heading">
-            <p class="eyebrow">Groups</p>
+            <p class="eyebrow">Details</p>
             <h2>Narrative Group Scores</h2>
           </div>
-          <article class="card">
+          <article class="card details-card">
             {% if view.group_scores %}
               <table>
                 <tbody>

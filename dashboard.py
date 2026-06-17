@@ -116,6 +116,48 @@ def sorted_scores(scores):
     return sorted(scores.items(), key=lambda item: score_sort_value(item[1]), reverse=True)
 
 
+def fmt_score_value(value):
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return value
+    if score.is_integer():
+        return int(score)
+    return round(score, 1)
+
+
+def build_narrative_leadership(group_scores):
+    labels = ("Dominant Narrative", "Challenging Leadership", "Secondary Narrative")
+    top_groups = group_scores[:3]
+    if not top_groups:
+        return []
+
+    leader_score = score_sort_value(top_groups[0][1])
+    leadership = []
+    for index, (group, score) in enumerate(top_groups):
+        numeric_score = score_sort_value(score)
+        relative_width = 100
+        if leader_score > 0:
+            relative_width = max(8, round((numeric_score / leader_score) * 100))
+        leader_gap = leader_score - numeric_score
+        leadership.append(
+            {
+                "rank": index + 1,
+                "group": group,
+                "score": fmt_score_value(score),
+                "label": labels[index],
+                "relative_width": relative_width,
+                "leader_gap": fmt_score_value(leader_gap),
+                "is_close_challenger": (
+                    index == 1
+                    and leader_score > 0
+                    and leader_gap <= max(2, leader_score * 0.1)
+                ),
+            }
+        )
+    return leadership
+
+
 def build_regime_history():
     history = []
     for path in reversed(list_regime_history_files()):
@@ -292,6 +334,7 @@ def build_view_model(run, current_file):
         },
         "theme_scores": theme_scores,
         "group_scores": group_scores,
+        "narrative_leadership": build_narrative_leadership(group_scores),
         "dominant_share": pct(run.get("dominant_share")),
         "concentration_gap": run.get("concentration_gap"),
         "market_context": get_market_context(run),
