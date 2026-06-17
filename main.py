@@ -15,6 +15,7 @@ from mne.narrative_signals import (
     get_dominant_group,
 )
 from mne.positioning_environment import classify_positioning_environment
+from mne.regime_alignment import calculate_regime_alignment
 from mne.reporting import (
     build_daily_report,
     print_breadth_confirmation,
@@ -28,6 +29,7 @@ from mne.reporting import (
     print_narrative_dynamics,
     print_narrative_signals,
     print_positioning_environment,
+    print_regime_alignment,
     print_theme_counts,
     print_theme_match_audit,
     print_top_theme_examples,
@@ -123,6 +125,7 @@ def main():
     market_environment = None
     narrative_market_relationship = None
     breadth_confirmation = None
+    regime_alignment = None
     catalyst_environment = classify_catalyst_environment()
     positioning_environment = classify_positioning_environment(catalyst_environment)
 
@@ -172,6 +175,7 @@ def main():
         "breadth_confirmation": breadth_confirmation,
         "catalyst_environment": catalyst_environment,
         "positioning_environment": positioning_environment,
+        "regime_alignment": regime_alignment,
         "examples": {k: v for k, v in examples.items() if k in dict(nonzero[:3])},
     }
 
@@ -196,12 +200,25 @@ def main():
         run["narrative_market_relationship"] = narrative_market_relationship
         breadth_confirmation = classify_breadth_confirmation(market_snapshot)
         run["breadth_confirmation"] = breadth_confirmation
+        regime_alignment = calculate_regime_alignment(
+            narrative_signals=signals,
+            market_environment=market_environment,
+            narrative_market_relationship=narrative_market_relationship,
+            breadth_confirmation=breadth_confirmation,
+            catalyst_environment=catalyst_environment,
+            positioning_environment=positioning_environment,
+            market_snapshot=market_snapshot,
+            dominant_group=dominant_group,
+            dominant_theme=top_theme,
+        )
+        run["regime_alignment"] = regime_alignment
 
         print_market_environment(market_environment)
         print_narrative_market_relationship(narrative_market_relationship)
         print_breadth_confirmation(breadth_confirmation)
         print_catalyst_environment(catalyst_environment)
         print_positioning_environment(positioning_environment)
+        print_regime_alignment(regime_alignment)
         print_market_context(
             {name: market_snapshot.get(name) for name in NASDAQ_TICKERS.keys()}
         )
@@ -226,6 +243,19 @@ def main():
         run["breadth_confirmation"] = breadth_confirmation
         print_catalyst_environment(catalyst_environment)
         print_positioning_environment(positioning_environment)
+        regime_alignment = calculate_regime_alignment(
+            narrative_signals=signals,
+            market_environment=market_environment,
+            narrative_market_relationship=narrative_market_relationship,
+            breadth_confirmation=breadth_confirmation,
+            catalyst_environment=catalyst_environment,
+            positioning_environment=positioning_environment,
+            market_snapshot=market_snapshot,
+            dominant_group=dominant_group,
+            dominant_theme=top_theme,
+        )
+        run["regime_alignment"] = regime_alignment
+        print_regime_alignment(regime_alignment)
 
     results_dir, results_file = save_run_json(run, stamp)
     print()
@@ -246,6 +276,7 @@ def main():
         breadth_confirmation=breadth_confirmation,
         catalyst_environment=catalyst_environment,
         positioning_environment=positioning_environment,
+        regime_alignment=regime_alignment,
         narrative_dynamics=narrative_dynamics,
         top_themes=nonzero,
         top_groups=sorted_group_scores,

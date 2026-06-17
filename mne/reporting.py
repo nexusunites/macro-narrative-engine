@@ -166,6 +166,17 @@ def print_positioning_environment(positioning_environment):
     print(positioning_environment["reason"])
 
 
+def print_regime_alignment(regime_alignment):
+    print()
+    print("=== Regime Alignment Score ===")
+    print(f"Score: {regime_alignment['score']}/100")
+    print(f"State: {regime_alignment['state']}")
+    print(f"Confidence: {regime_alignment['confidence']}")
+    print()
+    print("Reason:")
+    print(regime_alignment["reason"])
+
+
 def print_market_context(market_snapshot):
     print()
     print("=== Nasdaq Context ===")
@@ -297,6 +308,7 @@ def build_daily_report(
     breadth_confirmation=None,
     catalyst_environment=None,
     positioning_environment=None,
+    regime_alignment=None,
     narrative_dynamics=None,
     top_themes=None,
     top_groups=None,
@@ -396,6 +408,16 @@ def build_daily_report(
         report_lines.append("")
         report_lines.append("Reason:")
         report_lines.append(positioning_environment["reason"])
+
+    if regime_alignment:
+        report_lines.append("")
+        report_lines.append("=== Regime Alignment Score ===")
+        report_lines.append(f"Score: {regime_alignment['score']}/100")
+        report_lines.append(f"State: {regime_alignment['state']}")
+        report_lines.append(f"Confidence: {regime_alignment['confidence']}")
+        report_lines.append("")
+        report_lines.append("Reason:")
+        report_lines.append(regime_alignment["reason"])
 
     report_lines.append("")
     report_lines.append("=== Narrative Theme Scores ===")
