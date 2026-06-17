@@ -126,8 +126,21 @@ def fmt_score_value(value):
     return round(score, 1)
 
 
-def build_narrative_leadership(group_scores):
+def display_state(value):
+    if not value:
+        return "Unavailable"
+    text = str(value).replace("_", " ").replace("-", " ")
+    return text.title()
+
+
+def build_narrative_leadership(group_scores, narrative_pulse=None, dynamics=None):
     labels = ("Dominant Narrative", "Challenging Leadership", "Secondary Narrative")
+    narrative_pulse = narrative_pulse if isinstance(narrative_pulse, dict) else {}
+    dynamics = dynamics if isinstance(dynamics, dict) else {}
+    dynamic_groups = dynamics.get("groups") if isinstance(dynamics.get("groups"), dict) else {}
+    crowding = dynamics.get("narrative_crowding") if isinstance(dynamics.get("narrative_crowding"), dict) else {}
+    persistence = dynamics.get("persistence") if isinstance(dynamics.get("persistence"), dict) else {}
+    dominant_group = persistence.get("dominant_group")
     top_groups = group_scores[:3]
     if not top_groups:
         return []
@@ -136,6 +149,9 @@ def build_narrative_leadership(group_scores):
     leadership = []
     for index, (group, score) in enumerate(top_groups):
         numeric_score = score_sort_value(score)
+        pulse = narrative_pulse.get(group) if isinstance(narrative_pulse.get(group), dict) else {}
+        group_dynamics = dynamic_groups.get(group) if isinstance(dynamic_groups.get(group), dict) else {}
+        crowding_state = crowding.get("risk") if group == dominant_group else None
         relative_width = 100
         if leader_score > 0:
             relative_width = max(8, round((numeric_score / leader_score) * 100))
@@ -148,6 +164,11 @@ def build_narrative_leadership(group_scores):
                 "label": labels[index],
                 "relative_width": relative_width,
                 "leader_gap": fmt_score_value(leader_gap),
+                "pulse_state": pulse.get("pulse_state"),
+                "pulse_confidence": pulse.get("confidence"),
+                "pulse_reason": pulse.get("reason"),
+                "acceleration": display_state(group_dynamics.get("acceleration")),
+                "crowding": display_state(crowding_state),
                 "is_close_challenger": (
                     index == 1
                     and leader_score > 0
@@ -334,7 +355,11 @@ def build_view_model(run, current_file):
         },
         "theme_scores": theme_scores,
         "group_scores": group_scores,
-        "narrative_leadership": build_narrative_leadership(group_scores),
+        "narrative_leadership": build_narrative_leadership(
+            group_scores,
+            run.get("narrative_pulse"),
+            dynamics,
+        ),
         "dominant_share": pct(run.get("dominant_share")),
         "concentration_gap": run.get("concentration_gap"),
         "market_context": get_market_context(run),

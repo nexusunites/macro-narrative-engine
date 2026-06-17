@@ -470,6 +470,56 @@ select {
   font-size: clamp(20px, 1.8vw, 26px);
 }
 
+.pulse-block {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.pulse-primary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pulse-primary span,
+.signal-list dt,
+.pulse-confidence {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pulse-primary strong {
+  color: var(--accent);
+  font-size: 20px;
+}
+
+.signal-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.signal-list div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.signal-list dd {
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.pulse-confidence {
+  margin: 0;
+}
+
 .leadership-score-row {
   justify-content: flex-start;
 }

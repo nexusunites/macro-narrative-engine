@@ -8,6 +8,7 @@ from mne.catalyst_environment import classify_catalyst_environment
 from mne.environment import classify_market_environment
 from mne.headline_deduplication import dedupe_headlines
 from mne.market_context import get_market_snapshot
+from mne.narrative_pulse import calculate_narrative_pulse
 from mne.narrative_market_relationship import classify_narrative_market_relationship
 from mne.narrative_signals import (
     compute_group_scores,
@@ -210,6 +211,8 @@ def main(args=None):
         lookback=5,
     )
     run["narrative_dynamics"] = narrative_dynamics
+    narrative_pulse = calculate_narrative_pulse(run, narrative_dynamics)
+    run["narrative_pulse"] = narrative_pulse
 
     if nonzero:
         prior_runs = get_recent_runs(RESULTS_DIR, 1)

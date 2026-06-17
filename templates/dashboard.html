@@ -136,6 +136,25 @@
                   <span class="leadership-label">{{ item.label }}</span>
                 </div>
                 <h3>{{ item.group }}</h3>
+                <div class="pulse-block">
+                  <div class="pulse-primary">
+                    <span>Pulse</span>
+                    <strong>{{ item.pulse_state or "Unavailable" }}</strong>
+                  </div>
+                  <dl class="signal-list">
+                    <div>
+                      <dt>Acceleration</dt>
+                      <dd>{{ item.acceleration }}</dd>
+                    </div>
+                    <div>
+                      <dt>Crowding</dt>
+                      <dd>{{ item.crowding }}</dd>
+                    </div>
+                  </dl>
+                  {% if item.pulse_confidence %}
+                    <p class="pulse-confidence">Confidence: {{ item.pulse_confidence }}</p>
+                  {% endif %}
+                </div>
                 <div class="leadership-score-row">
                   <strong>{{ item.score }}</strong>
                   <span>mentions</span>
