@@ -11,7 +11,7 @@
     <div class="brand-row">
       <a class="brand" href="/">Macro Narrative Engine</a>
       <nav class="nav">
-        <a href="#overview">Overview</a>
+        <a class="active" href="#overview">Overview</a>
         <a href="#narratives">Narratives</a>
         <a href="#market">Market</a>
         <a href="#catalysts">Catalysts</a>
@@ -47,37 +47,27 @@
     {% if view %}
       <section id="overview" class="hero-section">
         <div class="hero-copy">
-          <p class="eyebrow">Today&apos;s Read</p>
-          <h1>{{ view.mode_context.read or view.regime.reason or "Market narrative context is unavailable for this run." }}</h1>
-        </div>
-        <div class="hero-metrics">
-          <article class="card hero-card">
-            <span>Mode Context State</span>
-            <strong>{{ view.mode_context.state or "Unavailable" }}</strong>
-          </article>
-          <article class="card hero-card">
-            <span>Mode Context Confidence</span>
-            <strong>{{ view.mode_context.confidence or "Unavailable" }}</strong>
-          </article>
+          <div class="hero-meta">
+            <span>Macro Narrative Engine</span>
+            <span>{{ view.run.operating_mode|title if view.run.operating_mode else "Macro" }} Mode</span>
+            <span>Last Updated: {{ view.last_updated or "Unavailable" }}</span>
+          </div>
+          <h1>{{ view.mode_context.state or "Market Context Unavailable" }}</h1>
+          <p class="hero-read">{{ view.mode_context.read or view.regime.reason or "Market narrative context is unavailable for this run." }}</p>
+          <p class="hero-confidence">Confidence: <strong>{{ view.mode_context.confidence or "Unavailable" }}</strong></p>
         </div>
       </section>
 
       <section class="metric-grid">
-        <article class="card metric-card featured">
-          <span>Regime Alignment Score</span>
-          <strong>{{ view.regime.score if view.regime.score is not none else "Unavailable" }}</strong>
+        <article class="card metric-card">
+          <span>Regime Alignment</span>
+          <strong>{% if view.regime.score is not none %}{{ view.regime.score }} / 100{% else %}Unavailable{% endif %}</strong>
+          {% if view.regime.state %}<small>{{ view.regime.state }}</small>{% endif %}
         </article>
         <article class="card metric-card">
-          <span>Regime Alignment State</span>
-          <strong>{{ view.regime.state or "Unavailable" }}</strong>
-        </article>
-        <article class="card metric-card">
-          <span>Dominant Theme</span>
-          <strong>{{ view.run.dominant_theme or "Unavailable" }}</strong>
-        </article>
-        <article class="card metric-card">
-          <span>Dominant Narrative Group</span>
-          <strong>{{ view.run.dominant_group or "Unavailable" }}</strong>
+          <span>Dominant Narrative</span>
+          <strong>{{ view.run.dominant_group or view.run.dominant_theme or "Unavailable" }}</strong>
+          {% if view.run.dominant_theme %}<small>{{ view.run.dominant_theme }}</small>{% endif %}
         </article>
         <article class="card metric-card">
           <span>Market Environment</span>
@@ -88,8 +78,44 @@
           <strong>{{ view.catalyst_environment_card.state or "Unavailable" }}</strong>
         </article>
         <article class="card metric-card">
-          <span>Positioning Environment</span>
+          <span>Positioning</span>
           <strong>{{ view.positioning_environment_card.state or "Unavailable" }}</strong>
+        </article>
+      </section>
+
+      <section class="content-section regime-history-section">
+        <article class="card regime-history-card">
+          <div class="regime-history-header">
+            <div>
+              <p class="eyebrow">Regime Alignment History</p>
+              <h2>Recent Alignment Scores</h2>
+            </div>
+            <p class="trend-summary">{{ regime_history.summary }}</p>
+          </div>
+          {% if regime_history.has_chart %}
+            <div class="regime-chart-wrap" aria-label="Recent Regime Alignment score history">
+              <svg class="regime-chart" viewBox="0 0 640 180" role="img">
+                <title>Recent Regime Alignment scores</title>
+                <line class="chart-grid" x1="34" y1="22" x2="606" y2="22"></line>
+                <line class="chart-grid" x1="34" y1="90" x2="606" y2="90"></line>
+                <line class="chart-grid" x1="34" y1="158" x2="606" y2="158"></line>
+                <text class="chart-axis-label" x="6" y="27">100</text>
+                <text class="chart-axis-label" x="15" y="95">50</text>
+                <text class="chart-axis-label" x="21" y="163">0</text>
+                <polyline class="regime-line" points="{{ regime_history.polyline }}"></polyline>
+                {% for point in regime_history.points %}
+                  <circle class="regime-point" cx="{{ point.x }}" cy="{{ point.y }}" r="3">
+                    <title>{{ point.label }}: {{ point.score }}</title>
+                  </circle>
+                {% endfor %}
+                <text class="chart-date-label" x="34" y="177">{{ regime_history.first.label }}</text>
+                <text class="chart-date-label chart-date-label-end" x="606" y="177">{{ regime_history.latest.label }}</text>
+                <text class="chart-score-label" x="{{ regime_history.latest.x }}" y="{{ regime_history.latest.y - 10 }}">{{ regime_history.latest.score }}</text>
+              </svg>
+            </div>
+          {% else %}
+            <p class="muted history-empty">Not enough Regime Alignment history yet.</p>
+          {% endif %}
         </article>
       </section>
 

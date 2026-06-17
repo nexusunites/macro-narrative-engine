@@ -1,4 +1,5 @@
 import json
+import math
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -14,6 +15,7 @@ from config import RESULTS_DIR
 
 BASE_DIR = Path(__file__).resolve().parent
 RECENT_RUN_LIMIT = 20
+REGIME_HISTORY_LIMIT = 30
 MARKET_SYMBOLS = ("QQQ", "NVDA", "VIX", "DXY")
 
 app = FastAPI(title="Macro Narrative Engine Dashboard")
@@ -24,6 +26,11 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 def list_result_files(limit=RECENT_RUN_LIMIT):
     files = sorted(RESULTS_DIR.glob("*.json"), key=lambda path: path.name, reverse=True)
     return files[:limit]
+
+
+def list_regime_history_files():
+    files = sorted(RESULTS_DIR.glob("*.json"), key=lambda path: path.name, reverse=True)
+    return files[:REGIME_HISTORY_LIMIT]
 
 
 def safe_result_path(filename):
@@ -68,6 +75,34 @@ def fmt_file_timestamp(path):
         return None
 
 
+def fmt_history_label(value, path):
+    candidates = [value, path.stem]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        text = str(candidate)
+        for fmt in ("%Y-%m-%d_%H%M", "%Y-%m-%d %H:%M"):
+            try:
+                return datetime.strptime(text, fmt).strftime("%m/%d %H:%M")
+            except ValueError:
+                pass
+        try:
+            return datetime.fromisoformat(text).strftime("%m/%d %H:%M")
+        except ValueError:
+            pass
+    return path.stem
+
+
+def valid_regime_score(value):
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(score):
+        return None
+    return score
+
+
 def score_sort_value(value):
     try:
         return float(value)
@@ -79,6 +114,74 @@ def sorted_scores(scores):
     if not isinstance(scores, dict):
         return []
     return sorted(scores.items(), key=lambda item: score_sort_value(item[1]), reverse=True)
+
+
+def build_regime_history():
+    history = []
+    for path in reversed(list_regime_history_files()):
+        try:
+            result = load_result(path)
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        regime = result.get("regime_alignment")
+        if not isinstance(regime, dict):
+            continue
+
+        score = valid_regime_score(regime.get("score"))
+        if score is None:
+            continue
+
+        history.append(
+            {
+                "file": path.name,
+                "label": fmt_history_label(result.get("timestamp"), path),
+                "score": round(score, 1),
+                "plot_score": max(0, min(100, score)),
+            }
+        )
+
+    if len(history) < 2:
+        return {
+            "points": history,
+            "has_chart": False,
+            "summary": "Not enough Regime Alignment history yet.",
+            "polyline": "",
+        }
+
+    width = 640
+    height = 180
+    pad_x = 34
+    pad_y = 22
+    plot_width = width - (pad_x * 2)
+    plot_height = height - (pad_y * 2)
+    x_step = plot_width / (len(history) - 1)
+
+    coordinates = []
+    for index, item in enumerate(history):
+        x = pad_x + (x_step * index)
+        y = pad_y + ((100 - item["plot_score"]) / 100 * plot_height)
+        item["x"] = round(x, 2)
+        item["y"] = round(y, 2)
+        coordinates.append(f"{item['x']},{item['y']}")
+
+    comparison_index = -4 if len(history) >= 4 else 0
+    score_delta = history[-1]["score"] - history[comparison_index]["score"]
+    if score_delta >= 5:
+        summary = "Alignment improving over recent runs"
+    elif score_delta <= -5:
+        summary = "Alignment weakening over recent runs"
+    else:
+        summary = "Alignment broadly stable"
+
+    return {
+        "points": history,
+        "has_chart": True,
+        "summary": summary,
+        "polyline": " ".join(coordinates),
+        "latest": history[-1],
+        "first": history[0],
+    }
 
 
 def compact_environment(item):
@@ -239,6 +342,7 @@ def build_template_context(request: Request, run: Optional[str]):
         "selected_file": current_file.name if current_file else None,
         "message": None,
         "view": None,
+        "regime_history": build_regime_history(),
     }
 
     if not current_file:
