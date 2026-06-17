@@ -193,6 +193,7 @@ def main(args=None):
         "total_mentions": total_mentions,
         "dominant_share": round(float(share), 4),
         "concentration_gap": int(concentration_gap),
+        "market_snapshot": market_snapshot,
         "market_environment": market_environment,
         "breadth_confirmation": breadth_confirmation,
         "catalyst_environment": catalyst_environment,
