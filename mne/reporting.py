@@ -1,4 +1,5 @@
 from mne.market_context import classify_market_move
+from mne.operating_modes import format_operating_mode
 
 
 def print_theme_counts(nonzero_results):
@@ -177,6 +178,21 @@ def print_regime_alignment(regime_alignment):
     print(regime_alignment["reason"])
 
 
+def print_operating_mode(mode):
+    print("=== Operating Mode ===")
+    print(f"Mode: {format_operating_mode(mode)}")
+
+
+def print_mode_context(mode_context):
+    print()
+    print("=== Mode Context ===")
+    print(f"State: {mode_context['state']}")
+    print(f"Confidence: {mode_context['confidence']}")
+    print()
+    print("Read:")
+    print(mode_context["read"])
+
+
 def print_market_context(market_snapshot):
     print()
     print("=== Nasdaq Context ===")
@@ -317,6 +333,8 @@ def build_daily_report(
     deduped_headline_count=None,
     duplicate_count=None,
     theme_match_audit=None,
+    operating_mode=None,
+    mode_context=None,
 ):
     report_lines = []
 
@@ -324,6 +342,10 @@ def build_daily_report(
     report_lines.append("")
     report_lines.append(f"Run Timestamp: {readable_time}")
     report_lines.append("")
+    if operating_mode:
+        report_lines.append("=== Operating Mode ===")
+        report_lines.append(f"Mode: {format_operating_mode(operating_mode)}")
+        report_lines.append("")
     if raw_headline_count is not None and deduped_headline_count is not None:
         report_lines.append(f"Loaded {raw_headline_count} raw headlines")
         report_lines.append(f"Deduped to {deduped_headline_count} unique headlines")
@@ -418,6 +440,15 @@ def build_daily_report(
         report_lines.append("")
         report_lines.append("Reason:")
         report_lines.append(regime_alignment["reason"])
+
+    if mode_context:
+        report_lines.append("")
+        report_lines.append("=== Mode Context ===")
+        report_lines.append(f"State: {mode_context['state']}")
+        report_lines.append(f"Confidence: {mode_context['confidence']}")
+        report_lines.append("")
+        report_lines.append("Read:")
+        report_lines.append(mode_context["read"])
 
     report_lines.append("")
     report_lines.append("=== Narrative Theme Scores ===")

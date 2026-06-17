@@ -1,7 +1,8 @@
+import argparse
 from datetime import datetime
 
 from analysis.narrative_dynamics import calculate_narrative_dynamics
-from config import DATA_DIR, RESULTS_DIR
+from config import DATA_DIR, OPERATING_MODE, RESULTS_DIR
 from mne.breadth import BREADTH_TICKERS, classify_breadth_confirmation
 from mne.catalyst_environment import classify_catalyst_environment
 from mne.environment import classify_market_environment
@@ -14,6 +15,7 @@ from mne.narrative_signals import (
     compute_narrative_signals,
     get_dominant_group,
 )
+from mne.operating_modes import generate_mode_context, normalize_operating_mode
 from mne.positioning_environment import classify_positioning_environment
 from mne.regime_alignment import calculate_regime_alignment
 from mne.reporting import (
@@ -28,8 +30,10 @@ from mne.reporting import (
     print_narrative_concentration,
     print_narrative_dynamics,
     print_narrative_signals,
+    print_operating_mode,
     print_positioning_environment,
     print_regime_alignment,
+    print_mode_context,
     print_theme_counts,
     print_theme_match_audit,
     print_top_theme_examples,
@@ -64,7 +68,20 @@ TREND_LOOKBACK = 5
 TREND_EPSILON = 0.02
 
 
-def main():
+def parse_args(args=None):
+    parser = argparse.ArgumentParser(description="Run the Macro Narrative Engine.")
+    parser.add_argument(
+        "--mode",
+        help="Operating mode for this run. Overrides config.py without rewriting it.",
+    )
+    return parser.parse_args(args)
+
+
+def main(args=None):
+    parsed_args = parse_args(args)
+    configured_mode = parsed_args.mode or OPERATING_MODE
+    operating_mode, mode_warning = normalize_operating_mode(configured_mode)
+
     print("=== Daily Narrative Snapshot ===")
     print()
     print(f"Active Data Directory: {DATA_DIR}")
@@ -75,6 +92,10 @@ def main():
     readable_time = now.strftime("%Y-%m-%d %H:%M")
 
     print(f"Run Timestamp: {readable_time}")
+    print()
+    print_operating_mode(operating_mode)
+    if mode_warning:
+        print(mode_warning)
     print()
 
     raw_headlines = fetch_headlines_from_rss(RSS_URLS)
@@ -126,6 +147,7 @@ def main():
     narrative_market_relationship = None
     breadth_confirmation = None
     regime_alignment = None
+    mode_context = None
     catalyst_environment = classify_catalyst_environment()
     positioning_environment = classify_positioning_environment(catalyst_environment)
 
@@ -212,6 +234,21 @@ def main():
             dominant_theme=top_theme,
         )
         run["regime_alignment"] = regime_alignment
+        mode_context = generate_mode_context(
+            mode=operating_mode,
+            dominant_theme=top_theme,
+            dominant_group=dominant_group,
+            narrative_signals=signals,
+            market_environment=market_environment,
+            narrative_market_relationship=narrative_market_relationship,
+            breadth_confirmation=breadth_confirmation,
+            catalyst_environment=catalyst_environment,
+            positioning_environment=positioning_environment,
+            regime_alignment=regime_alignment,
+            market_snapshot=market_snapshot,
+        )
+        run["operating_mode"] = operating_mode
+        run["mode_context"] = mode_context
 
         print_market_environment(market_environment)
         print_narrative_market_relationship(narrative_market_relationship)
@@ -219,6 +256,7 @@ def main():
         print_catalyst_environment(catalyst_environment)
         print_positioning_environment(positioning_environment)
         print_regime_alignment(regime_alignment)
+        print_mode_context(mode_context)
         print_market_context(
             {name: market_snapshot.get(name) for name in NASDAQ_TICKERS.keys()}
         )
@@ -255,7 +293,23 @@ def main():
             dominant_theme=top_theme,
         )
         run["regime_alignment"] = regime_alignment
+        mode_context = generate_mode_context(
+            mode=operating_mode,
+            dominant_theme=top_theme,
+            dominant_group=dominant_group,
+            narrative_signals=signals,
+            market_environment=market_environment,
+            narrative_market_relationship=narrative_market_relationship,
+            breadth_confirmation=breadth_confirmation,
+            catalyst_environment=catalyst_environment,
+            positioning_environment=positioning_environment,
+            regime_alignment=regime_alignment,
+            market_snapshot=market_snapshot,
+        )
+        run["operating_mode"] = operating_mode
+        run["mode_context"] = mode_context
         print_regime_alignment(regime_alignment)
+        print_mode_context(mode_context)
 
     results_dir, results_file = save_run_json(run, stamp)
     print()
@@ -285,6 +339,8 @@ def main():
         deduped_headline_count=deduplication["deduped_headline_count"],
         duplicate_count=deduplication["duplicate_count"],
         theme_match_audit=theme_match_audit,
+        operating_mode=operating_mode,
+        mode_context=mode_context,
     )
     report_file = save_report(report_text, stamp)
     print(f"Report saved to {report_file}")
