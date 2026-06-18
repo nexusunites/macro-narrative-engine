@@ -604,6 +604,85 @@ select {
   font-weight: 600;
 }
 
+.leadership-history-section {
+  margin-top: 18px;
+}
+
+.leadership-history-card {
+  display: grid;
+  gap: 16px;
+}
+
+.leadership-history-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.leadership-history-header h2 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.leadership-history-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.leadership-history-table {
+  min-width: 760px;
+}
+
+.leadership-history-table td strong,
+.leadership-history-table td > span:not(.history-meter) {
+  display: block;
+}
+
+.leadership-history-table td > span:not(.history-meter) {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.history-meter-row {
+  display: grid;
+  grid-template-columns: minmax(92px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-meter {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.history-meter i {
+  display: block;
+  width: var(--meter-width);
+  height: 100%;
+  border-radius: inherit;
+}
+
+.share-meter i {
+  background: var(--accent);
+}
+
+.gap-meter i {
+  background: var(--warn);
+}
+
+.history-meter-row strong {
+  min-width: 54px;
+  color: var(--text);
+  font-size: 12px;
+  text-align: right;
+}
+
 .details-section {
   margin-top: 24px;
 }

@@ -57,7 +57,17 @@ Why it matters: The dashboard has grown beyond a single-page summary. Dedicated 
 
 Rough implementation priority: High. This should follow Leadership Rotation or progress alongside it where routing and page structure are needed.
 
-### 3. Market Expression Map
+### 3. Dashboard Enhancement: Daily Regime Alignment History
+
+Brief description: Convert the user-facing Regime Alignment History chart from recent-run based history to daily-based aggregation so it better communicates regime changes over time, ideally with one point per day.
+
+Why it matters: Run-level history is useful for development and diagnostics, but daily aggregation is clearer for user-facing dashboard interpretation once MNE is run multiple times per day. Repeated same-day runs can otherwise create cluttered or repetitive chart points.
+
+Implementation notes: Reuse existing daily-run/history helpers if possible. Keep run-level history available in admin and diagnostic views, and do not remove raw run data. Consider applying the same daily-vs-run distinction to other dashboard history charts later.
+
+Rough implementation priority: Soon / Dashboard polish.
+
+### 4. Market Expression Map
 
 Brief description: Create a view that links active narratives and regime states to possible market expressions, such as relevant indices, sectors, symbols, risk factors, or directional watch items.
 
@@ -65,7 +75,7 @@ Why it matters: MNE currently explains narrative and market context. A Market Ex
 
 Rough implementation priority: Medium-high. It depends on stable leadership, pulse, and regime outputs, but can start with a simple mapping layer before deeper analytics.
 
-### 4. Taxonomy V2
+### 5. Taxonomy V2
 
 Brief description: Refine and expand the theme taxonomy based on audit findings, repeated runs, ambiguous classifications, and gaps found in current narrative grouping.
 

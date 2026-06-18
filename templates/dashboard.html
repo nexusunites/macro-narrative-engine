@@ -178,6 +178,60 @@
         {% endif %}
       </section>
 
+      <section class="content-section leadership-history-section">
+        <article class="card leadership-history-card">
+          <div class="leadership-history-header">
+            <div>
+              <p class="eyebrow">Narrative Leadership History</p>
+              <h2>Daily Leadership</h2>
+            </div>
+            <p class="trend-summary">{{ narrative_leadership_history.summary }}</p>
+          </div>
+
+          {% if narrative_leadership_history.has_history %}
+            <div class="leadership-history-table-wrap">
+              <table class="leadership-history-table">
+                <thead>
+                  <tr>
+                    <th>Day</th>
+                    <th>Dominant Group</th>
+                    <th>Theme</th>
+                    <th>Dominant Share</th>
+                    <th>Gap</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for point in narrative_leadership_history.points %}
+                    <tr>
+                      <th>{{ point.label }}</th>
+                      <td>
+                        <strong>{{ point.dominant_group }}</strong>
+                        {% if point.leader_score is not none %}<span>{{ point.leader_score }} score</span>{% endif %}
+                      </td>
+                      <td>{{ point.dominant_theme }}</td>
+                      <td>
+                        <div class="history-meter-row">
+                          <span class="history-meter share-meter" style="--meter-width: {{ point.share_width }}%"><i></i></span>
+                          <strong>{{ point.dominant_share_label or "Unavailable" }}</strong>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="history-meter-row">
+                          <span class="history-meter gap-meter" style="--meter-width: {{ point.gap_width }}%"><i></i></span>
+                          <strong>{{ point.concentration_gap_label }}</strong>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="muted history-empty">Not enough daily leadership history yet.</p>
+          {% endif %}
+        </article>
+      </section>
+
       <section class="content-section details-section two-column">
         <div>
           <div class="section-heading">

@@ -11,11 +11,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from config import RESULTS_DIR
+from mne.narrative_signals import compute_group_scores
+from mne.storage import get_recent_daily_runs
 
 
 BASE_DIR = Path(__file__).resolve().parent
 RECENT_RUN_LIMIT = 20
 REGIME_HISTORY_LIMIT = 30
+LEADERSHIP_HISTORY_LIMIT = 10
 MARKET_SYMBOLS = ("QQQ", "NVDA", "VIX", "DXY")
 
 app = FastAPI(title="Macro Narrative Engine Dashboard")
@@ -93,6 +96,20 @@ def fmt_history_label(value, path):
     return path.stem
 
 
+def fmt_day_label(value):
+    if not value:
+        return "Unavailable"
+    text = str(value)
+    day = text[:10]
+    for fmt in ("%Y-%m-%d", "%Y-%m-%d_%H%M", "%Y-%m-%d %H:%M"):
+        try:
+            candidate = text if fmt != "%Y-%m-%d" else day
+            return datetime.strptime(candidate, fmt).strftime("%m/%d")
+        except ValueError:
+            pass
+    return day or text
+
+
 def valid_regime_score(value):
     try:
         score = float(value)
@@ -116,6 +133,16 @@ def sorted_scores(scores):
     return sorted(scores.items(), key=lambda item: score_sort_value(item[1]), reverse=True)
 
 
+def numeric_or_none(value):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number):
+        return None
+    return number
+
+
 def fmt_score_value(value):
     try:
         score = float(value)
@@ -131,6 +158,104 @@ def display_state(value):
         return "Unavailable"
     text = str(value).replace("_", " ").replace("-", " ")
     return text.title()
+
+
+def get_history_theme_scores(run):
+    scores = run.get("theme_scores") or run.get("theme_counts") or {}
+    return scores if isinstance(scores, dict) else {}
+
+
+def get_history_group_scores(run):
+    group_scores = run.get("group_scores")
+    if isinstance(group_scores, dict) and group_scores:
+        return group_scores
+    return compute_group_scores(get_history_theme_scores(run))
+
+
+def build_narrative_leadership_history():
+    try:
+        runs = get_recent_daily_runs(RESULTS_DIR, LEADERSHIP_HISTORY_LIMIT)
+    except (OSError, json.JSONDecodeError):
+        runs = []
+
+    points = []
+    for run in runs:
+        if not isinstance(run, dict):
+            continue
+
+        theme_scores = get_history_theme_scores(run)
+        group_scores = get_history_group_scores(run)
+        sorted_groups = sorted_scores(group_scores)
+        sorted_themes = sorted_scores(theme_scores)
+        dominant_group = run.get("dominant_group") or (
+            sorted_groups[0][0] if sorted_groups else None
+        )
+        dominant_theme = run.get("dominant_theme") or (
+            sorted_themes[0][0] if sorted_themes else None
+        )
+
+        if not dominant_group and not dominant_theme:
+            continue
+
+        dominant_share = numeric_or_none(run.get("dominant_share"))
+        if dominant_share is not None and dominant_share > 1:
+            dominant_share = dominant_share / 100
+
+        concentration_gap = numeric_or_none(run.get("concentration_gap"))
+        leader_score = score_sort_value(sorted_groups[0][1]) if sorted_groups else None
+
+        points.append(
+            {
+                "timestamp": run.get("timestamp"),
+                "label": fmt_day_label(run.get("timestamp")),
+                "dominant_group": dominant_group or "Unavailable",
+                "dominant_theme": dominant_theme or "Unavailable",
+                "dominant_share": dominant_share,
+                "dominant_share_label": pct(dominant_share),
+                "concentration_gap": concentration_gap,
+                "concentration_gap_label": (
+                    fmt_score_value(concentration_gap)
+                    if concentration_gap is not None
+                    else "Unavailable"
+                ),
+                "leader_score": fmt_score_value(leader_score) if leader_score is not None else None,
+            }
+        )
+
+    gap_values = [
+        point["concentration_gap"] for point in points if point["concentration_gap"] is not None
+    ]
+
+    max_gap = max(gap_values) if gap_values else 0
+    for point in points:
+        share = point["dominant_share"]
+        gap = point["concentration_gap"]
+        point["share_width"] = round(max(2, min(100, share * 100)), 1) if share is not None else 0
+        point["gap_width"] = (
+            round(max(2, min(100, (gap / max_gap) * 100)), 1)
+            if gap is not None and max_gap > 0
+            else 0
+        )
+
+    if len(points) < 2:
+        summary = "Not enough daily leadership history yet."
+    else:
+        latest = points[-1]
+        previous = points[-2]
+        if latest["dominant_group"] == previous["dominant_group"]:
+            summary = f"{latest['dominant_group']} remains the daily narrative leader."
+        else:
+            summary = (
+                f"Leadership shifted from {previous['dominant_group']} "
+                f"to {latest['dominant_group']}."
+            )
+
+    return {
+        "points": points,
+        "has_history": bool(points),
+        "has_multiple_days": len(points) >= 2,
+        "summary": summary,
+    }
 
 
 def build_narrative_leadership(group_scores, narrative_pulse=None, dynamics=None):
@@ -413,6 +538,7 @@ def build_template_context(request: Request, run: Optional[str]):
         "message": None,
         "view": None,
         "regime_history": build_regime_history(),
+        "narrative_leadership_history": build_narrative_leadership_history(),
     }
 
     if not current_file:
