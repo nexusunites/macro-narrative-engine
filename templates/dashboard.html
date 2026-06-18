@@ -57,6 +57,45 @@
         </div>
       </section>
 
+      {% if view.change_summary %}
+        <section class="change-summary-section">
+          <article class="card change-summary-card">
+            <div class="change-summary-header">
+              <div>
+                <p class="eyebrow">What Changed Since Last Run</p>
+                <h2>Latest Delta</h2>
+              </div>
+              <p class="change-compared">Compared with: <strong>{{ view.change_summary.compared_with }}</strong></p>
+            </div>
+
+            {% if view.change_summary.has_changes %}
+              <div class="change-summary-grid">
+                {% for key, label in [
+                  ("major", "Major"),
+                  ("narratives", "Narratives"),
+                  ("market", "Market"),
+                  ("catalysts", "Catalysts")
+                ] %}
+                  {% set items = view.change_summary.changes[key] %}
+                  {% if items %}
+                    <div class="change-group change-group-{{ key }}">
+                      <h3>{{ label }}</h3>
+                      <ul>
+                        {% for item in items %}
+                          <li>{{ item.text }}</li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="muted change-empty">No major changes since previous run.</p>
+            {% endif %}
+          </article>
+        </section>
+      {% endif %}
+
       <section class="metric-grid">
         <article class="card metric-card">
           <span>Regime Alignment</span>

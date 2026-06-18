@@ -20,6 +20,9 @@ RECENT_RUN_LIMIT = 20
 REGIME_HISTORY_LIMIT = 30
 LEADERSHIP_HISTORY_LIMIT = 10
 MARKET_SYMBOLS = ("QQQ", "NVDA", "VIX", "DXY")
+SCORE_DELTA_THRESHOLD = 2
+SHARE_DELTA_THRESHOLD = 0.03
+REGIME_SCORE_DELTA_THRESHOLD = 5
 
 app = FastAPI(title="Macro Narrative Engine Dashboard")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
@@ -34,6 +37,20 @@ def list_result_files(limit=RECENT_RUN_LIMIT):
 def list_regime_history_files():
     files = sorted(RESULTS_DIR.glob("*.json"), key=lambda path: path.name, reverse=True)
     return files[:REGIME_HISTORY_LIMIT]
+
+
+def list_all_result_files():
+    return sorted(RESULTS_DIR.glob("*.json"), key=lambda path: path.name, reverse=True)
+
+
+def get_prior_result_file(current_file):
+    files = list_all_result_files()
+    for index, path in enumerate(files):
+        if path.name == current_file.name:
+            if index + 1 < len(files):
+                return files[index + 1]
+            return None
+    return None
 
 
 def safe_result_path(filename):
@@ -158,6 +175,265 @@ def display_state(value):
         return "Unavailable"
     text = str(value).replace("_", " ").replace("-", " ")
     return text.title()
+
+
+def sentence_state(value):
+    return display_state(value)
+
+
+def normalize_share(value):
+    number = numeric_or_none(value)
+    if number is None:
+        return None
+    if number > 1:
+        return number / 100
+    return number
+
+
+def format_score(value):
+    if value is None:
+        return "Unavailable"
+    return str(fmt_score_value(value))
+
+
+def format_share(value):
+    if value is None:
+        return "Unavailable"
+    return f"{value * 100:.1f}%"
+
+
+def get_nested_state(run, *keys):
+    current = run
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
+
+
+def get_crowding_risk(run):
+    return get_nested_state(
+        run,
+        "narrative_dynamics",
+        "narrative_crowding",
+        "risk",
+    )
+
+
+def add_change(changes, category, text, importance=1):
+    changes.setdefault(category, []).append(
+        {
+            "text": text,
+            "importance": importance,
+        }
+    )
+
+
+def describe_score_delta(name, previous, current):
+    delta = current - previous
+    direction = "strengthened" if delta > 0 else "weakened"
+    return (
+        f"{display_state(name)} {direction}: "
+        f"{format_score(previous)} -> {format_score(current)}."
+    )
+
+
+def add_score_changes(changes, category, previous_scores, current_scores):
+    if not isinstance(previous_scores, dict) or not isinstance(current_scores, dict):
+        return
+
+    names = sorted(set(previous_scores) | set(current_scores))
+    for name in names:
+        previous = numeric_or_none(previous_scores.get(name)) or 0
+        current = numeric_or_none(current_scores.get(name)) or 0
+        delta = current - previous
+        if abs(delta) >= SCORE_DELTA_THRESHOLD:
+            add_change(
+                changes,
+                category,
+                describe_score_delta(name, previous, current),
+                abs(delta),
+            )
+
+
+def add_state_change(changes, category, label, previous, current):
+    if previous and current and previous != current:
+        add_change(
+            changes,
+            category,
+            f"{label} shifted: {sentence_state(previous)} -> {sentence_state(current)}.",
+            5,
+        )
+
+
+def build_change_summary(current_run, prior_run, prior_file):
+    compared_with = fmt_history_label(prior_run.get("timestamp"), prior_file)
+    changes = {
+        "major": [],
+        "narratives": [],
+        "market": [],
+        "catalysts": [],
+    }
+
+    previous_group = prior_run.get("dominant_group")
+    current_group = current_run.get("dominant_group")
+    if previous_group and current_group and previous_group != current_group:
+        add_change(
+            changes,
+            "major",
+            f"{current_group} took leadership from {previous_group}.",
+            10,
+        )
+
+    previous_theme = prior_run.get("dominant_theme")
+    current_theme = current_run.get("dominant_theme")
+    if previous_theme and current_theme and previous_theme != current_theme:
+        add_change(
+            changes,
+            "major",
+            f"Dominant theme shifted from {display_state(previous_theme)} to {display_state(current_theme)}.",
+            8,
+        )
+
+    add_score_changes(
+        changes,
+        "narratives",
+        prior_run.get("theme_scores") or prior_run.get("theme_counts"),
+        current_run.get("theme_scores") or current_run.get("theme_counts"),
+    )
+    add_score_changes(
+        changes,
+        "narratives",
+        prior_run.get("group_scores"),
+        current_run.get("group_scores"),
+    )
+
+    previous_share = normalize_share(prior_run.get("dominant_share"))
+    current_share = normalize_share(current_run.get("dominant_share"))
+    if previous_share is not None and current_share is not None:
+        share_delta = current_share - previous_share
+        if abs(share_delta) >= SHARE_DELTA_THRESHOLD:
+            direction = "rose" if share_delta > 0 else "fell"
+            add_change(
+                changes,
+                "narratives",
+                (
+                    f"Dominant share {direction}: "
+                    f"{format_share(previous_share)} -> {format_share(current_share)}."
+                ),
+                abs(share_delta) * 100,
+            )
+
+    previous_gap = numeric_or_none(prior_run.get("concentration_gap"))
+    current_gap = numeric_or_none(current_run.get("concentration_gap"))
+    if previous_gap is not None and current_gap is not None:
+        gap_delta = current_gap - previous_gap
+        if abs(gap_delta) >= SCORE_DELTA_THRESHOLD:
+            direction = "widened" if gap_delta > 0 else "narrowed"
+            add_change(
+                changes,
+                "narratives",
+                (
+                    f"Concentration gap {direction}: "
+                    f"{format_score(previous_gap)} -> {format_score(current_gap)}."
+                ),
+                abs(gap_delta),
+            )
+
+    previous_crowding = get_crowding_risk(prior_run)
+    current_crowding = get_crowding_risk(current_run)
+    if previous_crowding and current_crowding and previous_crowding != current_crowding:
+        direction = "changed"
+        crowding_order = {"LOW": 0, "MODERATE": 1, "HIGH": 2}
+        if previous_crowding in crowding_order and current_crowding in crowding_order:
+            direction = (
+                "rose"
+                if crowding_order[current_crowding] > crowding_order[previous_crowding]
+                else "fell"
+            )
+        add_change(
+            changes,
+            "narratives",
+            (
+                f"Crowding {direction}: "
+                f"{sentence_state(previous_crowding)} -> {sentence_state(current_crowding)}."
+            ),
+            4,
+        )
+
+    state_fields = (
+        ("market", "Market Environment", ("market_environment", "state")),
+        (
+            "market",
+            "Narrative / Market Relationship",
+            ("narrative_market_relationship", "state"),
+        ),
+        ("market", "Breadth", ("breadth_confirmation", "state")),
+        ("catalysts", "Catalyst Environment", ("catalyst_environment", "state")),
+        ("catalysts", "Positioning", ("positioning_environment", "state")),
+    )
+    for category, label, keys in state_fields:
+        add_state_change(
+            changes,
+            category,
+            label,
+            get_nested_state(prior_run, *keys),
+            get_nested_state(current_run, *keys),
+        )
+
+    previous_regime = get_nested_state(prior_run, "regime_alignment", "score")
+    current_regime = get_nested_state(current_run, "regime_alignment", "score")
+    previous_regime_score = numeric_or_none(previous_regime)
+    current_regime_score = numeric_or_none(current_regime)
+    if previous_regime_score is not None and current_regime_score is not None:
+        regime_delta = current_regime_score - previous_regime_score
+        if abs(regime_delta) >= REGIME_SCORE_DELTA_THRESHOLD:
+            direction = "improved" if regime_delta > 0 else "weakened"
+            add_change(
+                changes,
+                "market",
+                (
+                    f"Regime Alignment {direction}: "
+                    f"{format_score(previous_regime_score)} -> {format_score(current_regime_score)}."
+                ),
+                abs(regime_delta),
+            )
+
+    add_state_change(
+        changes,
+        "market",
+        "Regime Alignment",
+        get_nested_state(prior_run, "regime_alignment", "state"),
+        get_nested_state(current_run, "regime_alignment", "state"),
+    )
+
+    has_primary_changes = any(
+        changes[category] for category in ("major", "narratives", "market")
+    )
+    if has_primary_changes and not changes["catalysts"]:
+        current_positioning = get_nested_state(current_run, "positioning_environment", "state")
+        previous_positioning = get_nested_state(prior_run, "positioning_environment", "state")
+        if current_positioning and current_positioning == previous_positioning:
+            add_change(
+                changes,
+                "catalysts",
+                f"Positioning stayed {sentence_state(current_positioning)}.",
+                1,
+            )
+
+    for category in changes:
+        changes[category] = sorted(
+            changes[category],
+            key=lambda item: item["importance"],
+            reverse=True,
+        )[:5]
+
+    has_changes = any(changes[category] for category in changes)
+    return {
+        "compared_with": compared_with,
+        "changes": changes,
+        "has_changes": has_changes,
+    }
 
 
 def get_history_theme_scores(run):
@@ -551,7 +827,22 @@ def build_template_context(request: Request, run: Optional[str]):
         context["message"] = f"Unable to load {current_file.name}: {error}"
         return context
 
-    context["view"] = build_view_model(result, current_file)
+    view = build_view_model(result, current_file)
+    prior_file = get_prior_result_file(current_file)
+    if prior_file:
+        try:
+            prior_result = load_result(prior_file)
+            view["change_summary"] = build_change_summary(
+                result,
+                prior_result,
+                prior_file,
+            )
+        except (OSError, json.JSONDecodeError):
+            view["change_summary"] = None
+    else:
+        view["change_summary"] = None
+
+    context["view"] = view
     return context
 
 
