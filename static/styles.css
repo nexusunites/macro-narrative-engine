@@ -650,6 +650,7 @@ select {
 
 .leadership-meter span {
   display: block;
+  width: var(--meter-width);
   height: 100%;
   border-radius: inherit;
   background: var(--muted-strong);

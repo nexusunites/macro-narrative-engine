@@ -1,11 +1,6 @@
-try:
-    from storage import load_daily_snapshots
-except ModuleNotFoundError:
-    from mne.storage import load_daily_snapshots
-
-import statistics
 from datetime import date
-from typing import Optional
+
+from mne.storage import load_daily_snapshots
 
 
 VALID_STATES = {
@@ -19,7 +14,7 @@ VALID_STATES = {
 }
 
 
-def _snapshot_gap(snapshot: dict) -> Optional[float]:
+def _snapshot_gap(snapshot: dict) -> float | None:
     narratives = snapshot.get("narratives") if isinstance(snapshot, dict) else []
     if not isinstance(narratives, list):
         return None

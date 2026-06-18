@@ -39,3 +39,12 @@ setx MNE_DATA_DIR "G:\My Drive\MNE-data"
 Then restart the terminal.
 
 At startup, MNE prints the active data directory so you can confirm which runtime location is being used.
+
+Generated filenames use a readable `YYYY-MM-DD_HHMMSS` timestamp. Run result JSON
+also stores its filename stem as `run_id`. If a result, headline, or report name
+already exists for that second, MNE adds a numeric suffix instead of overwriting
+the existing file.
+
+Daily snapshots aggregate same-day runs and retain their run IDs and timestamps.
+Writing the same run again is idempotent: an existing raw-run entry is replaced by
+matching `run_id`, or by timestamp for older runs without an ID.

@@ -20,9 +20,11 @@ Recommended build order:
 
 ## Data Storage
 
-Raw and deduplicated headlines are saved by date and time inside the configured runtime data directory. By default this is `~/Google Drive/MNE-data/headlines/`, and it can be overridden with `MNE_DATA_DIR`.
+Raw and deduplicated headlines are saved with second-resolution date/time filenames inside the configured runtime data directory. By default this is `~/Google Drive/MNE-data/headlines/`, and it can be overridden with `MNE_DATA_DIR`. Results, headlines, and reports receive a numeric suffix when a filename for the same second already exists, so historical files are not overwritten. Result JSON records its filename stem as `run_id`.
 
 This preserves a historical dataset so old headlines can be reanalyzed later as theme logic, scoring, and narrative models improve.
+
+Daily snapshots retain each source run's `run_id` and timestamp. Snapshot writes are idempotent for a run ID, with timestamp matching retained as compatibility behavior for historical runs that do not have an ID.
 
 ## Headline Deduplication
 

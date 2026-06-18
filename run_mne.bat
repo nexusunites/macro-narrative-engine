@@ -1,2 +1,4 @@
-cd /d C:\Users\danie\OneDrive\mne-build
-venv\Scripts\python.exe main.py
+@echo off
+setlocal
+cd /d "%~dp0"
+"venv\Scripts\python.exe" main.py %*

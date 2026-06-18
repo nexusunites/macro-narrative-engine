@@ -16,12 +16,25 @@ def load_json(path: Path):
         return json.load(f)
 
 
+def _open_unique_text_file(directory: Path, stem: str):
+    collision_index = 0
+    while True:
+        suffix = f"_{collision_index:02d}" if collision_index else ""
+        path = directory / f"{stem}{suffix}.txt"
+        try:
+            return path, open(path, "x", encoding="utf-8")
+        except FileExistsError:
+            collision_index += 1
+
+
 def save_headlines(headlines, stamp, headlines_dir=HEADLINES_DIR, label=None):
     headlines_dir.mkdir(parents=True, exist_ok=True)
     suffix = f"_{label}" if label else ""
-    headlines_file = headlines_dir / f"{stamp}{suffix}.txt"
+    headlines_file, file_handle = _open_unique_text_file(
+        headlines_dir, f"{stamp}{suffix}"
+    )
 
-    with open(headlines_file, "w", encoding="utf-8") as f:
+    with file_handle as f:
         for headline in headlines:
             f.write(headline + "\n")
 
@@ -48,9 +61,9 @@ def save_run_json(run, stamp, results_dir=RESULTS_DIR):
 
 def save_report(report_text, stamp, reports_dir=REPORTS_DIR):
     reports_dir.mkdir(parents=True, exist_ok=True)
-    report_file = reports_dir / f"{stamp}.txt"
+    report_file, file_handle = _open_unique_text_file(reports_dir, stamp)
 
-    with open(report_file, "w", encoding="utf-8") as f:
+    with file_handle as f:
         f.write(report_text)
 
     return report_file
