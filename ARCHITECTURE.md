@@ -61,6 +61,33 @@ Examples:
 - AI narrative rising while QQQ/SMH are green and VIX is down suggests narrative support.
 - AI narrative rising while QQQ/SMH are red and VIX is up suggests narrative divergence.
 
+## Market Expression Map
+
+`mne/narrative_market_map.py` owns the Phase 1 Market Expression Map. It is a
+curated static mapping from the dominant theme to common public-market
+expression proxies:
+
+- primary expressions
+- secondary expressions
+- potential offsets
+- a plain-language description
+
+The map is context only. It is not a signal, ranking, recommendation engine, or
+market-confirmation layer. It does not change theme scoring, narrative signals,
+concentration, momentum, persistence, crowding, market relationships, breadth
+confirmation, catalyst logic, or regime alignment.
+
+`main.py` attaches the helper output to saved run JSON as `market_expression`.
+`mne/reporting.py` formats the same structure in the daily text report and
+terminal output. `dashboard.py` passes the optional field through the dashboard
+view model so future cards or pages can consume it without changing the saved
+JSON contract.
+
+The structure keeps simple symbol arrays for immediate report use and includes
+metadata such as `mapping_version`, `mapped`, `context_only`, and `is_signal` so
+future phases can add live prices, confirmation fields, dashboard cards, or
+expression performance tracking without redefining the top-level output.
+
 ## TradingView Role
 
 TradingView should not be the first backend data source.

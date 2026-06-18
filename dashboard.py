@@ -318,6 +318,7 @@ def build_view_model(run, current_file):
     mode_context = run.get("mode_context") or {}
     catalyst = run.get("catalyst_environment") or {}
     market_environment = run.get("market_environment")
+    market_expression = run.get("market_expression")
     positioning_environment = run.get("positioning_environment")
     dynamics = run.get("narrative_dynamics") or {}
     crowding = dynamics.get("narrative_crowding") if isinstance(dynamics, dict) else None
@@ -343,6 +344,7 @@ def build_view_model(run, current_file):
         "regime": regime,
         "mode_context": mode_context,
         "market_environment_card": compact_environment(market_environment),
+        "market_expression": market_expression if isinstance(market_expression, dict) else None,
         "catalyst_environment_card": compact_environment(catalyst),
         "positioning_environment_card": compact_environment(positioning_environment),
         "environment": {
