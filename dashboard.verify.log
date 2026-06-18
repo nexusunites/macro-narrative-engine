@@ -1,4 +1,5 @@
 INFO:     127.0.0.1:62644 - "GET / HTTP/1.1" 200 OK
 INFO:     127.0.0.1:62658 - "GET / HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62658 - "GET /admin HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62658 - "GET /?run=2026-06-17_1819.json HTTP/1.1" 200 OK
+INFO:  INFO:     127.0.0.1:56126 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56126 - "GET /static/styles.css HTTP/1.1" 200 OK
+ OK

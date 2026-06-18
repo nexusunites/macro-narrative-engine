@@ -322,6 +322,9 @@ def main(args=None):
         print_mode_context(mode_context)
 
     results_dir, results_file = save_run_json(run, stamp)
+    from mne.storage import write_daily_snapshot
+
+    write_daily_snapshot(run)
     print()
     print(f"Results saved to {results_file}")
 

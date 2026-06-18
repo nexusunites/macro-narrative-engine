@@ -727,6 +727,31 @@ def build_view_model(run, current_file):
     group_scores = sorted_scores(run.get("group_scores"))
     examples = run.get("examples") if isinstance(run.get("examples"), dict) else {}
     top_example_themes = [theme for theme, score in theme_scores[:4] if examples.get(theme)]
+    narrative_leadership = build_narrative_leadership(
+        group_scores,
+        run.get("narrative_pulse"),
+        dynamics,
+    )
+    from analysis.leadership_rotation import get_rotation
+
+    try:
+        rotation_results = get_rotation()
+    except Exception:
+        rotation_results = []
+    rotation_map = {r["group"]: r for r in rotation_results}
+    for item in narrative_leadership:
+        group_name = item["group"]
+        rot = rotation_map.get(group_name)
+        if rot:
+            item["rotation_state"] = rot["rotation_state"]
+            item["share_delta"] = rot["share_delta"]
+            item["rotation_streak"] = rot["rotation_streak"]
+            item["rotation_reason"] = rot["reason"]
+        else:
+            item["rotation_state"] = None
+            item["share_delta"] = None
+            item["rotation_streak"] = None
+            item["rotation_reason"] = None
 
     return {
         "run": run,
@@ -758,11 +783,7 @@ def build_view_model(run, current_file):
         },
         "theme_scores": theme_scores,
         "group_scores": group_scores,
-        "narrative_leadership": build_narrative_leadership(
-            group_scores,
-            run.get("narrative_pulse"),
-            dynamics,
-        ),
+        "narrative_leadership": narrative_leadership,
         "dominant_share": pct(run.get("dominant_share")),
         "concentration_gap": run.get("concentration_gap"),
         "market_context": get_market_context(run),

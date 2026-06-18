@@ -1,7 +1,14 @@
 import json
+import logging
+import statistics
+from datetime import date, datetime
 from pathlib import Path
 
-from config import HEADLINES_DIR, REPORTS_DIR, RESULTS_DIR
+from config import DATA_DIR, HEADLINES_DIR, REPORTS_DIR, RESULTS_DIR
+
+
+SNAPSHOTS_DIR = DATA_DIR / "snapshots"
+LOGGER = logging.getLogger(__name__)
 
 
 def load_json(path: Path):
@@ -86,3 +93,225 @@ def get_recent_daily_runs(results_dir: Path, lookback: int):
     selected_days = days[-lookback:]
 
     return [daily_latest[day] for day in selected_days]
+
+
+def _extract_run_date(run_data: dict, fallback_path: Path | None = None) -> str | None:
+    timestamp = run_data.get("timestamp") or run_data.get("run_date")
+    if isinstance(timestamp, str) and len(timestamp) >= 10:
+        return timestamp[:10]
+
+    if fallback_path is not None:
+        name = fallback_path.stem
+        if len(name) >= 10:
+            candidate = name[:10]
+            try:
+                date.fromisoformat(candidate)
+                return candidate
+            except ValueError:
+                pass
+
+    return None
+
+
+def _extract_timestamp(run_data: dict) -> str:
+    timestamp = run_data.get("timestamp") or run_data.get("run_date")
+    if timestamp:
+        return str(timestamp)
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def _share_points(value) -> float | None:
+    if value is None:
+        return None
+    try:
+        share = float(value)
+    except (TypeError, ValueError):
+        return None
+    if 0 <= share <= 1:
+        return share * 100
+    return share
+
+
+def _run_narratives(run_data: dict) -> list[dict]:
+    narrative_groups = run_data.get("narrative_groups")
+    if isinstance(narrative_groups, list):
+        rows = []
+        for item in narrative_groups:
+            if not isinstance(item, dict) or not item.get("group"):
+                continue
+            share = _share_points(item.get("share"))
+            score = item.get("score")
+            try:
+                score = int(round(float(score)))
+            except (TypeError, ValueError):
+                score = 0
+            rows.append(
+                {
+                    "group": str(item.get("group")),
+                    "share": round(share or 0.0, 1),
+                    "score": score,
+                    "rank": item.get("rank"),
+                    "pulse_state": item.get("pulse_state"),
+                }
+            )
+        return _rank_narratives(rows)
+
+    group_scores = run_data.get("group_scores")
+    if not isinstance(group_scores, dict):
+        return []
+
+    pulse = run_data.get("narrative_pulse") if isinstance(run_data.get("narrative_pulse"), dict) else {}
+    total_score = sum(
+        float(score)
+        for score in group_scores.values()
+        if isinstance(score, (int, float)) or str(score).replace(".", "", 1).isdigit()
+    )
+
+    rows = []
+    for group, score in group_scores.items():
+        try:
+            numeric_score = float(score)
+        except (TypeError, ValueError):
+            numeric_score = 0.0
+
+        group_pulse = pulse.get(group) if isinstance(pulse.get(group), dict) else {}
+        inputs = group_pulse.get("inputs") if isinstance(group_pulse.get("inputs"), dict) else {}
+        share = _share_points(inputs.get("narrative_share"))
+        if share is None and total_score > 0:
+            share = (numeric_score / total_score) * 100
+
+        rows.append(
+            {
+                "group": str(group),
+                "share": round(share or 0.0, 1),
+                "score": int(round(numeric_score)),
+                "rank": None,
+                "pulse_state": group_pulse.get("pulse_state"),
+            }
+        )
+
+    return _rank_narratives(rows)
+
+
+def _rank_narratives(narratives: list[dict]) -> list[dict]:
+    ranked = sorted(narratives, key=lambda item: item.get("share", 0), reverse=True)
+    for index, item in enumerate(ranked):
+        item["rank"] = index + 1
+    return ranked
+
+
+def _aggregate_raw_runs(raw_runs: list[dict], snapshot_date: str) -> dict:
+    groups = {}
+    latest_pulse = {}
+
+    for raw_run in raw_runs:
+        for narrative in raw_run.get("narratives", []):
+            group = narrative.get("group")
+            if not group:
+                continue
+            groups.setdefault(group, {"shares": [], "scores": []})
+            groups[group]["shares"].append(float(narrative.get("share") or 0))
+            groups[group]["scores"].append(float(narrative.get("score") or 0))
+            latest_pulse[group] = narrative.get("pulse_state")
+
+    narratives = []
+    for group, values in groups.items():
+        narratives.append(
+            {
+                "group": group,
+                "share": round(float(statistics.median(values["shares"])), 1),
+                "score": int(round(statistics.median(values["scores"]))),
+                "rank": None,
+                "pulse_state": latest_pulse.get(group),
+            }
+        )
+
+    return {
+        "date": snapshot_date,
+        "narratives": _rank_narratives(narratives),
+        "raw_runs": raw_runs,
+    }
+
+
+def _snapshot_from_runs(snapshot_date: str, runs: list[dict]) -> dict:
+    raw_runs = [
+        {
+            "timestamp": _extract_timestamp(run),
+            "narratives": _run_narratives(run),
+        }
+        for run in runs
+    ]
+    return _aggregate_raw_runs(raw_runs, snapshot_date)
+
+
+def write_daily_snapshot(run_data: dict) -> None:
+    snapshot_date = _extract_run_date(run_data) or date.today().isoformat()
+    today = date.today().isoformat()
+    if snapshot_date != today:
+        return
+
+    SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+    snapshot_path = SNAPSHOTS_DIR / f"{snapshot_date}.json"
+    current_raw_run = {
+        "timestamp": _extract_timestamp(run_data),
+        "narratives": _run_narratives(run_data),
+    }
+
+    raw_runs = [current_raw_run]
+    if snapshot_path.exists():
+        existing = load_json(snapshot_path)
+        raw_runs = existing.get("raw_runs", [])
+        raw_runs.append(current_raw_run)
+
+    snapshot = _aggregate_raw_runs(raw_runs, snapshot_date)
+    with open(snapshot_path, "w", encoding="utf-8") as f:
+        json.dump(snapshot, f, ensure_ascii=False, indent=2)
+
+
+def backfill_daily_snapshots() -> int:
+    SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+    grouped_runs = {}
+
+    for path in sorted(RESULTS_DIR.glob("*.json")):
+        try:
+            run = load_json(path)
+        except (OSError, json.JSONDecodeError):
+            continue
+        run_date = _extract_run_date(run, path)
+        if not run_date:
+            continue
+        grouped_runs.setdefault(run_date, []).append(run)
+
+    created = 0
+    for run_date, runs in sorted(grouped_runs.items()):
+        snapshot_path = SNAPSHOTS_DIR / f"{run_date}.json"
+        if snapshot_path.exists():
+            LOGGER.info("Skipped existing daily snapshot: %s", snapshot_path)
+            continue
+
+        snapshot = _snapshot_from_runs(run_date, runs)
+        with open(snapshot_path, "w", encoding="utf-8") as f:
+            json.dump(snapshot, f, ensure_ascii=False, indent=2)
+        LOGGER.info("Created daily snapshot: %s", snapshot_path)
+        created += 1
+
+    return created
+
+
+def load_daily_snapshots(limit: int = 7) -> list[dict]:
+    if not SNAPSHOTS_DIR.exists():
+        return []
+
+    snapshot_files = []
+    for path in SNAPSHOTS_DIR.glob("*.json"):
+        try:
+            date.fromisoformat(path.stem)
+        except ValueError:
+            continue
+        snapshot_files.append(path)
+
+    if not snapshot_files:
+        return []
+
+    selected = sorted(snapshot_files, key=lambda path: path.stem)[-limit:]
+    return [load_json(path) for path in selected]

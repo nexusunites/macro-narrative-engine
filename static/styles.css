@@ -1024,3 +1024,32 @@ pre {
     font-size: 22px;
   }
 }
+
+.rotation-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.rotation-badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.rotation-holding     { background: rgba(56, 138, 221, 0.15); color: #85B7EB; }
+.rotation-dominant    { background: rgba(29, 158, 117, 0.15); color: #5DCAA5; }
+.rotation-challenged  { background: rgba(186, 117, 23, 0.15); color: #EF9F27; }
+.rotation-challenging { background: rgba(99, 153, 34, 0.15);  color: #97C459; }
+.rotation-emerging    { background: rgba(99, 153, 34, 0.15); color: #97C459; }
+.rotation-losing      { background: rgba(153, 60, 29, 0.15);  color: #F0997B; }
+.rotation-stable      { background: rgba(136, 135, 128, 0.15);color: #B4B2A9; }
+
+.rotation-delta { font-size: 11px; font-weight: 500; }
+.delta-up   { color: #97C459; }
+.delta-down { color: #F0997B; }
+.delta-flat { color: #888780; }
+
+.rotation-streak { font-size: 11px; color: #5F5E5A; }

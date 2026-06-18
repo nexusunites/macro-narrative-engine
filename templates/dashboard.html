@@ -174,6 +174,19 @@
                   <span class="leadership-label">{{ item.label }}</span>
                 </div>
                 <h3>{{ item.group }}</h3>
+                {% if item.rotation_state %}
+                <div class="rotation-row">
+                  <span class="rotation-badge rotation-{{ item.rotation_state|lower }}">{{ item.rotation_state }}</span>
+                  {% if item.share_delta is not none %}
+                    <span class="rotation-delta {% if item.share_delta > 0 %}delta-up{% elif item.share_delta < 0 %}delta-down{% else %}delta-flat{% endif %}">
+                      {% if item.share_delta > 0 %}+{% endif %}{{ item.share_delta }} pts
+                    </span>
+                  {% endif %}
+                  {% if item.rotation_streak and item.rotation_streak > 1 %}
+                    <span class="rotation-streak">· {{ item.rotation_streak }}-day streak</span>
+                  {% endif %}
+                </div>
+                {% endif %}
                 <div class="pulse-block">
                   <div class="pulse-primary">
                     <span>Pulse</span>
