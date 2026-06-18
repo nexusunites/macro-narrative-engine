@@ -30,10 +30,18 @@ def save_headlines(headlines, stamp, headlines_dir=HEADLINES_DIR, label=None):
 
 def save_run_json(run, stamp, results_dir=RESULTS_DIR):
     results_dir.mkdir(parents=True, exist_ok=True)
-    results_file = results_dir / f"{stamp}.json"
+    collision_index = 0
 
-    with open(results_file, "w", encoding="utf-8") as f:
-        json.dump(run, f, ensure_ascii=False, indent=2)
+    while True:
+        suffix = f"_{collision_index:02d}" if collision_index else ""
+        results_file = results_dir / f"{stamp}{suffix}.json"
+        try:
+            with open(results_file, "x", encoding="utf-8") as f:
+                run["run_id"] = results_file.stem
+                json.dump(run, f, ensure_ascii=False, indent=2)
+            break
+        except FileExistsError:
+            collision_index += 1
 
     return results_dir, results_file
 
@@ -118,6 +126,13 @@ def _extract_timestamp(run_data: dict) -> str:
     if timestamp:
         return str(timestamp)
     return datetime.now().isoformat(timespec="seconds")
+
+
+def _extract_run_id(run_data: dict) -> str | None:
+    run_id = run_data.get("run_id")
+    if run_id:
+        return str(run_id)
+    return None
 
 
 def _share_points(value) -> float | None:
@@ -233,9 +248,32 @@ def _aggregate_raw_runs(raw_runs: list[dict], snapshot_date: str) -> dict:
     }
 
 
+def _upsert_raw_run(raw_runs: list[dict], current_raw_run: dict) -> list[dict]:
+    current_run_id = current_raw_run.get("run_id")
+    current_timestamp = current_raw_run.get("timestamp")
+    retained = []
+
+    for raw_run in raw_runs:
+        if not isinstance(raw_run, dict):
+            continue
+        if current_run_id and raw_run.get("run_id") == current_run_id:
+            continue
+        if (
+            not current_run_id
+            and not raw_run.get("run_id")
+            and raw_run.get("timestamp") == current_timestamp
+        ):
+            continue
+        retained.append(raw_run)
+
+    retained.append(current_raw_run)
+    return retained
+
+
 def _snapshot_from_runs(snapshot_date: str, runs: list[dict]) -> dict:
     raw_runs = [
         {
+            "run_id": _extract_run_id(run),
             "timestamp": _extract_timestamp(run),
             "narratives": _run_narratives(run),
         }
@@ -253,16 +291,17 @@ def write_daily_snapshot(run_data: dict) -> None:
     SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
     snapshot_path = SNAPSHOTS_DIR / f"{snapshot_date}.json"
     current_raw_run = {
+        "run_id": _extract_run_id(run_data),
         "timestamp": _extract_timestamp(run_data),
         "narratives": _run_narratives(run_data),
     }
 
-    raw_runs = [current_raw_run]
+    raw_runs = []
     if snapshot_path.exists():
         existing = load_json(snapshot_path)
         raw_runs = existing.get("raw_runs", [])
-        raw_runs.append(current_raw_run)
 
+    raw_runs = _upsert_raw_run(raw_runs, current_raw_run)
     snapshot = _aggregate_raw_runs(raw_runs, snapshot_date)
     with open(snapshot_path, "w", encoding="utf-8") as f:
         json.dump(snapshot, f, ensure_ascii=False, indent=2)

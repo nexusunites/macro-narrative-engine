@@ -91,7 +91,7 @@ def main(args=None):
     print()
 
     now = datetime.now()
-    stamp = now.strftime("%Y-%m-%d_%H%M")
+    stamp = now.strftime("%Y-%m-%d_%H%M%S")
     readable_time = now.strftime("%Y-%m-%d %H:%M")
 
     print(f"Run Timestamp: {readable_time}")

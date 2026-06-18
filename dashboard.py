@@ -101,7 +101,7 @@ def fmt_history_label(value, path):
         if not candidate:
             continue
         text = str(candidate)
-        for fmt in ("%Y-%m-%d_%H%M", "%Y-%m-%d %H:%M"):
+        for fmt in ("%Y-%m-%d_%H%M%S", "%Y-%m-%d_%H%M", "%Y-%m-%d %H:%M"):
             try:
                 return datetime.strptime(text, fmt).strftime("%m/%d %H:%M")
             except ValueError:
