@@ -1,52 +1,77 @@
 # Roadmap
 
-## Phase 1 — Foundation ✅
+## Completed
+
+### Engine
 
 - Runtime data directory support through `MNE_DATA_DIR`.
-- RSS ingestion and headline persistence.
-- Headline deduplication.
-- Basic theme scoring and narrative grouping.
+- RSS ingestion.
+- Headline persistence and deduplication.
+- Theme detection and narrative group scoring.
+- Structured taxonomy framework.
+- Taxonomy auditing.
+- Narrative persistence tracking.
+- Narrative acceleration tracking.
+- Crowding risk detection.
+- Catalyst framework for company and macro events.
 - Daily text report generation.
 - Saved JSON run outputs for auditability and dashboard use.
 
-## Phase 2 — Intelligence Layer ✅
+### Intelligence Layer
 
-- Structured theme taxonomy support.
-- Narrative concentration and dominant narrative share.
-- Narrative signals and narrative dynamics.
-- Market context overlays.
-- Narrative / market relationship classification.
-- Catalyst Environment and Positioning Environment.
+- Market Environment classification.
+- Breadth Confirmation.
+- Positioning Environment classification.
 - Regime Alignment scoring.
-- Operating Modes for macro and Nasdaq reads.
-- Company catalyst support and macro calendar support.
-
-## Phase 3 — Product Layer
-
-- Dashboard polish for spacing, density, and scanability.
-- UI hierarchy improvements for user vs admin workflows.
-- Navigation refinement across narratives, market context, catalysts, and diagnostics.
-- Better empty, stale, and error states in the dashboard.
-- Clearer run selection and latest-run labeling.
-- Dashboard-ready summaries for non-technical users.
-
-## Phase 4 — Narrative Intelligence
-
-- Narrative Leadership Rotation.
+- Mode Context for macro and Nasdaq reads.
+- Narrative Leadership.
 - Narrative Pulse.
-- Improved crowding, exhaustion, divergence, and confirmation language.
-- Better explanation of why narratives are strengthening or weakening.
-- More explicit links between catalysts, positioning, and narrative shifts.
-- Taxonomy V2 planning and implementation.
+- Narrative concentration, dominant narrative share, and narrative dynamics.
 
-## Phase 5 — Historical Analytics
+### Dashboard
 
+- User Dashboard.
+- Admin Dashboard.
+- Market Snapshot.
 - Regime Alignment History.
-- Narrative Share Charts.
-- Narrative concentration trend views.
-- Narrative persistence and acceleration history.
-- Historical comparison across taxonomy versions.
-- Run-to-run change summaries in the dashboard.
+- Narrative Leadership cards.
+- Narrative Pulse display.
+- Dashboard UX refinements for spacing, hierarchy, readability, and workflow separation.
+- Better latest-run presentation and dashboard-ready summaries.
+
+## Upcoming Priorities
+
+### 1. Leadership Rotation
+
+Brief description: Build a dedicated view and supporting output for tracking when narrative leadership changes, which themes are gaining or losing control, and how leadership evolves across recent runs.
+
+Why it matters: Narrative Leadership shows the current leaders, but rotation explains the transition. This helps users identify whether the market story is stable, broadening, narrowing, or handing off to a new theme.
+
+Rough implementation priority: Highest. This is the next natural layer on top of existing Narrative Leadership, Narrative Pulse, persistence, and acceleration work.
+
+### 2. Dedicated Navigation Pages
+
+Brief description: Split major dashboard concepts into dedicated pages for market snapshot, regime alignment, narrative leadership, narrative pulse, catalysts, taxonomy/audit detail, and admin diagnostics.
+
+Why it matters: The dashboard has grown beyond a single-page summary. Dedicated navigation will make the product easier to scan, reduce cognitive load, and give each intelligence surface room for clearer visual treatment.
+
+Rough implementation priority: High. This should follow Leadership Rotation or progress alongside it where routing and page structure are needed.
+
+### 3. Market Expression Map
+
+Brief description: Create a view that links active narratives and regime states to possible market expressions, such as relevant indices, sectors, symbols, risk factors, or directional watch items.
+
+Why it matters: MNE currently explains narrative and market context. A Market Expression Map would help translate that context into a clearer research bridge between macro stories and observable market behavior.
+
+Rough implementation priority: Medium-high. It depends on stable leadership, pulse, and regime outputs, but can start with a simple mapping layer before deeper analytics.
+
+### 4. Taxonomy V2
+
+Brief description: Refine and expand the theme taxonomy based on audit findings, repeated runs, ambiguous classifications, and gaps found in current narrative grouping.
+
+Why it matters: The taxonomy is the foundation for theme detection and narrative scoring. Improving it will increase signal quality, reduce false grouping, and make leadership and rotation outputs more reliable.
+
+Rough implementation priority: Medium. Continue collecting audit evidence while higher-priority product views mature, then apply a focused Taxonomy V2 pass.
 
 ## Future / Backlog
 

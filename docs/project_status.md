@@ -6,48 +6,66 @@ Macro Narrative Engine (MNE) is a lightweight macro narrative intelligence syste
 
 ## Current Capabilities
 
-- Dashboard V1 with user and admin views.
-- Operating modes for broad macro and Nasdaq-focused reads.
-- RSS headline ingestion, headline storage, and deduplication.
-- Theme and narrative group scoring using the structured taxonomy in `config/theme_taxonomy.json`.
-- Narrative concentration, narrative signals, narrative dynamics, and crowding risk.
-- Market context overlays for core symbols such as QQQ, NVDA, VIX, and DXY.
-- Narrative / market relationship classification and breadth confirmation.
-- Catalyst environment and positioning environment classification.
-- Regime Alignment scoring across narrative, market, catalyst, and positioning inputs.
-- Company catalyst support through earnings data.
-- Macro calendar support through the runtime macro calendar file.
+### Engine
+
+- RSS ingestion.
+- Headline storage and deduplication.
+- Theme detection and narrative group scoring.
+- Structured taxonomy framework through `config/theme_taxonomy.json`.
+- Taxonomy auditing for review and refinement.
+- Narrative persistence tracking.
+- Narrative acceleration tracking.
+- Crowding risk detection.
+- Catalyst framework for company and macro events.
 - Saved JSON results and text reports in the configured runtime data directory.
+
+### Intelligence Layer
+
+- Market Environment classification.
+- Breadth Confirmation.
+- Positioning Environment classification.
+- Regime Alignment scoring.
+- Mode Context for macro and Nasdaq-focused workflows.
+- Narrative Leadership.
+- Narrative Pulse.
+- Narrative concentration, dominant narrative share, and narrative dynamics.
+
+### Dashboard
+
+- User Dashboard for current-run narrative and market reads.
+- Admin Dashboard for diagnostics, scoring detail, raw JSON, catalyst detail, and audit metadata.
+- Market Snapshot.
+- Regime Alignment History.
+- Narrative Leadership cards.
+- Narrative Pulse display.
+- Dashboard UX refinements for hierarchy, readability, and workflow separation.
 
 ## Recent Major Additions
 
-- Dashboard V1 with a primary user view and a deeper admin/research view.
-- Operating mode context that changes the summary read for macro vs Nasdaq workflows.
-- Regime Alignment scoring and explanatory state output.
-- Catalyst Environment, Positioning Environment, and catalyst source metadata.
-- Auto company earnings catalyst support and auto macro calendar catalyst support.
-- Narrative Dynamics output, including crowding risk.
-- Market context cards and narrative / market relationship output in the dashboard.
+- Dashboard V1 has matured into user and admin surfaces with clearer hierarchy and scanability.
+- Regime Alignment History is now exposed for reviewing state changes over time.
+- Narrative Leadership cards and Narrative Pulse display are now visible in the dashboard.
+- Engine support now includes persistence, acceleration, crowding risk, taxonomy auditing, and the catalyst framework.
+- Intelligence output now includes Market Environment, Breadth Confirmation, Positioning Environment, Regime Alignment, Mode Context, Narrative Leadership, and Narrative Pulse.
 
 ## Current Focus
 
-The current focus is turning the engine output into a clearer product surface: improving Dashboard V1 hierarchy, navigation, and readability while keeping the core engine inspectable and stable.
+The current focus is expanding the product surface beyond the latest-run dashboard: leadership rotation, dedicated navigation pages, a Market Expression Map, and Taxonomy V2.
 
 ## Known Limitations
 
-- Dashboard V1 is functional but still early; visual hierarchy and navigation need polish.
-- Historical analytics are limited compared with the current-run snapshot.
-- Regime Alignment history is not yet exposed as a first-class product view.
-- Narrative leadership rotation and pulse-style monitoring are not yet complete product features.
-- Taxonomy V1 is useful but will need Taxonomy V2 refinement as more runs are reviewed.
+- Leadership Rotation is not yet a dedicated workflow for showing narrative handoffs and changes in leadership over time.
+- Several dashboard areas still share the same main surface instead of having dedicated navigation pages.
+- Market Expression Map is not yet available as a first-class view linking narratives to market instruments or expressions.
+- Taxonomy V1 is useful, but Taxonomy V2 is needed as more runs are reviewed and the narrative set matures.
 - External integrations such as Discord, TradingView overlays, and streaming dashboards remain future work.
 
 ## Current Architecture Summary
 
 `main.py` orchestrates ingestion, analysis, context classification, persistence, and reporting. Engine logic lives in modules under `mne/`, including RSS fetching, storage, theme analysis, narrative signals, market context, catalysts, positioning, regime alignment, and reporting. Runtime outputs are written outside the repository to the configured `MNE_DATA_DIR` location.
 
-`dashboard.py` serves the FastAPI dashboard and loads saved run JSON files from the runtime results directory. The dashboard templates provide a user-facing summary view and an admin view for diagnostics, raw JSON, scoring detail, catalyst detail, and audit metadata.
+`dashboard.py` serves the FastAPI dashboard and loads saved run JSON files from the runtime results directory. The dashboard templates provide user-facing and admin views for the market snapshot, Regime Alignment History, Narrative Leadership, Narrative Pulse, diagnostics, raw JSON, scoring detail, catalyst detail, and audit metadata.
 
 ## Latest Product Milestone
 
-Dashboard V1 is the latest product milestone. It brings together the engine's current intelligence layer into navigable user/admin views with operating mode context, Regime Alignment, Market Context, Catalyst Environment, Positioning Environment, Narrative Dynamics, Company Catalyst Support, and Macro Calendar Support visible from saved runs.
+The latest product milestone is the dashboard-backed intelligence layer. MNE now connects RSS ingestion, deduplication, taxonomy-based theme detection, persistence, acceleration, crowding risk, catalysts, market environment, breadth, positioning, regime alignment, leadership, and pulse outputs into user and admin dashboard views.
