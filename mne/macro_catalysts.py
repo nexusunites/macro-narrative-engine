@@ -39,55 +39,132 @@ ORANGE_EVENT_KEYWORDS = [
 ]
 
 
-def _ensure_macro_calendar_file(calendar_file):
+def get_macro_calendar_status(
+    calendar_path: str | Path,
+    events: list[dict] | None,
+    load_error: str | None = None,
+) -> dict:
+    calendar_path = Path(calendar_path)
+    base_status = {
+        "macro_calendar_path": str(calendar_path),
+        "macro_calendar_event_count": 0,
+        "macro_calendar_latest_event_date": None,
+        "macro_calendar_warning": True,
+    }
+
+    if load_error == "missing_file":
+        return {
+            **base_status,
+            "macro_calendar_status": "missing_file",
+            "macro_calendar_message": "Macro calendar file is missing.",
+        }
+
+    if load_error == "invalid_json":
+        return {
+            **base_status,
+            "macro_calendar_status": "invalid_json",
+            "macro_calendar_message": "Macro calendar file could not be parsed.",
+        }
+
+    if events is not None:
+        event_dates = []
+        for event in events:
+            if not isinstance(event, dict) or not event.get("date"):
+                continue
+            try:
+                event_dates.append(date.fromisoformat(str(event["date"])))
+            except (TypeError, ValueError):
+                continue
+
+        if not events or not event_dates:
+            return {
+                **base_status,
+                "macro_calendar_status": "loaded_empty",
+                "macro_calendar_message": "Macro calendar loaded but contains no events.",
+            }
+
+        latest_event_date = max(event_dates).isoformat()
+        if all(event_date < date.today() for event_date in event_dates):
+            return {
+                **base_status,
+                "macro_calendar_status": "stale_calendar",
+                "macro_calendar_message": (
+                    "Macro calendar appears stale. All events are historical."
+                ),
+                "macro_calendar_event_count": len(events),
+                "macro_calendar_latest_event_date": latest_event_date,
+            }
+
+        if any(event_date >= date.today() for event_date in event_dates):
+            return {
+                **base_status,
+                "macro_calendar_status": "loaded_with_events",
+                "macro_calendar_message": (
+                    f"Macro calendar loaded with {len(events)} event(s)."
+                ),
+                "macro_calendar_event_count": len(events),
+                "macro_calendar_latest_event_date": latest_event_date,
+                "macro_calendar_warning": False,
+            }
+
+    return {
+        **base_status,
+        "macro_calendar_status": "unknown",
+        "macro_calendar_message": "Macro calendar status could not be determined.",
+    }
+
+
+def _load_macro_calendar(calendar_file, metadata=None):
     calendar_file = Path(calendar_file)
-    if calendar_file.exists():
-        return True
-
-    try:
-        calendar_file.parent.mkdir(parents=True, exist_ok=True)
-        calendar_file.write_text("[]\n", encoding="utf-8")
-        return True
-    except OSError as error:
-        logger.warning("Unable to create macro calendar %s: %s", calendar_file, error)
-        return False
-
-
-def _repair_macro_calendar_file(calendar_file):
-    try:
-        Path(calendar_file).write_text("[]\n", encoding="utf-8")
-    except OSError as error:
-        logger.warning("Unable to repair macro calendar %s: %s", calendar_file, error)
-
-
-def _load_macro_calendar(calendar_file):
-    calendar_file = Path(calendar_file)
-    if not _ensure_macro_calendar_file(calendar_file):
+    if not calendar_file.exists():
+        status = get_macro_calendar_status(
+            calendar_file,
+            events=None,
+            load_error="missing_file",
+        )
+        if metadata is not None:
+            metadata["macro_calendar_status"] = status
+        logger.warning("Macro calendar file is missing: %s", calendar_file)
         return []
 
     try:
         raw_text = calendar_file.read_text(encoding="utf-8-sig")
     except OSError as error:
         logger.warning("Unable to read macro calendar %s: %s", calendar_file, error)
-        return []
-
-    if not raw_text.strip():
-        logger.warning("Macro calendar is empty; repairing %s", calendar_file)
-        _repair_macro_calendar_file(calendar_file)
+        if metadata is not None:
+            metadata["macro_calendar_status"] = get_macro_calendar_status(
+                calendar_file,
+                events=None,
+            )
         return []
 
     try:
         events = json.loads(raw_text)
     except json.JSONDecodeError:
-        logger.warning("Macro calendar contains invalid JSON; repairing %s", calendar_file)
-        _repair_macro_calendar_file(calendar_file)
+        status = get_macro_calendar_status(
+            calendar_file,
+            events=None,
+            load_error="invalid_json",
+        )
+        if metadata is not None:
+            metadata["macro_calendar_status"] = status
+        logger.warning("Macro calendar contains invalid JSON: %s", calendar_file)
         return []
 
     if not isinstance(events, list):
-        logger.warning("Macro calendar must contain a JSON array; repairing %s", calendar_file)
-        _repair_macro_calendar_file(calendar_file)
+        logger.warning("Macro calendar must contain a JSON array: %s", calendar_file)
+        if metadata is not None:
+            metadata["macro_calendar_status"] = get_macro_calendar_status(
+                calendar_file,
+                events=None,
+            )
         return []
 
+    if metadata is not None:
+        metadata["macro_calendar_status"] = get_macro_calendar_status(
+            calendar_file,
+            events=events,
+        )
     return events
 
 
@@ -125,6 +202,7 @@ def get_auto_macro_calendar_catalysts(
     as_of=None,
     lookahead_days=AUTO_MACRO_CALENDAR_LOOKAHEAD_DAYS,
     calendar_file=MACRO_CALENDAR_FILE,
+    metadata=None,
 ):
     as_of = as_of or date.today()
     if isinstance(as_of, datetime):
@@ -133,7 +211,7 @@ def get_auto_macro_calendar_catalysts(
     end_date = as_of + timedelta(days=lookahead_days)
     catalysts = []
 
-    for event in _load_macro_calendar(calendar_file):
+    for event in _load_macro_calendar(calendar_file, metadata=metadata):
         if not isinstance(event, dict):
             logger.warning("Skipping malformed macro calendar entry in %s", calendar_file)
             continue

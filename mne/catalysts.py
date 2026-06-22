@@ -184,7 +184,10 @@ def load_all_catalysts(
     auto_macro_catalysts = []
     if enable_auto_macro_catalysts:
         try:
-            auto_macro_catalysts = get_auto_macro_calendar_catalysts(as_of=as_of)
+            auto_macro_catalysts = get_auto_macro_calendar_catalysts(
+                as_of=as_of,
+                metadata=metadata,
+            )
         except Exception as error:
             logger.warning("Unable to load auto macro calendar catalysts: %s", error)
             auto_macro_catalysts = []
@@ -301,6 +304,37 @@ def reason_for_density(score, red_events, orange_events):
     return "Medium-impact catalysts are approaching."
 
 
+def attach_macro_calendar_status(result, macro_calendar_status):
+    status = macro_calendar_status or {}
+    result["macro_calendar_status"] = status.get(
+        "macro_calendar_status", "unknown"
+    )
+    result["macro_calendar_message"] = status.get("macro_calendar_message", "")
+    result["macro_calendar_path"] = status.get("macro_calendar_path", "")
+    result["macro_calendar_event_count"] = status.get(
+        "macro_calendar_event_count", 0
+    )
+    result["macro_calendar_latest_event_date"] = status.get(
+        "macro_calendar_latest_event_date", None
+    )
+    result["macro_calendar_warning"] = status.get("macro_calendar_warning", True)
+
+    if result["macro_calendar_status"] == "missing_file":
+        result["state"] = "Calendar Unavailable"
+        result["confidence"] = "Low"
+    elif result["macro_calendar_status"] == "invalid_json":
+        result["state"] = "Calendar Error"
+        result["confidence"] = "Low"
+    elif result["macro_calendar_status"] in {
+        "loaded_empty",
+        "stale_calendar",
+        "unknown",
+    }:
+        result["confidence"] = "Low"
+
+    return result
+
+
 def calculate_catalyst_density(
     catalysts=None,
     as_of=None,
@@ -308,6 +342,7 @@ def calculate_catalyst_density(
     catalysts_file=CATALYSTS_FILE,
     enable_auto_company_catalysts=None,
     enable_auto_macro_catalysts=None,
+    macro_calendar_status=None,
 ):
     catalyst_source = str(Path(catalysts_file).expanduser())
     catalyst_sources = catalyst_sources_metadata(
@@ -325,8 +360,11 @@ def calculate_catalyst_density(
         metadata,
     )
 
+    if macro_calendar_status is None:
+        macro_calendar_status = metadata.get("macro_calendar_status")
+
     if upcoming is None:
-        return {
+        result = {
             "state": "No Scheduled Catalyst Environment",
             "confidence": "Low",
             "density_score": 0,
@@ -345,13 +383,14 @@ def calculate_catalyst_density(
             ),
             "auto_macro_events_found": metadata.get("auto_macro_events_found", 0),
         }
+        return attach_macro_calendar_status(result, macro_calendar_status)
 
     red_events = [event for event in upcoming if event["importance"] == RED_IMPORTANCE]
     orange_events = [event for event in upcoming if event["importance"] == ORANGE_IMPORTANCE]
     density_score = (len(red_events) * 2) + len(orange_events)
     density_state = density_state_for_score(density_score)
 
-    return {
+    result = {
         "state": density_state,
         "confidence": confidence_for_density(density_score),
         "density_score": density_score,
@@ -370,3 +409,4 @@ def calculate_catalyst_density(
         ),
         "auto_macro_events_found": metadata.get("auto_macro_events_found", 0),
     }
+    return attach_macro_calendar_status(result, macro_calendar_status)

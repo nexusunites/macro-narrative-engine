@@ -363,6 +363,17 @@
           <span>Catalysts</span>
           <strong>{{ view.catalyst_environment_card.state or "Unavailable" }}</strong>
           {% if view.catalyst_environment_card.reason %}<p>{{ view.catalyst_environment_card.reason }}</p>{% endif %}
+          {% if view.catalyst_environment_card.macro_calendar_warning %}
+          <div class="catalyst-calendar-warning">
+            <p class="warning-label">Calendar Notice</p>
+            <p class="warning-message">
+              {{ view.catalyst_environment_card.macro_calendar_message }}
+            </p>
+            <p class="warning-subtext">
+              Scheduled macro events may be unavailable.
+            </p>
+          </div>
+          {% endif %}
         </article>
         <article class="card environment-card">
           <span>Positioning</span>

@@ -114,6 +114,25 @@
               <p class="muted">No catalyst source field found.</p>
             {% endif %}
 
+            <div class="admin-calendar-status">
+              <p class="eyebrow">Macro Calendar Status</p>
+              <table>
+                <tr><th>Status</th>
+                    <td>{{ view.catalyst.macro_calendar_status }}</td></tr>
+                <tr><th>Message</th>
+                    <td>{{ view.catalyst.macro_calendar_message }}</td></tr>
+                <tr><th>Path</th>
+                    <td>{{ view.catalyst.macro_calendar_path }}</td></tr>
+                <tr><th>Events Loaded</th>
+                    <td>{{ view.catalyst.macro_calendar_event_count }}</td></tr>
+                <tr><th>Latest Event Date</th>
+                    <td>{{ view.catalyst.macro_calendar_latest_event_date
+                        or "None" }}</td></tr>
+                <tr><th>Warning</th>
+                    <td>{{ view.catalyst.macro_calendar_warning }}</td></tr>
+              </table>
+            </div>
+
             <h3>Red Events</h3>
             {% if view.red_events %}
               <ul>{% for event in view.red_events %}<li>{{ event }}</li>{% endfor %}</ul>

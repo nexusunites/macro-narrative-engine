@@ -718,6 +718,13 @@ def build_view_model(run, current_file):
     regime = run.get("regime_alignment") or {}
     mode_context = run.get("mode_context") or {}
     catalyst = run.get("catalyst_environment") or {}
+    catalyst_environment_card = compact_environment(catalyst)
+    catalyst_environment_card["macro_calendar_warning"] = catalyst.get(
+        "macro_calendar_warning", False
+    )
+    catalyst_environment_card["macro_calendar_message"] = catalyst.get(
+        "macro_calendar_message", ""
+    )
     market_environment = run.get("market_environment")
     market_expression = run.get("market_expression")
     positioning_environment = run.get("positioning_environment")
@@ -771,7 +778,7 @@ def build_view_model(run, current_file):
         "mode_context": mode_context,
         "market_environment_card": compact_environment(market_environment),
         "market_expression": market_expression if isinstance(market_expression, dict) else None,
-        "catalyst_environment_card": compact_environment(catalyst),
+        "catalyst_environment_card": catalyst_environment_card,
         "positioning_environment_card": compact_environment(positioning_environment),
         "environment": {
             "Market Environment": market_environment,

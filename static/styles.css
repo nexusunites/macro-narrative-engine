@@ -1054,3 +1054,30 @@ pre {
 .delta-flat { color: #888780; }
 
 .rotation-streak { font-size: 11px; color: #5F5E5A; }
+.catalyst-calendar-warning {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-left: 2px solid rgba(186, 117, 23, 0.6);
+  border-radius: 0;
+}
+
+.catalyst-calendar-warning .warning-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #EF9F27;
+  margin: 0 0 4px;
+}
+
+.catalyst-calendar-warning .warning-message {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0 0 2px;
+}
+
+.catalyst-calendar-warning .warning-subtext {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin: 0;
+}

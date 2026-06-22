@@ -151,6 +151,46 @@ def append_catalyst_sources(report_lines, catalyst_environment):
     report_lines.append(f"  Company Earnings: {sources.get('company_earnings')}")
 
 
+def print_macro_calendar_status(catalyst_environment):
+    macro_calendar_status = catalyst_environment.get(
+        "macro_calendar_status", "unknown"
+    )
+    macro_calendar_event_count = catalyst_environment.get(
+        "macro_calendar_event_count", 0
+    )
+    macro_calendar_message = catalyst_environment.get("macro_calendar_message", "")
+    macro_calendar_warning = catalyst_environment.get("macro_calendar_warning", True)
+
+    print("Macro Calendar Status:")
+    print(f"  Status: {macro_calendar_status}")
+    print(f"  Events Loaded: {macro_calendar_event_count}")
+    print(
+        f"  Warning: {macro_calendar_message}"
+        if macro_calendar_warning
+        else f"  {macro_calendar_message}"
+    )
+
+
+def append_macro_calendar_status(report_lines, catalyst_environment):
+    macro_calendar_status = catalyst_environment.get(
+        "macro_calendar_status", "unknown"
+    )
+    macro_calendar_event_count = catalyst_environment.get(
+        "macro_calendar_event_count", 0
+    )
+    macro_calendar_message = catalyst_environment.get("macro_calendar_message", "")
+    macro_calendar_warning = catalyst_environment.get("macro_calendar_warning", True)
+
+    report_lines.append("Macro Calendar Status:")
+    report_lines.append(f"  Status: {macro_calendar_status}")
+    report_lines.append(f"  Events Loaded: {macro_calendar_event_count}")
+    report_lines.append(
+        f"  Warning: {macro_calendar_message}"
+        if macro_calendar_warning
+        else f"  {macro_calendar_message}"
+    )
+
+
 def print_catalyst_environment(catalyst_environment):
     print()
     print("=== Catalyst Environment ===")
@@ -162,6 +202,8 @@ def print_catalyst_environment(catalyst_environment):
         print()
         print("Reason:")
         print(catalyst_environment["reason"])
+        print()
+        print_macro_calendar_status(catalyst_environment)
         return
 
     print()
@@ -189,6 +231,8 @@ def print_catalyst_environment(catalyst_environment):
     print()
     print("Reason:")
     print(catalyst_environment["reason"])
+    print()
+    print_macro_calendar_status(catalyst_environment)
 
 
 def print_positioning_environment(positioning_environment):
@@ -460,6 +504,9 @@ def build_daily_report(
             report_lines.append("")
             report_lines.append("Reason:")
             report_lines.append(catalyst_environment["reason"])
+
+        report_lines.append("")
+        append_macro_calendar_status(report_lines, catalyst_environment)
 
     if positioning_environment:
         report_lines.append("")
