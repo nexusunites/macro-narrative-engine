@@ -1054,6 +1054,59 @@ pre {
 .delta-flat { color: #888780; }
 
 .rotation-streak { font-size: 11px; color: #5F5E5A; }
+
+.event-lifecycle-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.event-lifecycle-item {
+  border: 1px solid rgba(136, 135, 128, 0.24);
+  border-radius: 6px;
+  padding: 9px 10px;
+}
+
+.event-lifecycle-topline,
+.event-lifecycle-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.event-lifecycle-topline {
+  justify-content: space-between;
+}
+
+.event-lifecycle-name {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.event-lifecycle-badge {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 8px;
+}
+
+.event-lifecycle-meta {
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+  margin-top: 7px;
+}
+
+.state-upcoming { background: rgba(95, 94, 90, 0.16); color: #B4B2A9; }
+.state-pre-positioning { background: rgba(56, 138, 221, 0.16); color: #85B7EB; }
+.state-immediate-pre-event { background: rgba(186, 117, 23, 0.18); color: #EF9F27; }
+.state-active-release { background: rgba(184, 53, 79, 0.18); color: #F28BA1; }
+.state-initial-digestion { background: rgba(29, 158, 117, 0.16); color: #5DCAA5; }
+.state-narrative-repricing { background: rgba(118, 89, 191, 0.18); color: #B9A4F2; }
+.state-complete { background: rgba(70, 128, 82, 0.16); color: #8FCA99; }
+
 .catalyst-calendar-warning {
   margin-top: 8px;
   padding: 8px 12px;

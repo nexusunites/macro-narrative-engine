@@ -148,6 +148,13 @@ def _extract_run_id(run_data: dict) -> str | None:
     return None
 
 
+def _extract_event_lifecycle(run_data: dict) -> dict | None:
+    event_lifecycle = run_data.get("event_lifecycle")
+    if isinstance(event_lifecycle, dict):
+        return event_lifecycle
+    return None
+
+
 def _share_points(value) -> float | None:
     if value is None:
         return None
@@ -254,11 +261,30 @@ def _aggregate_raw_runs(raw_runs: list[dict], snapshot_date: str) -> dict:
             }
         )
 
-    return {
+    snapshot = {
         "date": snapshot_date,
         "narratives": _rank_narratives(narratives),
         "raw_runs": raw_runs,
     }
+
+    lifecycle_runs = [
+        raw_run
+        for raw_run in raw_runs
+        if isinstance(raw_run, dict) and isinstance(raw_run.get("event_lifecycle"), dict)
+    ]
+    if lifecycle_runs:
+        latest_run = sorted(
+            lifecycle_runs,
+            key=lambda raw_run: str(raw_run.get("timestamp") or ""),
+        )[-1]
+        snapshot["latest_run_event_lifecycle"] = {
+            "label": "latest_run_only_not_daily_aggregate",
+            "run_id": latest_run.get("run_id"),
+            "timestamp": latest_run.get("timestamp"),
+            "event_lifecycle": latest_run.get("event_lifecycle"),
+        }
+
+    return snapshot
 
 
 def _upsert_raw_run(raw_runs: list[dict], current_raw_run: dict) -> list[dict]:
@@ -289,6 +315,7 @@ def _snapshot_from_runs(snapshot_date: str, runs: list[dict]) -> dict:
             "run_id": _extract_run_id(run),
             "timestamp": _extract_timestamp(run),
             "narratives": _run_narratives(run),
+            "event_lifecycle": _extract_event_lifecycle(run),
         }
         for run in runs
     ]
@@ -307,6 +334,7 @@ def write_daily_snapshot(run_data: dict) -> None:
         "run_id": _extract_run_id(run_data),
         "timestamp": _extract_timestamp(run_data),
         "narratives": _run_narratives(run_data),
+        "event_lifecycle": _extract_event_lifecycle(run_data),
     }
 
     raw_runs = []

@@ -1,11 +1,12 @@
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 
 from analysis.narrative_dynamics import calculate_narrative_dynamics
 from config import DATA_DIR, OPERATING_MODE, RESULTS_DIR
 from mne.breadth import BREADTH_TICKERS, classify_breadth_confirmation
 from mne.catalyst_environment import classify_catalyst_environment
 from mne.environment import classify_market_environment
+from mne.event_lifecycle import evaluate_event_lifecycle_run
 from mne.headline_deduplication import dedupe_headlines
 from mne.market_context import get_market_snapshot
 from mne.narrative_market_map import get_market_expression
@@ -69,6 +70,10 @@ NASDAQ_TICKERS = {
 
 TREND_LOOKBACK = 5
 TREND_EPSILON = 0.02
+ZERO_HEADLINE_WARNING = (
+    "RSS fetch failed or returned zero headlines.\n"
+    "Run will not be saved."
+)
 
 
 def parse_args(args=None):
@@ -78,6 +83,18 @@ def parse_args(args=None):
         help="Operating mode for this run. Overrides config.py without rewriting it.",
     )
     return parser.parse_args(args)
+
+
+def headline_collection_failure_reason(deduplication):
+    if deduplication["raw_headline_count"] == 0:
+        return "0 raw headlines"
+    if deduplication["deduped_headline_count"] == 0:
+        return "0 deduped headlines"
+    return None
+
+
+def should_abort_for_failed_headline_collection(deduplication):
+    return headline_collection_failure_reason(deduplication) is not None
 
 
 def main(args=None):
@@ -104,13 +121,21 @@ def main(args=None):
     raw_headlines = fetch_headlines_from_rss(RSS_URLS)
     deduplication = dedupe_headlines(raw_headlines)
     headlines = deduplication["deduped_headlines"]
-    raw_headlines_file = save_headlines(raw_headlines, stamp, label="raw")
-    deduped_headlines_file = save_headlines(headlines, stamp, label="deduped")
 
     print(f"Loaded {deduplication['raw_headline_count']} raw headlines from RSS")
     print(f"Deduped to {deduplication['deduped_headline_count']} unique headlines")
     print(f"Removed {deduplication['duplicate_count']} duplicates")
     print(f"Loaded {len(RSS_URLS)} RSS feeds")
+
+    if should_abort_for_failed_headline_collection(deduplication):
+        print()
+        print(ZERO_HEADLINE_WARNING)
+        print(f"Failure reason: {headline_collection_failure_reason(deduplication)}")
+        return
+
+    raw_headlines_file = save_headlines(raw_headlines, stamp, label="raw")
+    deduped_headlines_file = save_headlines(headlines, stamp, label="deduped")
+
     print(f"Raw headlines saved to {raw_headlines_file}")
     print(f"Deduped headlines saved to {deduped_headlines_file}")
     print()
@@ -153,6 +178,9 @@ def main(args=None):
     regime_alignment = None
     mode_context = None
     catalyst_environment = classify_catalyst_environment()
+    event_lifecycle = evaluate_event_lifecycle_run(
+        now_utc=datetime.now(timezone.utc)
+    )
     positioning_environment = classify_positioning_environment(catalyst_environment)
 
     if nonzero:
@@ -202,6 +230,7 @@ def main(args=None):
         "market_environment": market_environment,
         "breadth_confirmation": breadth_confirmation,
         "catalyst_environment": catalyst_environment,
+        "event_lifecycle": event_lifecycle,
         "positioning_environment": positioning_environment,
         "regime_alignment": regime_alignment,
         "examples": {k: v for k, v in examples.items() if k in dict(nonzero[:3])},
@@ -355,6 +384,7 @@ def main(args=None):
         operating_mode=operating_mode,
         mode_context=mode_context,
         market_expression=market_expression,
+
     )
     report_file = save_report(report_text, stamp)
     print(f"Report saved to {report_file}")

@@ -714,10 +714,66 @@ def format_event(event):
     return " | ".join(parts)
 
 
+def format_lifecycle_event(event):
+    if not isinstance(event, dict):
+        return None
+
+    state = event.get("lifecycle_state") or "Unavailable"
+    minutes_until = event.get("minutes_until_release")
+    minutes_since = event.get("minutes_since_release")
+    countdown = None
+    if minutes_until is not None:
+        countdown = f"T-{minutes_until} min"
+    elif minutes_since is not None:
+        countdown = f"T+{minutes_since} min"
+
+    next_transition = event.get("next_transition")
+    if not isinstance(next_transition, dict):
+        next_transition = {}
+
+    next_label = None
+    if next_transition.get("next_state") and next_transition.get("minutes_away") is not None:
+        next_label = (
+            f"-> {next_transition.get('next_state')} "
+            f"in {next_transition.get('minutes_away')} min"
+        )
+
+    return {
+        "event_id": event.get("event_id"),
+        "event_name": event.get("event_name") or "Unnamed event",
+        "event_importance": event.get("event_importance"),
+        "lifecycle_state": state,
+        "state_class": str(state).lower().replace(" ", "-"),
+        "countdown": countdown,
+        "next_label": next_label,
+        "reason": event.get("reason"),
+        "confidence": event.get("confidence"),
+    }
+
+
+def format_event_lifecycle(lifecycle):
+    if not isinstance(lifecycle, dict):
+        return {"current_event": None, "events": []}
+
+    return {
+        "run_timestamp_utc": lifecycle.get("run_timestamp_utc"),
+        "current_event": lifecycle.get("current_event"),
+        "events": [
+            formatted
+            for formatted in (
+                format_lifecycle_event(event)
+                for event in lifecycle.get("events", [])
+            )
+            if formatted
+        ],
+    }
+
+
 def build_view_model(run, current_file):
     regime = run.get("regime_alignment") or {}
     mode_context = run.get("mode_context") or {}
     catalyst = run.get("catalyst_environment") or {}
+    event_lifecycle = format_event_lifecycle(run.get("event_lifecycle"))
     catalyst_environment_card = compact_environment(catalyst)
     catalyst_environment_card["macro_calendar_warning"] = catalyst.get(
         "macro_calendar_warning", False
@@ -779,6 +835,7 @@ def build_view_model(run, current_file):
         "market_environment_card": compact_environment(market_environment),
         "market_expression": market_expression if isinstance(market_expression, dict) else None,
         "catalyst_environment_card": catalyst_environment_card,
+        "event_lifecycle": event_lifecycle,
         "positioning_environment_card": compact_environment(positioning_environment),
         "environment": {
             "Market Environment": market_environment,

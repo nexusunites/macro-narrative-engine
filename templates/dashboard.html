@@ -363,6 +363,25 @@
           <span>Catalysts</span>
           <strong>{{ view.catalyst_environment_card.state or "Unavailable" }}</strong>
           {% if view.catalyst_environment_card.reason %}<p>{{ view.catalyst_environment_card.reason }}</p>{% endif %}
+          {% if view.event_lifecycle.events %}
+          <div class="event-lifecycle-list">
+            {% for event in view.event_lifecycle.events %}
+            <div class="event-lifecycle-item" title="{{ event.reason or '' }}">
+              <div class="event-lifecycle-topline">
+                <span class="event-lifecycle-name">{{ event.event_name }}</span>
+                <span class="event-lifecycle-badge state-{{ event.state_class }}">
+                  {{ event.lifecycle_state }}
+                </span>
+              </div>
+              <div class="event-lifecycle-meta">
+                {% if event.countdown %}<span>{{ event.countdown }}</span>{% endif %}
+                {% if event.next_label %}<span>{{ event.next_label }}</span>{% endif %}
+                {% if event.confidence %}<span>{{ event.confidence }} confidence</span>{% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
           {% if view.catalyst_environment_card.macro_calendar_warning %}
           <div class="catalyst-calendar-warning">
             <p class="warning-label">Calendar Notice</p>
