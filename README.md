@@ -5,6 +5,8 @@
 - [Architecture](ARCHITECTURE.md)
 - [Project Status](docs/project_status.md)
 - [Roadmap](docs/roadmap.md)
+- [Narrative Memory System](docs/narrative_memory_system.md)
+- [Historical Replay Engine](docs/historical_replay_engine.md)
 
 ## Runtime Data Storage
 
