@@ -75,6 +75,17 @@
             </tbody>
           </table>
         </article>
+        {% set source_intelligence = view.source_intelligence | default({}) %}
+        <article class="card">
+          <h3>Source Intelligence</h3>
+          <table>
+            <tbody>
+              <tr><th>Total Evidence Objects</th><td>{{ source_intelligence.get("evidence_count", "Unavailable") }}</td></tr>
+              <tr><th>Accepted Evidence Objects</th><td>{{ source_intelligence.get("accepted_count", "Unavailable") }}</td></tr>
+              <tr><th>Rejected Evidence Objects</th><td>{{ source_intelligence.get("rejected_count", "Unavailable") }}</td></tr>
+            </tbody>
+          </table>
+        </article>
         <article class="card">
           <h3>Coverage</h3>
           <p class="admin-value">{{ view.headline_stats.Coverage or "Unavailable" }}</p>

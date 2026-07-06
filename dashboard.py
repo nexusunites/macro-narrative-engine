@@ -906,6 +906,7 @@ def build_view_model(run, current_file):
             "Matched Headlines": run.get("matched_headlines"),
             "Coverage": f"{run.get('coverage_pct')}%" if run.get("coverage_pct") is not None else None,
         },
+        "source_intelligence": run.get("source_intelligence") or {},
         "theme_match_audit": run.get("theme_match_audit"),
         "diagnostics": {
             key: value

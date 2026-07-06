@@ -9,6 +9,11 @@ from mne.catalyst_environment import classify_catalyst_environment
 from mne.change_summary import build_change_summary
 from mne.environment import classify_market_environment
 from mne.event_lifecycle import evaluate_event_lifecycle_run
+from mne.evidence import (
+    evidence_to_headlines,
+    normalize_rss_entries_to_evidence,
+    source_intelligence_counts,
+)
 from mne.headline_deduplication import dedupe_headlines
 from mne.market_context import get_market_snapshot
 from mne.narrative_brief import generate_narrative_brief
@@ -83,7 +88,7 @@ TREND_LOOKBACK = 5
 TREND_EPSILON = 0.02
 ZERO_HEADLINE_WARNING = (
     "RSS fetch failed or returned zero headlines.\n"
-    "Run will not be saved."
+    "Narrative run will not be generated."
 )
 
 
@@ -130,7 +135,13 @@ def main(args=None):
         print(mode_warning)
     print()
 
-    raw_headlines = fetch_headlines_from_rss(RSS_URLS)
+    rss_entries = fetch_headlines_from_rss(RSS_URLS, as_entries=True)
+    evidence_objects = normalize_rss_entries_to_evidence(
+        rss_entries,
+        run_timestamp=now_utc.isoformat(),
+    )
+    source_intelligence = source_intelligence_counts(evidence_objects)
+    raw_headlines = evidence_to_headlines(evidence_objects)
     deduplication = dedupe_headlines(raw_headlines)
     headlines = deduplication["deduped_headlines"]
 
@@ -142,7 +153,21 @@ def main(args=None):
     if should_abort_for_failed_headline_collection(deduplication):
         print()
         print(ZERO_HEADLINE_WARNING)
-        print(f"Failure reason: {headline_collection_failure_reason(deduplication)}")
+        failure_reason = headline_collection_failure_reason(deduplication)
+        print(f"Failure reason: {failure_reason}")
+        failed_run = {
+            "timestamp": stamp,
+            "rss_urls": RSS_URLS,
+            "raw_headline_count": deduplication["raw_headline_count"],
+            "deduped_headline_count": deduplication["deduped_headline_count"],
+            "duplicate_count": deduplication["duplicate_count"],
+            "source_intelligence": source_intelligence,
+            "headline_count": len(headlines),
+            "narrative_run_status": "skipped_failed_headline_collection",
+            "headline_collection_failure_reason": failure_reason,
+        }
+        _results_dir, results_file = save_run_json(failed_run, stamp)
+        print(f"Source diagnostics saved to {results_file}")
         return
 
     raw_headlines_file = save_headlines(raw_headlines, stamp, label="raw")
@@ -219,6 +244,7 @@ def main(args=None):
         "raw_headline_count": deduplication["raw_headline_count"],
         "deduped_headline_count": deduplication["deduped_headline_count"],
         "duplicate_count": deduplication["duplicate_count"],
+        "source_intelligence": source_intelligence,
         "headline_count": len(headlines),
         "matched_headlines": matched_headlines,
         "coverage_pct": round(coverage_pct, 1),

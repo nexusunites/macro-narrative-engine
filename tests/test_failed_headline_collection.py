@@ -44,13 +44,17 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
             "0 deduped headlines",
         )
 
-    def test_zero_headline_run_exits_before_persistence_and_trends(self):
+    def test_zero_headline_run_persists_source_diagnostics_only(self):
         output = io.StringIO()
 
         with (
             patch.object(main, "fetch_headlines_from_rss", return_value=[]),
             patch.object(main, "save_headlines") as save_headlines,
-            patch.object(main, "save_run_json") as save_run_json,
+            patch.object(
+                main,
+                "save_run_json",
+                return_value=(Path("/tmp/results"), Path("/tmp/results/run.json")),
+            ) as save_run_json,
             patch.object(main, "save_report") as save_report,
             patch.object(main, "calculate_narrative_dynamics") as calculate_dynamics,
             patch.object(main, "print_momentum") as print_momentum,
@@ -61,9 +65,22 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
             main.main([])
 
         self.assertIn("RSS fetch failed or returned zero headlines.", output.getvalue())
-        self.assertIn("Run will not be saved.", output.getvalue())
+        self.assertIn("Narrative run will not be generated.", output.getvalue())
         save_headlines.assert_not_called()
-        save_run_json.assert_not_called()
+        save_run_json.assert_called_once()
+        persisted_run = save_run_json.call_args.args[0]
+        self.assertEqual(
+            persisted_run["source_intelligence"],
+            {
+                "evidence_count": 0,
+                "accepted_count": 0,
+                "rejected_count": 0,
+            },
+        )
+        self.assertEqual(
+            persisted_run["narrative_run_status"],
+            "skipped_failed_headline_collection",
+        )
         save_report.assert_not_called()
         calculate_dynamics.assert_not_called()
         print_momentum.assert_not_called()
@@ -155,6 +172,15 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
 
         self.assertEqual(save_headlines.call_count, 2)
         save_run_json.assert_called_once()
+        persisted_run = save_run_json.call_args.args[0]
+        self.assertEqual(
+            persisted_run["source_intelligence"],
+            {
+                "evidence_count": 1,
+                "accepted_count": 1,
+                "rejected_count": 0,
+            },
+        )
         write_daily_snapshot.assert_called_once()
         save_report.assert_called_once()
         print_momentum.assert_called_once()
