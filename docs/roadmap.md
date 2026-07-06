@@ -26,6 +26,7 @@
 - Mode Context for macro and Nasdaq reads.
 - Narrative Leadership.
 - Narrative Pulse.
+- Narrative Brief Engine with persisted evidence-backed `narrative_brief` output.
 - Narrative concentration, dominant narrative share, and narrative dynamics.
 
 ### Dashboard
@@ -38,6 +39,7 @@
 - Narrative Pulse display.
 - Dashboard UX refinements for spacing, hierarchy, readability, and workflow separation.
 - Better latest-run presentation and dashboard-ready summaries.
+- Narrative Brief display on Overview and evidence diagnostics in Admin.
 
 ## Upcoming Priorities
 

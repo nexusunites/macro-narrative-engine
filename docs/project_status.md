@@ -28,6 +28,7 @@ Macro Narrative Engine (MNE) is a lightweight macro narrative intelligence syste
 - Mode Context for macro and Nasdaq-focused workflows.
 - Narrative Leadership.
 - Narrative Pulse.
+- Narrative Brief Engine with deterministic, evidence-backed prose and persisted run JSON output.
 - Narrative concentration, dominant narrative share, and narrative dynamics.
 
 ### Dashboard
@@ -45,6 +46,7 @@ Macro Narrative Engine (MNE) is a lightweight macro narrative intelligence syste
 - Dashboard V1 has matured into user and admin surfaces with clearer hierarchy and scanability.
 - Regime Alignment History is now exposed for reviewing state changes over time.
 - Narrative Leadership cards and Narrative Pulse display are now visible in the dashboard.
+- The Overview page now surfaces the persisted Narrative Brief near the top, while Admin exposes sentence-level evidence, template diagnostics, conflict logs, and the raw evidence registry.
 - Engine support now includes persistence, acceleration, crowding risk, taxonomy auditing, and the catalyst framework.
 - Intelligence output now includes Market Environment, Breadth Confirmation, Positioning Environment, Regime Alignment, Mode Context, Narrative Leadership, and Narrative Pulse.
 
@@ -62,7 +64,7 @@ The current focus is expanding the product surface beyond the latest-run dashboa
 
 ## Current Architecture Summary
 
-`main.py` orchestrates ingestion, analysis, context classification, persistence, and reporting. Engine logic lives in modules under `mne/`, including RSS fetching, storage, theme analysis, narrative signals, market context, catalysts, positioning, regime alignment, and reporting. Runtime outputs are written outside the repository to the configured `MNE_DATA_DIR` location.
+`main.py` orchestrates ingestion, analysis, context classification, Narrative Brief composition, persistence, and reporting. Engine logic lives in modules under `mne/`, including RSS fetching, storage, theme analysis, narrative signals, market context, catalysts, positioning, regime alignment, narrative brief composition, and reporting. Runtime outputs are written outside the repository to the configured `MNE_DATA_DIR` location.
 
 `dashboard.py` serves the FastAPI dashboard and loads saved run JSON files from the runtime results directory. The dashboard templates provide user-facing and admin views for the market snapshot, Regime Alignment History, Narrative Leadership, Narrative Pulse, diagnostics, raw JSON, scoring detail, catalyst detail, and audit metadata.
 

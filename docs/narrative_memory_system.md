@@ -4,8 +4,9 @@
 
 This document belongs alongside `ARCHITECTURE.md`, `docs/roadmap.md`,
 `docs/project_status.md`, `docs/future_concepts.md`,
-`docs/narrative_style_guide.md`, and `docs/source_intelligence_platform.md` as
-one of MNE's permanent foundational references. It is a philosophy and
+`docs/narrative_style_guide.md`, `docs/source_intelligence_platform.md`, and
+`docs/intelligence_experience_architecture.md` as one of MNE's permanent
+foundational references. It is a philosophy and
 architecture document, not an implementation handoff. It defines why Narrative
 Memory exists and what it must always remain true to, so that whoever eventually
 builds it, in whatever year that happens, builds the same thing this document

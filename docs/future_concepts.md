@@ -12,6 +12,7 @@ All concepts must preserve the MNE product boundary:
 - **Context only.** Outputs describe narrative and market conditions. They must not contain entries, exits, position sizes, targets, expected returns, or trade recommendations.
 - **Auditable history.** Derived records must retain source run/snapshot identifiers and relevant taxonomy, mapping, and ruleset versions.
 - **Explicit uncertainty.** Missing or incompatible data must produce `unavailable` or `insufficient_history`, never an inferred directional result.
+- **Institutional voice.** Narrative Brief templates must follow `docs/narrative_style_guide.md` so the public MNE voice remains calm, analytical, evidence-based, and deterministic.
 
 ## Shared state and data conventions
 

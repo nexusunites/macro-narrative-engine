@@ -18,6 +18,23 @@ Recommended build order:
 8. Generate automated daily reports.
 9. Later, add TradingView, Discord, and stream dashboard integrations.
 
+## Narrative Brief Engine
+
+`mne/narrative_brief.py` owns the Narrative Brief Engine, a deterministic read-side composition layer that consumes already-computed run outputs and persists `narrative_brief` into the result JSON. It does not call an LLM, does not score narratives, and does not alter upstream taxonomy, catalyst, market, breadth, positioning, or regime logic.
+
+The engine selects fixed templates in section order, resolves evidence objects for every emitted sentence, computes data-completeness confidence, and records diagnostics for admin review. `change_summary` and `leadership_rotation` are persisted before brief generation so historical snapshots render from stored run JSON instead of recomputing the story later.
+
+The permanent authoring standard for brief templates is documented in `docs/narrative_style_guide.md`. Future templates must follow that style guide and pass template-library validation before they can render.
+
+## Intelligence Experience Architecture
+
+`docs/intelligence_experience_architecture.md` defines MNE's permanent
+experience-layer philosophy. Its core rule is that the Intelligence Engine
+generates deterministic intelligence and the Experience Layer only delivers,
+organizes, explains, compares, visualizes, searches, and enables exploration of
+that intelligence. Dashboard, research, AI analyst, reports, mobile, and API
+surfaces consume Intelligence; none of them produce or override it.
+
 ## Data Storage
 
 Raw and deduplicated headlines are saved with second-resolution date/time filenames inside the configured runtime data directory. By default this is `~/Google Drive/MNE-data/headlines/`, and it can be overridden with `MNE_DATA_DIR`. Results, headlines, and reports receive a numeric suffix when a filename for the same second already exists, so historical files are not overwritten. Result JSON records its filename stem as `run_id`.
