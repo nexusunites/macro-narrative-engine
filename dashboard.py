@@ -769,6 +769,40 @@ def format_event_lifecycle(lifecycle):
     }
 
 
+def build_brief_evidence_rows(narrative_brief):
+    if not isinstance(narrative_brief, dict):
+        return []
+
+    registry = {
+        item.get("evidence_id"): item
+        for item in narrative_brief.get("evidence_registry", [])
+        if isinstance(item, dict)
+    }
+    rows = []
+    for section in narrative_brief.get("sections", []):
+        if not isinstance(section, dict):
+            continue
+        rows.append(
+            {
+                "section": section,
+                "evidence": [
+                    registry[evidence_id]
+                    for evidence_id in section.get("evidence", [])
+                    if evidence_id in registry
+                ],
+                "module_names": sorted(
+                    {
+                        registry[evidence_id].get("source_module")
+                        for evidence_id in section.get("evidence", [])
+                        if evidence_id in registry
+                        and registry[evidence_id].get("source_module")
+                    }
+                ),
+            }
+        )
+    return rows
+
+
 def build_view_model(run, current_file):
     regime = run.get("regime_alignment") or {}
     mode_context = run.get("mode_context") or {}
@@ -789,6 +823,12 @@ def build_view_model(run, current_file):
     theme_scores = sorted_scores(run.get("theme_scores") or run.get("theme_counts"))
     group_scores = sorted_scores(run.get("group_scores"))
     examples = run.get("examples") if isinstance(run.get("examples"), dict) else {}
+    narrative_brief = (
+        run.get("narrative_brief")
+        if isinstance(run.get("narrative_brief"), dict)
+        else None
+    )
+    narrative_brief_evidence_rows = build_brief_evidence_rows(narrative_brief)
     top_example_themes = [theme for theme, score in theme_scores[:4] if examples.get(theme)]
     narrative_leadership = build_narrative_leadership(
         group_scores,
@@ -851,6 +891,9 @@ def build_view_model(run, current_file):
         "dominant_share": pct(run.get("dominant_share")),
         "concentration_gap": run.get("concentration_gap"),
         "market_context": get_market_context(run),
+        "narrative_brief": narrative_brief,
+        "narrative_brief_evidence_rows": narrative_brief_evidence_rows,
+        "narrative_brief_error": run.get("narrative_brief_generation_error"),
         "catalyst": catalyst,
         "red_events": [format_event(event) for event in catalyst.get("red_events", [])],
         "orange_events": [format_event(event) for event in catalyst.get("orange_events", [])],
@@ -913,19 +956,22 @@ def build_template_context(request: Request, run: Optional[str]):
         return context
 
     view = build_view_model(result, current_file)
-    prior_file = get_prior_result_file(current_file)
-    if prior_file:
-        try:
-            prior_result = load_result(prior_file)
-            view["change_summary"] = build_change_summary(
-                result,
-                prior_result,
-                prior_file,
-            )
-        except (OSError, json.JSONDecodeError):
-            view["change_summary"] = None
+    if isinstance(result.get("change_summary"), dict):
+        view["change_summary"] = result["change_summary"]
     else:
-        view["change_summary"] = None
+        prior_file = get_prior_result_file(current_file)
+        if prior_file:
+            try:
+                prior_result = load_result(prior_file)
+                view["change_summary"] = build_change_summary(
+                    result,
+                    prior_result,
+                    prior_file,
+                )
+            except (OSError, json.JSONDecodeError):
+                view["change_summary"] = None
+        else:
+            view["change_summary"] = None
 
     context["view"] = view
     return context

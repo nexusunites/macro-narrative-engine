@@ -1,14 +1,18 @@
 import argparse
 from datetime import datetime, timezone
 
+from analysis.leadership_rotation import compute_rotation
 from analysis.narrative_dynamics import calculate_narrative_dynamics
 from config import DATA_DIR, OPERATING_MODE, RESULTS_DIR
 from mne.breadth import BREADTH_TICKERS, classify_breadth_confirmation
 from mne.catalyst_environment import classify_catalyst_environment
+from mne.change_summary import build_change_summary
 from mne.environment import classify_market_environment
 from mne.event_lifecycle import evaluate_event_lifecycle_run
 from mne.headline_deduplication import dedupe_headlines
 from mne.market_context import get_market_snapshot
+from mne.narrative_brief import generate_narrative_brief
+from mne.narrative_leadership import build_narrative_leadership
 from mne.narrative_market_map import get_market_expression
 from mne.narrative_pulse import calculate_narrative_pulse
 from mne.narrative_market_relationship import classify_narrative_market_relationship
@@ -43,7 +47,14 @@ from mne.reporting import (
     print_top_theme_examples,
 )
 from mne.rss_fetch import fetch_headlines_from_rss
-from mne.storage import get_recent_runs, save_headlines, save_report, save_run_json
+from mne.storage import (
+    build_daily_snapshot_preview,
+    get_recent_runs,
+    load_daily_snapshots,
+    save_headlines,
+    save_report,
+    save_run_json,
+)
 from mne.theme_analysis import analyze_themes, load_themes
 from mne.trends import print_daily_count_trends, print_daily_share_trends, print_momentum
 
@@ -108,6 +119,7 @@ def main(args=None):
     print()
 
     now = datetime.now()
+    now_utc = datetime.now(timezone.utc)
     stamp = now.strftime("%Y-%m-%d_%H%M%S")
     readable_time = now.strftime("%Y-%m-%d %H:%M")
 
@@ -178,9 +190,7 @@ def main(args=None):
     regime_alignment = None
     mode_context = None
     catalyst_environment = classify_catalyst_environment()
-    event_lifecycle = evaluate_event_lifecycle_run(
-        now_utc=datetime.now(timezone.utc)
-    )
+    event_lifecycle = evaluate_event_lifecycle_run(now_utc=now_utc)
     positioning_environment = classify_positioning_environment(catalyst_environment)
 
     if nonzero:
@@ -246,6 +256,11 @@ def main(args=None):
     run["narrative_dynamics"] = narrative_dynamics
     narrative_pulse = calculate_narrative_pulse(run, narrative_dynamics)
     run["narrative_pulse"] = narrative_pulse
+    run["narrative_leadership"] = build_narrative_leadership(
+        group_scores,
+        narrative_pulse,
+        narrative_dynamics,
+    )
 
     if nonzero:
         prior_runs = get_recent_runs(RESULTS_DIR, 1)
@@ -349,6 +364,34 @@ def main(args=None):
         print_market_expression(market_expression)
         print_regime_alignment(regime_alignment)
         print_mode_context(mode_context)
+
+    prior_runs = get_recent_runs(RESULTS_DIR, 1)
+    prior_run = prior_runs[-1] if prior_runs else None
+    run["change_summary"] = build_change_summary(run, prior_run)
+
+    rotation_snapshots = load_daily_snapshots(limit=6)
+    current_snapshot = build_daily_snapshot_preview(
+        run,
+        snapshot_date=now.date().isoformat(),
+    )
+    rotation_snapshots = [
+        snapshot
+        for snapshot in rotation_snapshots
+        if snapshot.get("date") != current_snapshot.get("date")
+    ]
+    run["leadership_rotation"] = compute_rotation(rotation_snapshots + [current_snapshot])
+
+    try:
+        run["narrative_brief"] = generate_narrative_brief(
+            run,
+            run_timestamp_utc=now_utc.isoformat(),
+        )
+    except Exception as error:
+        run["narrative_brief"] = None
+        run["narrative_brief_generation_error"] = {
+            "error_type": type(error).__name__,
+            "message": str(error),
+        }
 
     results_dir, results_file = save_run_json(run, stamp)
     from mne.storage import write_daily_snapshot

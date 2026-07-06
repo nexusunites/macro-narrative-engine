@@ -322,6 +322,23 @@ def _snapshot_from_runs(snapshot_date: str, runs: list[dict]) -> dict:
     return _aggregate_raw_runs(raw_runs, snapshot_date)
 
 
+def build_daily_snapshot_preview(run_data: dict, snapshot_date: str | None = None) -> dict:
+    snapshot_date = snapshot_date or _extract_run_date(run_data) or date.today().isoformat()
+    narratives = _run_narratives(run_data)
+    return {
+        "date": snapshot_date,
+        "narratives": narratives,
+        "raw_runs": [
+            {
+                "run_id": _extract_run_id(run_data),
+                "timestamp": _extract_timestamp(run_data),
+                "narratives": narratives,
+                "event_lifecycle": _extract_event_lifecycle(run_data),
+            }
+        ],
+    }
+
+
 def write_daily_snapshot(run_data: dict) -> None:
     snapshot_date = _extract_run_date(run_data) or date.today().isoformat()
     today = date.today().isoformat()

@@ -57,6 +57,45 @@
         </div>
       </section>
 
+      {% if view.narrative_brief %}
+        <section class="narrative-brief-section">
+          <article class="narrative-brief">
+            <div class="brief-header">
+              <div>
+                <p class="eyebrow">Narrative Brief</p>
+                <h2>{{ view.narrative_brief.headline }}</h2>
+              </div>
+              <span class="data-completeness completeness-{{ view.narrative_brief.confidence|lower }}">
+                Data Completeness: {{ view.narrative_brief.confidence }}
+              </span>
+            </div>
+            <div class="brief-summary">
+              {% for row in view.narrative_brief_evidence_rows %}
+                {% if row.section.text %}
+                  <p title="{{ row.module_names | join(', ') }}">
+                    {{ row.section.text }}
+                  </p>
+                {% endif %}
+              {% endfor %}
+            </div>
+            {% if view.narrative_brief.key_points %}
+              <ul class="brief-key-points">
+                {% for point in view.narrative_brief.key_points %}
+                  <li>{{ point }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </article>
+        </section>
+      {% elif view.narrative_brief_error %}
+        <section class="narrative-brief-section">
+          <article class="narrative-brief brief-unavailable">
+            <p class="eyebrow">Narrative Brief</p>
+            <h2>Narrative brief unavailable for this run.</h2>
+          </article>
+        </section>
+      {% endif %}
+
       {% if view.change_summary %}
         <section class="change-summary-section">
           <article class="card change-summary-card">

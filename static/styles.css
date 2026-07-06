@@ -240,6 +240,75 @@ select {
   margin-top: 18px;
 }
 
+.narrative-brief-section {
+  margin-top: 18px;
+}
+
+.narrative-brief {
+  border-top: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border);
+  padding: 22px 0;
+}
+
+.brief-header,
+.admin-brief-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.brief-header h2 {
+  max-width: 920px;
+  margin: 0;
+  font-size: clamp(28px, 3.2vw, 42px);
+  line-height: 1.15;
+}
+
+.data-completeness {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: var(--muted-strong);
+  font-size: 11px;
+  font-weight: 720;
+  text-transform: uppercase;
+}
+
+.completeness-low {
+  border-color: rgba(215, 179, 106, 0.45);
+  color: var(--warn);
+}
+
+.brief-summary {
+  display: grid;
+  gap: 8px;
+  max-width: 920px;
+  margin-top: 16px;
+}
+
+.brief-summary p {
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 16px;
+}
+
+.brief-key-points {
+  display: grid;
+  gap: 7px;
+  max-width: 820px;
+  margin: 18px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.brief-unavailable h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
 .change-summary-card {
   display: grid;
   gap: 16px;
@@ -257,6 +326,23 @@ select {
 .change-summary-header h2 {
   margin: 0;
   font-size: 21px;
+}
+
+.admin-evidence-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.admin-evidence-list li {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-evidence-list code {
+  white-space: normal;
+  word-break: break-word;
 }
 
 .change-compared {
