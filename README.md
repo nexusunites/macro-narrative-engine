@@ -3,6 +3,7 @@
 ## Project Documentation
 
 - [Product Vision](docs/product_vision.md)
+- [Security & Intellectual Property Model](docs/security_ip_model.md)
 - [Architecture](ARCHITECTURE.md)
 - [Project Status](docs/project_status.md)
 - [Roadmap](docs/roadmap.md)

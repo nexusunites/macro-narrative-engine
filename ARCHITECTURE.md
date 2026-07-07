@@ -4,6 +4,8 @@ MNE is a macro narrative intelligence engine for tracking financial news narrati
 
 `docs/product_vision.md` is the top-level product philosophy reference for MNE. Architecture decisions should preserve that product vision: evidence before opinion, understanding before prediction, investigation before conclusions, deterministic intelligence before AI, and transparency before automation.
 
+`docs/security_ip_model.md` is the permanent strategic and platform-protection reference for MNE. Architecture, access, data, documentation, and collaboration decisions should preserve the security and intellectual property principles defined there.
+
 ## Current Priority
 
 Keep the core engine clean before adding external integrations.
@@ -42,6 +44,7 @@ surfaces consume Intelligence; none of them produce or override it.
 MNE's permanent architecture references include:
 
 - `docs/product_vision.md` -- Product Vision
+- `docs/security_ip_model.md` -- Security & Intellectual Property Model
 - `docs/source_intelligence_platform.md` -- Source Intelligence Platform (SIP)
 - `docs/historical_replay_engine.md` -- Historical Replay Engine (HRE)
 - `docs/narrative_memory_system.md` -- Narrative Memory System (NMS)
