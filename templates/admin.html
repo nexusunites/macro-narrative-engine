@@ -199,6 +199,223 @@
         </article>
       </section>
 
+      {% set platform_observability = view.platform_observability | default({}) %}
+      {% set run_metadata = platform_observability.get("run_metadata", {}) %}
+      <section class="content-section">
+        <div class="section-heading">
+          <p class="eyebrow">Platform Observability</p>
+          <h2>Pipeline Telemetry</h2>
+          <p class="leadership-read">Read-only execution telemetry for this run. Engine code versions are separate from the Source Registry configuration version.</p>
+        </div>
+        {% if run_metadata %}
+          <article class="card">
+            <h3>Run Metadata</h3>
+            <table>
+              <tbody>
+                <tr><th>Run ID</th><td>{{ run_metadata.get("run_id", "Unavailable") }}</td></tr>
+                <tr><th>Run Duration</th><td>{{ run_metadata.get("run_duration_ms", "Unavailable") }} ms</td></tr>
+                <tr><th>Execution Mode</th><td>{{ run_metadata.get("execution_mode", "Unavailable") }}</td></tr>
+                <tr><th>Platform Version</th><td>{{ run_metadata.get("platform_version", "Unavailable") }}</td></tr>
+                <tr><th>Pipeline Version</th><td>{{ run_metadata.get("pipeline_version", "Unavailable") }}</td></tr>
+                <tr><th>Run Start</th><td>{{ run_metadata.get("timestamp", "Unavailable") }}</td></tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="card">
+            <h3>Engine Code Versions</h3>
+            <table>
+              <tbody>
+                {% for engine, version in platform_observability.get("engine_versions", {}).items() %}
+                  <tr><th>{{ engine }}</th><td>{{ version }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <p class="muted">These are engine code versions, not the Source Registry configuration version.</p>
+          </article>
+
+          <article class="card">
+            <h3>Pipeline Timeline</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Stage</th>
+                  <th>Status</th>
+                  <th>Start</th>
+                  <th>End</th>
+                  <th>Duration</th>
+                  <th>Diagnostic</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for stage in platform_observability.get("stages", []) %}
+                  <tr>
+                    <td>{{ stage.stage_name }}</td>
+                    <td>{{ stage.status }}</td>
+                    <td>{{ stage.start_time or "Skipped" }}</td>
+                    <td>{{ stage.end_time or "Skipped" }}</td>
+                    <td>{{ stage.duration_ms if stage.duration_ms is not none else "Skipped" }}</td>
+                    <td>{{ stage.diagnostic_message }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </article>
+
+          <article class="card">
+            <h3>Stage Durations</h3>
+            <table>
+              <thead><tr><th>Stage</th><th>Duration</th><th>Status</th></tr></thead>
+              <tbody>
+                {% for stage in platform_observability.get("stages_by_duration", []) %}
+                  <tr>
+                    <td>{{ stage.stage_name }}</td>
+                    <td>{{ stage.duration_ms if stage.duration_ms is not none else "Skipped" }}</td>
+                    <td>{{ stage.status }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </article>
+
+          <article class="card">
+            <h3>Evidence Flow</h3>
+            {% set evidence_flow = platform_observability.get("evidence_flow", {}) %}
+            <table>
+              <tbody>
+                <tr><th>Entries Received</th><td>{{ evidence_flow.get("entries_received", "Unavailable") }}</td></tr>
+                <tr><th>Evidence Created</th><td>{{ evidence_flow.get("evidence_created", "Unavailable") }}</td></tr>
+                <tr><th>Accepted</th><td>{{ evidence_flow.get("accepted", "Unavailable") }}</td></tr>
+                <tr><th>Fresh</th><td>{{ evidence_flow.get("fresh", "Unavailable") }}</td></tr>
+                <tr><th>Narratives Measured</th><td>{{ evidence_flow.get("narratives_measured", "Unavailable") }}</td></tr>
+              </tbody>
+            </table>
+          </article>
+        {% else %}
+          <article class="card">
+            <p class="muted">No Platform Observability block was persisted for this run.</p>
+          </article>
+        {% endif %}
+      </section>
+
+      {% set evidence_quality = view.evidence_quality | default({}) %}
+      {% set coverage = evidence_quality.get("coverage", {}) %}
+      {% set overall = coverage.get("overall", {}) %}
+      <section class="content-section">
+        <div class="section-heading">
+          <p class="eyebrow">Evidence Quality</p>
+          <h2>Coverage Intelligence</h2>
+          <p class="leadership-read">Descriptive evidence breadth for accepted, attributed evidence. Theme and group coverage are computed independently.</p>
+        </div>
+        {% if coverage %}
+          <article class="card">
+            <h3>Overall Coverage Summary</h3>
+            {% set summary = overall.get("coverage_summary", {}) %}
+            <table>
+              <tbody>
+                <tr><th>MINIMAL</th><td>{{ summary.get("minimal_count", 0) }}</td></tr>
+                <tr><th>LIMITED</th><td>{{ summary.get("limited_count", 0) }}</td></tr>
+                <tr><th>MODERATE</th><td>{{ summary.get("moderate_count", 0) }}</td></tr>
+                <tr><th>BROAD</th><td>{{ summary.get("broad_count", 0) }}</td></tr>
+                <tr><th>EXTENSIVE</th><td>{{ summary.get("extensive_count", 0) }}</td></tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="card">
+            <h3>Provider and Source Diversity</h3>
+            {% set provider_diversity = overall.get("provider_diversity", {}) %}
+            {% set source_diversity = overall.get("source_diversity", {}) %}
+            <table>
+              <tbody>
+                <tr><th>Unique Providers</th><td>{{ provider_diversity.get("unique_provider_count", 0) }}</td></tr>
+                <tr><th>Providers</th><td>{{ provider_diversity.get("provider_list", []) | join(", ") }}</td></tr>
+                <tr><th>Unique Sources</th><td>{{ source_diversity.get("unique_source_count", 0) }}</td></tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="card">
+            <h3>Per-Narrative Coverage</h3>
+            {% if evidence_quality.get("per_narrative") %}
+              <table>
+                <thead>
+                  <tr>
+                    <th>Narrative</th>
+                    <th>Level</th>
+                    <th>Evidence</th>
+                    <th>Sources</th>
+                    <th>Providers</th>
+                    <th>Concentration</th>
+                    <th>State</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for record in evidence_quality.get("per_narrative", []) %}
+                    <tr>
+                      <td>{{ record.narrative_id }}</td>
+                      <td>{{ record.narrative_level }}</td>
+                      <td>{{ record.evidence_count }}</td>
+                      <td>{{ record.unique_source_count }}</td>
+                      <td>{{ record.unique_provider_count }}</td>
+                      <td>{{ record.concentration_ratio }}</td>
+                      <td>{{ record.coverage_state }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="muted">No attributed coverage records were persisted for this run.</p>
+            {% endif %}
+          </article>
+
+          <article class="card">
+            <h3>Top Contributing Sources</h3>
+            {% if evidence_quality.get("top_contributing_sources") %}
+              <table>
+                <thead><tr><th>Source</th><th>Accepted Contributions</th></tr></thead>
+                <tbody>
+                  {% for source in evidence_quality.get("top_contributing_sources", []) %}
+                    <tr><td>{{ source.source_name }}</td><td>{{ source.evidence_count }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="muted">No contributing sources found in coverage records.</p>
+            {% endif %}
+          </article>
+
+          <article class="card">
+            <h3>Highest Concentration Narratives</h3>
+            {% if evidence_quality.get("highest_concentration_narratives") %}
+              <table>
+                <thead><tr><th>Narrative</th><th>Level</th><th>Concentration</th><th>Largest Sources</th></tr></thead>
+                <tbody>
+                  {% for record in evidence_quality.get("highest_concentration_narratives", []) %}
+                    <tr>
+                      <td>{{ record.narrative_id }}</td>
+                      <td>{{ record.narrative_level }}</td>
+                      <td>{{ record.concentration_ratio }}</td>
+                      <td>
+                        {% for source in record.source_contribution_breakdown[:3] %}
+                          {{ source.source_name }} ({{ source.evidence_count }}){% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="muted">No concentration records found for this run.</p>
+            {% endif %}
+          </article>
+        {% else %}
+          <article class="card">
+            <p class="muted">No Coverage Intelligence block was persisted for this run.</p>
+          </article>
+        {% endif %}
+      </section>
+
       <section class="content-section">
         <div class="section-heading">
           <p class="eyebrow">Narrative Brief Engine</p>

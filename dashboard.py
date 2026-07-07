@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 
 from config import RESULTS_DIR
 from mne.narrative_signals import compute_group_scores
+from mne.platform_observability import stage_by_name
 from mne.source_registry import SourceRegistryError, load_source_registry
 from mne.storage import get_recent_daily_runs
 
@@ -76,6 +77,88 @@ def build_source_registry_diagnostics():
         return load_source_registry().diagnostics()
     except SourceRegistryError as error:
         return {"error": str(error)}
+
+
+def build_evidence_quality_diagnostics(source_intelligence):
+    coverage = (source_intelligence or {}).get("coverage_intelligence") or {}
+    per_narrative = list(coverage.get("per_narrative") or [])
+    source_totals = {}
+
+    for record in per_narrative:
+        for source in record.get("source_contribution_breakdown", []):
+            source_id = source.get("source_id")
+            if not source_id:
+                continue
+            row = source_totals.setdefault(
+                source_id,
+                {
+                    "source_id": source_id,
+                    "source_name": source.get("source_name"),
+                    "evidence_count": 0,
+                },
+            )
+            row["evidence_count"] += int(source.get("evidence_count") or 0)
+
+    return {
+        "coverage": coverage,
+        "per_narrative": sorted(
+            per_narrative,
+            key=lambda item: (
+                item.get("narrative_level") or "",
+                item.get("narrative_id") or "",
+            ),
+        ),
+        "top_contributing_sources": sorted(
+            source_totals.values(),
+            key=lambda item: (-item["evidence_count"], item["source_id"]),
+        ),
+        "highest_concentration_narratives": sorted(
+            per_narrative,
+            key=lambda item: (
+                -(item.get("concentration_ratio") or 0),
+                item.get("narrative_level") or "",
+                item.get("narrative_id") or "",
+            ),
+        ),
+    }
+
+
+def build_platform_observability_diagnostics(platform_observability):
+    platform_observability = platform_observability or {}
+    stages = list(platform_observability.get("stages") or [])
+    run_metadata = platform_observability.get("run_metadata") or {}
+
+    evidence_flow = {
+        "entries_received": _stage_count(platform_observability, "RSS_FETCH", "entries_received"),
+        "evidence_created": _stage_count(
+            platform_observability,
+            "EVIDENCE_NORMALIZATION",
+            "evidence_created",
+        ),
+        "accepted": _stage_count(platform_observability, "EVIDENCE_NORMALIZATION", "accepted"),
+        "fresh": _stage_count(platform_observability, "FRESHNESS_VALIDATION", "fresh"),
+        "narratives_measured": _stage_count(
+            platform_observability,
+            "EVIDENCE_QUALITY",
+            "narratives_measured",
+        ),
+    }
+
+    return {
+        "run_metadata": run_metadata,
+        "stages": stages,
+        "stages_by_duration": sorted(
+            stages,
+            key=lambda item: (-(item.get("duration_ms") or 0), item.get("stage_name") or ""),
+        ),
+        "engine_versions": run_metadata.get("engine_versions") or {},
+        "evidence_flow": evidence_flow,
+    }
+
+
+def _stage_count(platform_observability, stage_name, field):
+    stage = stage_by_name(platform_observability, stage_name) or {}
+    return (stage.get("result_counts") or {}).get(field)
 
 
 def pct(value):
@@ -915,6 +998,12 @@ def build_view_model(run, current_file):
             "Coverage": f"{run.get('coverage_pct')}%" if run.get("coverage_pct") is not None else None,
         },
         "source_intelligence": run.get("source_intelligence") or {},
+        "evidence_quality": build_evidence_quality_diagnostics(
+            run.get("source_intelligence") or {}
+        ),
+        "platform_observability": build_platform_observability_diagnostics(
+            run.get("platform_observability") or {}
+        ),
         "source_registry": build_source_registry_diagnostics(),
         "theme_match_audit": run.get("theme_match_audit"),
         "diagnostics": {

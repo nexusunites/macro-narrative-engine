@@ -10,6 +10,7 @@ SECTION_ORDER = (
     "attention",
     "overall_assessment",
 )
+ENGINE_VERSION = "1.0.0"
 
 SECTION_LABELS = {
     "dominant_story": "Dominant Story",

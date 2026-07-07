@@ -1,6 +1,7 @@
+import copy
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,7 @@ REQUIRED_TOP_LEVEL_KEYS = {
     "evidence_types",
     "categories",
     "priority_tiers",
+    "coverage_thresholds",
 }
 REQUIRED_SOURCE_FIELDS = {
     "source_id",
@@ -33,6 +35,32 @@ REQUIRED_SOURCE_FIELDS = {
 VALID_STATUSES = {"ACTIVE", "DISABLED", "DEPRECATED", "PLANNED"}
 VALID_PRIORITIES = {"TIER_1", "TIER_2", "TIER_3"}
 SEMVER_PATTERN = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+DEFAULT_COVERAGE_THRESHOLDS = {
+    "LIMITED": {
+        "min_evidence_count": 2,
+        "max_evidence_count": 4,
+        "min_unique_source_count": 2,
+        "min_unique_provider_count": 0,
+    },
+    "MODERATE": {
+        "min_evidence_count": 5,
+        "max_evidence_count": 9,
+        "min_unique_source_count": 3,
+        "min_unique_provider_count": 2,
+    },
+    "BROAD": {
+        "min_evidence_count": 10,
+        "max_evidence_count": 19,
+        "min_unique_source_count": 5,
+        "min_unique_provider_count": 3,
+    },
+    "EXTENSIVE": {
+        "min_evidence_count": 20,
+        "max_evidence_count": None,
+        "min_unique_source_count": 7,
+        "min_unique_provider_count": 4,
+    },
+}
 
 
 class SourceRegistryError(ValueError):
@@ -46,6 +74,9 @@ class SourceRegistry:
     evidence_types: tuple[dict[str, Any], ...]
     categories: tuple[dict[str, Any], ...]
     priority_tiers: tuple[dict[str, Any], ...]
+    coverage_thresholds: dict[str, Any] = field(
+        default_factory=lambda: copy.deepcopy(DEFAULT_COVERAGE_THRESHOLDS)
+    )
 
     @property
     def active_sources(self):
@@ -71,6 +102,14 @@ class SourceRegistry:
             if source["url"] == url:
                 return source
         raise SourceRegistryError(f"RSS entry feed_url is not registered in source registry: {url}")
+
+    def source_by_id(self, source_id: str | None):
+        if not source_id:
+            raise SourceRegistryError("Cannot resolve source registry entry without source_id.")
+        for source in self.sources:
+            if source["source_id"] == source_id:
+                return source
+        raise SourceRegistryError(f"Source id is not registered in source registry: {source_id}")
 
     def diagnostics(self):
         status_counts = {status: 0 for status in sorted(VALID_STATUSES)}
@@ -114,6 +153,7 @@ def load_source_registry(path: Path | str = REGISTRY_PATH):
         evidence_types=tuple(data["evidence_types"]),
         categories=tuple(data["categories"]),
         priority_tiers=tuple(data["priority_tiers"]),
+        coverage_thresholds=dict(data["coverage_thresholds"]),
     )
 
 
@@ -135,6 +175,7 @@ def validate_source_registry(data):
     for key in ("sources", "evidence_types", "categories", "priority_tiers"):
         if not isinstance(data[key], list):
             raise SourceRegistryError(f"Source registry field {key!r} must be an array.")
+    _validate_coverage_thresholds(data["coverage_thresholds"])
 
     source_ids = set()
     urls = set()
@@ -227,3 +268,34 @@ def _require_positive_int(source, field, label):
     value = source[field]
     if not isinstance(value, int) or value <= 0:
         raise SourceRegistryError(f"Source registry {label} field {field!r} must be a positive integer.")
+
+
+def _validate_coverage_thresholds(thresholds):
+    if not isinstance(thresholds, dict):
+        raise SourceRegistryError("Source registry field 'coverage_thresholds' must be an object.")
+
+    required_states = {"LIMITED", "MODERATE", "BROAD", "EXTENSIVE"}
+    missing_states = required_states - set(thresholds)
+    if missing_states:
+        missing = ", ".join(sorted(missing_states))
+        raise SourceRegistryError(f"Source registry coverage_thresholds missing states: {missing}")
+
+    for state in sorted(required_states):
+        config = thresholds[state]
+        if not isinstance(config, dict):
+            raise SourceRegistryError(f"Source registry coverage_thresholds.{state} must be an object.")
+        for field in (
+            "min_evidence_count",
+            "min_unique_source_count",
+            "min_unique_provider_count",
+        ):
+            value = config.get(field)
+            if not isinstance(value, int) or value < 0:
+                raise SourceRegistryError(
+                    f"Source registry coverage_thresholds.{state}.{field} must be a non-negative integer."
+                )
+        max_value = config.get("max_evidence_count")
+        if max_value is not None and (not isinstance(max_value, int) or max_value < 0):
+            raise SourceRegistryError(
+                f"Source registry coverage_thresholds.{state}.max_evidence_count must be a non-negative integer or null."
+            )

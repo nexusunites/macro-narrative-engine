@@ -9,6 +9,7 @@ from config import EVENT_LIFECYCLE_EVENTS_FILE
 
 
 LOGGER = logging.getLogger(__name__)
+ENGINE_VERSION = "1.0.0"
 
 UPCOMING = "Upcoming"
 PRE_POSITIONING = "Pre-Positioning"

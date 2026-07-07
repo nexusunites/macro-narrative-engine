@@ -12,6 +12,7 @@ WEIGHTS = {
 
 DEFAULT_TAXONOMY_FILE = Path("config/theme_taxonomy.json")
 DEFAULT_TAXONOMY_VERSION = "unknown"
+ENGINE_VERSION = "1.0.0"
 
 
 def keyword_match_span(text: str, keyword: str):
@@ -155,7 +156,7 @@ def load_themes(
     return themes
 
 
-def analyze_themes(headlines, themes, examples_per_theme=3):
+def analyze_themes(headlines, themes, examples_per_theme=3, include_attribution=False):
     """
     Returns:
       counts: dict[theme] -> raw headline match count
@@ -163,6 +164,7 @@ def analyze_themes(headlines, themes, examples_per_theme=3):
       matched_headlines: int (how many headlines matched at least one theme)
       scores: dict[theme] -> weighted keyword score
       audit: dict[theme] -> matched keyword counts and example headlines
+      attribution: optional list[dict] aligned to input headlines, with matched themes
     """
     counts = {theme: 0 for theme in themes.keys()}
     scores = {theme: 0 for theme in themes.keys()}
@@ -172,9 +174,11 @@ def analyze_themes(headlines, themes, examples_per_theme=3):
         for theme in themes.keys()
     }
     matched_headlines = 0
+    attribution = []
 
     for headline in headlines:
         matched_any = False
+        matched_themes = []
 
         for theme, weighted_keywords in themes.items():
             headline_theme_score = 0
@@ -200,11 +204,21 @@ def analyze_themes(headlines, themes, examples_per_theme=3):
                 counts[theme] += 1
                 scores[theme] += headline_theme_score
                 matched_any = True
+                matched_themes.append(theme)
 
                 if len(examples[theme]) < examples_per_theme:
                     examples[theme].append(headline)
 
         if matched_any:
             matched_headlines += 1
+        if include_attribution:
+            attribution.append(
+                {
+                    "headline": headline,
+                    "themes": matched_themes,
+                }
+            )
 
+    if include_attribution:
+        return counts, examples, matched_headlines, scores, audit, attribution
     return counts, examples, matched_headlines, scores, audit

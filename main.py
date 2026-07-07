@@ -1,4 +1,5 @@
 import argparse
+import json
 from datetime import datetime, timezone
 
 from analysis.leadership_rotation import compute_rotation
@@ -8,14 +9,23 @@ from mne.breadth import BREADTH_TICKERS, classify_breadth_confirmation
 from mne.catalyst_environment import classify_catalyst_environment
 from mne.change_summary import build_change_summary
 from mne.environment import classify_market_environment
+from mne.event_lifecycle import ENGINE_VERSION as EVENT_LIFECYCLE_ENGINE_VERSION
 from mne.event_lifecycle import evaluate_event_lifecycle_run
+from mne.coverage_intelligence import (
+    ENGINE_VERSION as EQE_ENGINE_VERSION,
+    accepted_deduped_evidence,
+    build_coverage_intelligence,
+    evidence_titles,
+)
 from mne.evidence import (
+    ENGINE_VERSION as SIP_ENGINE_VERSION,
     evidence_to_headlines,
     normalize_rss_entries_to_evidence,
     source_intelligence_counts,
 )
 from mne.headline_deduplication import dedupe_headlines
 from mne.market_context import get_market_snapshot
+from mne.narrative_brief import ENGINE_VERSION as NARRATIVE_BRIEF_ENGINE_VERSION
 from mne.narrative_brief import generate_narrative_brief
 from mne.narrative_leadership import build_narrative_leadership
 from mne.narrative_market_map import get_market_expression
@@ -29,6 +39,23 @@ from mne.narrative_signals import (
 )
 from mne.operating_modes import generate_mode_context, normalize_operating_mode
 from mne.positioning_environment import classify_positioning_environment
+from mne.platform_observability import (
+    FAILED,
+    PARTIAL,
+    SKIPPED,
+    SUCCESS,
+    PipelineTelemetryRecorder,
+    event_lifecycle_counts,
+    evidence_normalization_counts,
+    evidence_quality_counts,
+    freshness_counts,
+    freshness_status,
+    narrative_brief_counts,
+    narrative_intelligence_counts,
+    rss_fetch_counts,
+    source_health_state_counts,
+    status_from_source_health,
+)
 from mne.regime_alignment import calculate_regime_alignment
 from mne.reporting import (
     build_daily_report,
@@ -61,6 +88,7 @@ from mne.storage import (
     save_report,
     save_run_json,
 )
+from mne.theme_analysis import ENGINE_VERSION as NARRATIVE_INTELLIGENCE_ENGINE_VERSION
 from mne.theme_analysis import analyze_themes, load_themes
 from mne.trends import print_daily_count_trends, print_daily_share_trends, print_momentum
 
@@ -80,6 +108,26 @@ ZERO_HEADLINE_WARNING = (
     "RSS fetch failed or returned zero headlines.\n"
     "Narrative run will not be generated."
 )
+
+
+def engine_versions():
+    return {
+        "sip": SIP_ENGINE_VERSION,
+        "narrative_intelligence": NARRATIVE_INTELLIGENCE_ENGINE_VERSION,
+        "eqe": EQE_ENGINE_VERSION,
+        "event_lifecycle": EVENT_LIFECYCLE_ENGINE_VERSION,
+        "narrative_brief": NARRATIVE_BRIEF_ENGINE_VERSION,
+    }
+
+
+def persist_platform_observability(results_file, run):
+    if not results_file or not results_file.exists():
+        return
+    try:
+        with open(results_file, "w", encoding="utf-8") as fh:
+            json.dump(run, fh, ensure_ascii=False, indent=2)
+    except OSError:
+        return
 
 
 def parse_args(args=None):
@@ -117,6 +165,10 @@ def main(args=None):
     now_utc = datetime.now(timezone.utc)
     stamp = now.strftime("%Y-%m-%d_%H%M%S")
     readable_time = now.strftime("%Y-%m-%d %H:%M")
+    telemetry = PipelineTelemetryRecorder(
+        engine_versions=engine_versions(),
+        run_start_time=now_utc,
+    )
 
     print(f"Run Timestamp: {readable_time}")
     print()
@@ -128,19 +180,71 @@ def main(args=None):
     source_registry = load_source_registry()
     rss_urls = source_registry.active_rss_urls
 
-    rss_entries = fetch_headlines_from_rss(rss_urls, as_entries=True)
-    evidence_objects = normalize_rss_entries_to_evidence(
-        rss_entries,
-        run_timestamp=now_utc.isoformat(),
-        registry=source_registry,
-    )
-    source_intelligence = source_intelligence_counts(
-        evidence_objects,
-        registry_version=source_registry.registry_version,
-    )
+    with telemetry.observe("RSS_FETCH") as stage:
+        rss_fetch_result = fetch_headlines_from_rss(
+            rss_urls,
+            as_entries=True,
+            include_health=True,
+            registry=source_registry,
+        )
+        observed_source_health = (
+            rss_fetch_result.get("source_health", [])
+            if isinstance(rss_fetch_result, dict)
+            else []
+        )
+        status, diagnostic = status_from_source_health(observed_source_health)
+        stage.set_result(
+            status=status,
+            diagnostic_message=diagnostic,
+            result_counts=rss_fetch_counts(rss_urls, observed_source_health),
+        )
+    if isinstance(rss_fetch_result, dict):
+        rss_entries = rss_fetch_result.get("entries", [])
+        source_health = rss_fetch_result.get("source_health", [])
+    else:
+        rss_entries = rss_fetch_result
+        source_health = []
+    with telemetry.observe("EVIDENCE_NORMALIZATION") as stage:
+        evidence_objects = normalize_rss_entries_to_evidence(
+            rss_entries,
+            run_timestamp=now_utc.isoformat(),
+            registry=source_registry,
+            source_health=source_health,
+        )
+        source_intelligence = source_intelligence_counts(
+            evidence_objects,
+            registry_version=source_registry.registry_version,
+            source_health=source_health,
+            registry=source_registry,
+        )
+        counts = evidence_normalization_counts(source_intelligence)
+        stage.set_result(
+            status=FAILED if counts["evidence_created"] == 0 else SUCCESS,
+            diagnostic_message=(
+                "No evidence objects were created from fetched entries."
+                if counts["evidence_created"] == 0
+                else "Evidence normalization completed from fetched entries."
+            ),
+            result_counts=counts,
+        )
+    with telemetry.observe("FEED_HEALTH") as stage:
+        status, diagnostic = status_from_source_health(source_health)
+        stage.set_result(
+            status=status,
+            diagnostic_message=diagnostic,
+            result_counts=source_health_state_counts(source_health),
+        )
+    with telemetry.observe("FRESHNESS_VALIDATION") as stage:
+        status, diagnostic = freshness_status(source_intelligence)
+        stage.set_result(
+            status=status,
+            diagnostic_message=diagnostic,
+            result_counts=freshness_counts(source_intelligence),
+        )
     raw_headlines = evidence_to_headlines(evidence_objects)
+    scored_evidence = accepted_deduped_evidence(evidence_objects)
     deduplication = dedupe_headlines(raw_headlines)
-    headlines = deduplication["deduped_headlines"]
+    headlines = evidence_titles(scored_evidence)
 
     print(f"Loaded {deduplication['raw_headline_count']} raw headlines from RSS")
     print(f"Deduped to {deduplication['deduped_headline_count']} unique headlines")
@@ -163,7 +267,21 @@ def main(args=None):
             "narrative_run_status": "skipped_failed_headline_collection",
             "headline_collection_failure_reason": failure_reason,
         }
+        telemetry.skip("NARRATIVE_INTELLIGENCE", "Skipped because headline collection failed.")
+        telemetry.skip("EVIDENCE_QUALITY", "Skipped because narrative intelligence did not run.")
+        telemetry.skip("NARRATIVE_BRIEF", "Skipped because narrative intelligence did not run.")
+        telemetry.skip("EVENT_LIFECYCLE", "Skipped because the run aborted after headline collection.")
+        telemetry.skip("REPORT_GENERATION", "Skipped because the run aborted after headline collection.")
+        with telemetry.observe("RUN_PERSISTENCE") as stage:
+            failed_run["platform_observability"] = telemetry.to_block()
+            stage.set_result(
+                status=SUCCESS,
+                diagnostic_message="Failed-run JSON persistence prepared.",
+                result_counts={},
+            )
+        failed_run["platform_observability"] = telemetry.to_block()
         _results_dir, results_file = save_run_json(failed_run, stamp)
+        persist_platform_observability(results_file, failed_run)
         print(f"Source diagnostics saved to {results_file}")
         return
 
@@ -175,11 +293,42 @@ def main(args=None):
     print()
 
     themes, taxonomy_version = load_themes("themes.txt", include_version=True)
-    results, examples, matched_headlines, theme_scores, theme_match_audit = analyze_themes(
-        headlines,
-        themes,
-        examples_per_theme=3,
-    )
+    with telemetry.observe("NARRATIVE_INTELLIGENCE") as stage:
+        theme_analysis = analyze_themes(
+            headlines,
+            themes,
+            examples_per_theme=3,
+            include_attribution=True,
+        )
+        if len(theme_analysis) == 6:
+            (
+                results,
+                examples,
+                matched_headlines,
+                theme_scores,
+                theme_match_audit,
+                theme_attribution,
+            ) = theme_analysis
+        else:
+            results, examples, matched_headlines, theme_scores, theme_match_audit = theme_analysis
+            theme_attribution = [{"headline": headline, "themes": []} for headline in headlines]
+        group_scores = compute_group_scores(theme_scores)
+        stage.set_result(
+            status=SUCCESS,
+            diagnostic_message="Narrative scoring completed from accepted evidence.",
+            result_counts=narrative_intelligence_counts(theme_scores, group_scores),
+        )
+    with telemetry.observe("EVIDENCE_QUALITY") as stage:
+        source_intelligence["coverage_intelligence"] = build_coverage_intelligence(
+            scored_evidence,
+            theme_attribution,
+            source_registry,
+        )
+        stage.set_result(
+            status=SUCCESS,
+            diagnostic_message="Coverage Intelligence measured attributed accepted evidence.",
+            result_counts=evidence_quality_counts(source_intelligence["coverage_intelligence"]),
+        )
 
     coverage_pct = (matched_headlines / len(headlines) * 100) if headlines else 0
     print(
@@ -192,7 +341,6 @@ def main(args=None):
     nonzero = [(theme, count) for theme, count in sorted_results if count > 0]
     print_theme_counts(nonzero)
 
-    group_scores = compute_group_scores(theme_scores)
     dominant_group, dominant_group_score = get_dominant_group(group_scores)
     print_group_scores(group_scores)
     sorted_group_scores = sorted(group_scores.items(), key=lambda item: item[1], reverse=True)
@@ -212,7 +360,26 @@ def main(args=None):
     regime_alignment = None
     mode_context = None
     catalyst_environment = classify_catalyst_environment()
-    event_lifecycle = evaluate_event_lifecycle_run(now_utc=now_utc)
+    with telemetry.observe("EVENT_LIFECYCLE") as stage:
+        event_lifecycle = evaluate_event_lifecycle_run(now_utc=now_utc)
+        event_counts = event_lifecycle_counts(event_lifecycle)
+        if not event_lifecycle.get("events"):
+            stage.set_result(
+                status=SKIPPED,
+                diagnostic_message="No tracked events were available for event lifecycle evaluation.",
+                result_counts=event_counts,
+            )
+        else:
+            stage.set_result(
+                status=SUCCESS,
+                diagnostic_message="Event lifecycle evaluation completed.",
+                result_counts=event_counts,
+            )
+    if not event_lifecycle.get("events"):
+        telemetry.skip(
+            "EVENT_LIFECYCLE",
+            "No tracked events were available for event lifecycle evaluation.",
+        )
     positioning_environment = classify_positioning_environment(catalyst_environment)
 
     if nonzero:
@@ -404,18 +571,37 @@ def main(args=None):
     ]
     run["leadership_rotation"] = compute_rotation(rotation_snapshots + [current_snapshot])
 
-    try:
-        run["narrative_brief"] = generate_narrative_brief(
-            run,
-            run_timestamp_utc=now_utc.isoformat(),
-        )
-    except Exception as error:
-        run["narrative_brief"] = None
-        run["narrative_brief_generation_error"] = {
-            "error_type": type(error).__name__,
-            "message": str(error),
-        }
+    with telemetry.observe("NARRATIVE_BRIEF") as stage:
+        try:
+            run["narrative_brief"] = generate_narrative_brief(
+                run,
+                run_timestamp_utc=now_utc.isoformat(),
+            )
+            stage.set_result(
+                status=SUCCESS,
+                diagnostic_message="Narrative Brief Engine generated a brief.",
+                result_counts=narrative_brief_counts(run["narrative_brief"]),
+            )
+        except Exception as error:
+            run["narrative_brief"] = None
+            run["narrative_brief_generation_error"] = {
+                "error_type": type(error).__name__,
+                "message": str(error),
+            }
+            stage.set_result(
+                status=FAILED,
+                diagnostic_message=f"{type(error).__name__}: {error}",
+                result_counts=narrative_brief_counts(run["narrative_brief"]),
+            )
 
+    with telemetry.observe("RUN_PERSISTENCE") as stage:
+        run["platform_observability"] = telemetry.to_block()
+        stage.set_result(
+            status=SUCCESS,
+            diagnostic_message="Run JSON and daily snapshot persistence prepared.",
+            result_counts={},
+        )
+    run["platform_observability"] = telemetry.to_block()
     results_dir, results_file = save_run_json(run, stamp)
     from mne.storage import write_daily_snapshot
 
@@ -423,36 +609,44 @@ def main(args=None):
     print()
     print(f"Results saved to {results_file}")
 
-    report_text = build_daily_report(
-        readable_time=readable_time,
-        headline_count=len(headlines),
-        feed_count=len(rss_urls),
-        coverage_pct=coverage_pct,
-        signals=signals,
-        nonzero_results=nonzero,
-        concentration=concentration,
-        group_scores=group_scores,
-        dominant_group=dominant_group,
-        market_environment=market_environment,
-        narrative_market_relationship=narrative_market_relationship,
-        breadth_confirmation=breadth_confirmation,
-        catalyst_environment=catalyst_environment,
-        positioning_environment=positioning_environment,
-        regime_alignment=regime_alignment,
-        narrative_dynamics=narrative_dynamics,
-        top_themes=nonzero,
-        top_groups=sorted_group_scores,
-        market_snapshot={name: market_snapshot.get(name) for name in NASDAQ_TICKERS.keys()},
-        raw_headline_count=deduplication["raw_headline_count"],
-        deduped_headline_count=deduplication["deduped_headline_count"],
-        duplicate_count=deduplication["duplicate_count"],
-        theme_match_audit=theme_match_audit,
-        operating_mode=operating_mode,
-        mode_context=mode_context,
-        market_expression=market_expression,
+    with telemetry.observe("REPORT_GENERATION") as stage:
+        report_text = build_daily_report(
+            readable_time=readable_time,
+            headline_count=len(headlines),
+            feed_count=len(rss_urls),
+            coverage_pct=coverage_pct,
+            signals=signals,
+            nonzero_results=nonzero,
+            concentration=concentration,
+            group_scores=group_scores,
+            dominant_group=dominant_group,
+            market_environment=market_environment,
+            narrative_market_relationship=narrative_market_relationship,
+            breadth_confirmation=breadth_confirmation,
+            catalyst_environment=catalyst_environment,
+            positioning_environment=positioning_environment,
+            regime_alignment=regime_alignment,
+            narrative_dynamics=narrative_dynamics,
+            top_themes=nonzero,
+            top_groups=sorted_group_scores,
+            market_snapshot={name: market_snapshot.get(name) for name in NASDAQ_TICKERS.keys()},
+            raw_headline_count=deduplication["raw_headline_count"],
+            deduped_headline_count=deduplication["deduped_headline_count"],
+            duplicate_count=deduplication["duplicate_count"],
+            theme_match_audit=theme_match_audit,
+            operating_mode=operating_mode,
+            mode_context=mode_context,
+            market_expression=market_expression,
 
-    )
-    report_file = save_report(report_text, stamp)
+        )
+        report_file = save_report(report_text, stamp)
+        stage.set_result(
+            status=SUCCESS,
+            diagnostic_message="Daily report generated and saved.",
+            result_counts={},
+        )
+    run["platform_observability"] = telemetry.to_block()
+    persist_platform_observability(results_file, run)
     print(f"Report saved to {report_file}")
 
     print_momentum(results_dir)

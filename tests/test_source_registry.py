@@ -15,6 +15,32 @@ REUTERS_URL = "https://feeds.reuters.com/reuters/businessNews"
 def valid_registry_data():
     return {
         "registry_version": "1.0.0",
+        "coverage_thresholds": {
+            "LIMITED": {
+                "min_evidence_count": 2,
+                "max_evidence_count": 4,
+                "min_unique_source_count": 2,
+                "min_unique_provider_count": 0,
+            },
+            "MODERATE": {
+                "min_evidence_count": 5,
+                "max_evidence_count": 9,
+                "min_unique_source_count": 3,
+                "min_unique_provider_count": 2,
+            },
+            "BROAD": {
+                "min_evidence_count": 10,
+                "max_evidence_count": 19,
+                "min_unique_source_count": 5,
+                "min_unique_provider_count": 3,
+            },
+            "EXTENSIVE": {
+                "min_evidence_count": 20,
+                "max_evidence_count": None,
+                "min_unique_source_count": 7,
+                "min_unique_provider_count": 4,
+            },
+        },
         "sources": [
             {
                 "source_id": "reuters-business-news",

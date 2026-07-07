@@ -16,6 +16,7 @@ from mne.source_registry import SourceRegistryError, load_source_registry
 
 
 EVIDENCE_TYPE_HEADLINE = "Headline"
+ENGINE_VERSION = "1.0.0"
 
 
 @dataclass
