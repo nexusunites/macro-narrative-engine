@@ -13,6 +13,13 @@ from fastapi.templating import Jinja2Templates
 from config import RESULTS_DIR, ensure_data_dir
 from mne.narrative_signals import compute_group_scores
 from mne.platform_observability import stage_by_name
+from mne.research_workspace import (
+    build_narrative_investigation,
+    build_narrative_selector,
+    latest_completed_run,
+    narrative_key,
+    split_narrative_key,
+)
 from mne.source_registry import SourceRegistryError, load_source_registry
 from mne.storage import get_recent_daily_runs
 
@@ -935,6 +942,7 @@ def build_view_model(run, current_file):
     rotation_map = {r["group"]: r for r in rotation_results}
     for item in narrative_leadership:
         group_name = item["group"]
+        item["investigation_key"] = narrative_key("group", group_name)
         rot = rotation_map.get(group_name)
         if rot:
             item["rotation_state"] = rot["rotation_state"]
@@ -1076,16 +1084,78 @@ def build_template_context(request: Request, run: Optional[str]):
     return context
 
 
+def build_research_context(request: Request):
+    run, current_file = latest_completed_run(list_all_result_files(), load_result)
+    context = {
+        "request": request,
+        "results_dir": RESULTS_DIR,
+        "selected_file": current_file.name if current_file else None,
+        "message": None,
+        "selector": [],
+    }
+    if not run:
+        context["message"] = "No completed MNE result files found. Run main.py first."
+        return context
+
+    context["selector"] = build_narrative_selector(run)
+    return context
+
+
+def build_investigation_context(request: Request, key: str, admin: bool = False):
+    run, current_file = latest_completed_run(list_all_result_files(), load_result)
+    context = {
+        "request": request,
+        "results_dir": RESULTS_DIR,
+        "selected_file": current_file.name if current_file else None,
+        "message": None,
+        "investigation": None,
+        "is_admin": admin,
+    }
+    narrative_level, narrative_id = split_narrative_key(key)
+    if not narrative_level:
+        context["message"] = "Unknown narrative investigation."
+        return context
+    if not run:
+        context["message"] = "No completed MNE result files found. Run main.py first."
+        return context
+
+    context["investigation"] = build_narrative_investigation(
+        run,
+        narrative_level,
+        narrative_id,
+        admin=admin,
+    )
+    return context
+
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, run: Optional[str] = Query(default=None)):
     context = build_template_context(request, run)
     return templates.TemplateResponse("dashboard.html", context)
 
 
+@app.get("/research", response_class=HTMLResponse)
+def research_selector(request: Request):
+    context = build_research_context(request)
+    return templates.TemplateResponse("research_selector.html", context)
+
+
+@app.get("/research/{key:path}", response_class=HTMLResponse)
+def narrative_investigation(request: Request, key: str):
+    context = build_investigation_context(request, key, admin=False)
+    return templates.TemplateResponse("narrative_investigation.html", context)
+
+
 @app.get("/admin", response_class=HTMLResponse)
 def admin_dashboard(request: Request, run: Optional[str] = Query(default=None)):
     context = build_template_context(request, run)
     return templates.TemplateResponse("admin.html", context)
+
+
+@app.get("/admin/research/{key:path}", response_class=HTMLResponse)
+def admin_narrative_investigation(request: Request, key: str):
+    context = build_investigation_context(request, key, admin=True)
+    return templates.TemplateResponse("narrative_investigation.html", context)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MNE Research</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand-row">
+      <a class="brand" href="/">Macro Narrative Engine</a>
+      <nav class="nav">
+        <a href="/">Overview</a>
+        <a class="active" href="/research">Research</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </div>
+    <div class="utility-row">
+      <p class="last-updated">Latest completed run: {{ selected_file or "Unavailable" }}</p>
+    </div>
+  </header>
+
+  <main class="page-shell research-shell">
+    {% if message %}
+      <section class="empty-state">
+        <p class="eyebrow">Research Workspace</p>
+        <h1>{{ message }}</h1>
+        <p>Results directory: {{ results_dir }}</p>
+      </section>
+    {% else %}
+      <section class="research-hero">
+        <p class="eyebrow">Research Workspace</p>
+        <h1>Narrative Investigation</h1>
+        <p>Select a narrative from the latest completed run.</p>
+      </section>
+
+      <section class="content-section">
+        <div class="research-list">
+          {% for narrative in selector %}
+            <a class="research-list-row" href="{{ url_for('narrative_investigation', key=narrative.key) }}">
+              <span>
+                <strong>{{ narrative.display_name }}</strong>
+                <small>{{ narrative.narrative_level|title }}</small>
+              </span>
+              <em>{{ narrative.score if narrative.score is not none else "Unavailable" }}</em>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>
