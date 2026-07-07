@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from config import RESULTS_DIR
+from config import RESULTS_DIR, ensure_data_dir
 from mne.narrative_signals import compute_group_scores
 from mne.platform_observability import stage_by_name
 from mne.source_registry import SourceRegistryError, load_source_registry
@@ -1089,4 +1089,5 @@ def admin_dashboard(request: Request, run: Optional[str] = Query(default=None)):
 
 
 if __name__ == "__main__":
+    ensure_data_dir()
     uvicorn.run("dashboard:app", host="127.0.0.1", port=8000, reload=False)

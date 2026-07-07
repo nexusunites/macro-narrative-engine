@@ -1,10 +1,11 @@
 import io
 import unittest
-from contextlib import redirect_stdout
+from contextlib import ExitStack, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
 import main
+from mne_test_utils import temporary_mne_data_dir
 
 
 def sample_source_health(entries_seen=0, entries_parsed=0, state="EMPTY"):
@@ -67,6 +68,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         source_health = sample_source_health()
 
         with (
+            temporary_mne_data_dir(),
             patch.object(
                 main,
                 "fetch_headlines_from_rss",
@@ -119,8 +121,9 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         )
         source_health[0]["reason"] = "Feed parsed successfully; 1 entries parsed"
         source_health[0]["recommended_action"] = "No action needed."
-        with (
-            patch.object(
+        with ExitStack() as stack:
+            stack.enter_context(temporary_mne_data_dir())
+            stack.enter_context(patch.object(
                 main,
                 "fetch_headlines_from_rss",
                 return_value={
@@ -133,13 +136,15 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
                     ],
                     "source_health": source_health,
                 },
-            ),
-            patch.object(main, "save_headlines", return_value=Path("/tmp/headlines.txt")) as save_headlines,
-            patch.object(main, "load_themes", return_value=({}, "test-taxonomy")),
-            patch.object(main, "analyze_themes", return_value=({}, {}, 0, {}, {})),
-            patch.object(main, "compute_group_scores", return_value={}),
-            patch.object(main, "get_dominant_group", return_value=(None, 0)),
-            patch.object(
+            ))
+            save_headlines = stack.enter_context(
+                patch.object(main, "save_headlines", return_value=Path("/tmp/headlines.txt"))
+            )
+            stack.enter_context(patch.object(main, "load_themes", return_value=({}, "test-taxonomy")))
+            stack.enter_context(patch.object(main, "analyze_themes", return_value=({}, {}, 0, {}, {})))
+            stack.enter_context(patch.object(main, "compute_group_scores", return_value={}))
+            stack.enter_context(patch.object(main, "get_dominant_group", return_value=(None, 0)))
+            stack.enter_context(patch.object(
                 main,
                 "compute_narrative_concentration",
                 return_value={
@@ -149,8 +154,8 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
                     "dominant_share": 0,
                     "concentration_gap": 0,
                 },
-            ),
-            patch.object(
+            ))
+            stack.enter_context(patch.object(
                 main,
                 "classify_catalyst_environment",
                 return_value={
@@ -166,8 +171,8 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
                     "macro_calendar_message": "No events.",
                     "macro_calendar_warning": False,
                 },
-            ),
-            patch.object(
+            ))
+            stack.enter_context(patch.object(
                 main,
                 "classify_positioning_environment",
                 return_value={
@@ -175,10 +180,10 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
                     "confidence": "Low",
                     "reason": "No positioning signal.",
                 },
-            ),
-            patch.object(main, "calculate_narrative_dynamics", return_value={}),
-            patch.object(main, "calculate_narrative_pulse", return_value={}),
-            patch.object(
+            ))
+            stack.enter_context(patch.object(main, "calculate_narrative_dynamics", return_value={}))
+            stack.enter_context(patch.object(main, "calculate_narrative_pulse", return_value={}))
+            stack.enter_context(patch.object(
                 main,
                 "calculate_regime_alignment",
                 return_value={
@@ -187,8 +192,8 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
                     "confidence": "Low",
                     "reason": "No regime signal.",
                 },
-            ),
-            patch.object(
+            ))
+            stack.enter_context(patch.object(
                 main,
                 "generate_mode_context",
                 return_value={
@@ -198,20 +203,21 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
                     "action": "No action.",
                     "risk": "No risk.",
                 },
-            ),
-            patch.object(
+            ))
+            save_run_json = stack.enter_context(patch.object(
                 main,
                 "save_run_json",
                 return_value=(Path("/tmp/results"), Path("/tmp/results/run.json")),
-            ) as save_run_json,
-            patch("mne.storage.write_daily_snapshot") as write_daily_snapshot,
-            patch.object(main, "build_daily_report", return_value="report"),
-            patch.object(main, "save_report", return_value=Path("/tmp/report.txt")) as save_report,
-            patch.object(main, "print_momentum") as print_momentum,
-            patch.object(main, "print_daily_count_trends") as print_count_trends,
-            patch.object(main, "print_daily_share_trends") as print_share_trends,
-            redirect_stdout(io.StringIO()),
-        ):
+            ))
+            write_daily_snapshot = stack.enter_context(patch("mne.storage.write_daily_snapshot"))
+            stack.enter_context(patch.object(main, "build_daily_report", return_value="report"))
+            save_report = stack.enter_context(
+                patch.object(main, "save_report", return_value=Path("/tmp/report.txt"))
+            )
+            print_momentum = stack.enter_context(patch.object(main, "print_momentum"))
+            print_count_trends = stack.enter_context(patch.object(main, "print_daily_count_trends"))
+            print_share_trends = stack.enter_context(patch.object(main, "print_daily_share_trends"))
+            stack.enter_context(redirect_stdout(io.StringIO()))
             main.main([])
 
         self.assertEqual(save_headlines.call_count, 2)

@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import main
+from mne_test_utils import temporary_mne_data_dir
 from mne.source_registry import SourceRegistryError, load_source_registry
 
 
@@ -116,6 +117,7 @@ class SourceRegistryTests(unittest.TestCase):
         registry = load_source_registry(self.write_registry(data))
 
         with (
+            temporary_mne_data_dir(),
             patch.object(main, "load_source_registry", return_value=registry),
             patch.object(
                 main,

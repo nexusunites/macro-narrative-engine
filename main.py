@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from analysis.leadership_rotation import compute_rotation
 from analysis.narrative_dynamics import calculate_narrative_dynamics
-from config import DATA_DIR, OPERATING_MODE, RESULTS_DIR
+from config import DATA_DIR, OPERATING_MODE, RESULTS_DIR, ensure_data_dir
 from mne.breadth import BREADTH_TICKERS, classify_breadth_confirmation
 from mne.catalyst_environment import classify_catalyst_environment
 from mne.change_summary import build_change_summary
@@ -152,6 +152,7 @@ def should_abort_for_failed_headline_collection(deduplication):
 
 
 def main(args=None):
+    ensure_data_dir()
     parsed_args = parse_args(args)
     configured_mode = parsed_args.mode or OPERATING_MODE
     operating_mode, mode_warning = normalize_operating_mode(configured_mode)

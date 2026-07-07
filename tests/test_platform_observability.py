@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import main
+from mne_test_utils import temporary_mne_data_dir
 from mne.platform_observability import (
     FAILED,
     SKIPPED,
@@ -56,6 +57,7 @@ class PlatformObservabilityTests(unittest.TestCase):
     def test_normal_run_persists_complete_platform_observability_block(self):
         source_health = healthy_source_health()
         with ExitStack() as stack:
+            stack.enter_context(temporary_mne_data_dir())
             stack.enter_context(patch.object(
                 main,
                 "fetch_headlines_from_rss",
