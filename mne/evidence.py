@@ -12,6 +12,7 @@ from mne.freshness import (
     evidence_freshness_counts,
     rejected_evidence_preview,
 )
+from mne.narrative_signals import NARRATIVE_GROUPS
 from mne.source_registry import SourceRegistryError, load_source_registry
 
 
@@ -214,6 +215,82 @@ def evidence_record(evidence):
     }
 
 
+def accepted_attributed_evidence_records(
+    evidence_objects,
+    theme_attribution,
+    registry,
+    narrative_groups=None,
+    limit=ACCEPTED_EVIDENCE_LIMIT,
+):
+    narrative_groups = narrative_groups or NARRATIVE_GROUPS
+    records = []
+    truncated = False
+
+    for evidence, attribution in zip(evidence_objects, theme_attribution):
+        if not evidence_is_accepted(evidence):
+            continue
+        themes = attribution.get("themes", []) if isinstance(attribution, dict) else []
+        if len(records) >= limit:
+            truncated = True
+            continue
+        records.append(_accepted_attributed_record(evidence, themes, registry, narrative_groups))
+
+    return records, truncated
+
+
+def _accepted_attributed_record(evidence, themes, registry, narrative_groups):
+    if isinstance(evidence, EvidenceObject):
+        source_id = evidence.source_id
+        source_name = evidence.source_name
+        evidence_type = evidence.evidence_type
+        timestamp = evidence.timestamp
+        title = evidence.title
+        url = evidence.url
+        freshness_state = evidence.freshness_state
+        accepted = evidence.accepted
+        rejection_reason = evidence.rejection_reason
+    else:
+        source_id = evidence.get("source_id")
+        source_name = evidence.get("source_name")
+        evidence_type = evidence.get("evidence_type")
+        timestamp = evidence.get("timestamp") or evidence.get("published_at")
+        title = evidence.get("title")
+        url = evidence.get("url") or evidence.get("link")
+        freshness_state = evidence.get("freshness_state")
+        accepted = bool(evidence.get("accepted"))
+        rejection_reason = evidence.get("rejection_reason") or evidence.get("rejection_state")
+
+    source = registry.source_by_id(source_id) if source_id else {}
+    attributed_themes = [theme for theme in themes if theme]
+    attributed_groups = sorted(
+        {
+            group
+            for group, group_themes in narrative_groups.items()
+            if any(theme in group_themes for theme in attributed_themes)
+        }
+    )
+    return {
+        "evidence_id": evidence.evidence_id if isinstance(evidence, EvidenceObject) else evidence.get("evidence_id"),
+        "title": title,
+        "source_id": source_id,
+        "source_name": source_name or source.get("display_name"),
+        "provider": source.get("provider"),
+        "evidence_type": evidence_type,
+        "published_at": timestamp,
+        "timestamp": timestamp,
+        "url": url,
+        "freshness_state": freshness_state,
+        "accepted": accepted,
+        "rejection_state": rejection_reason,
+        "themes": attributed_themes,
+        "groups": attributed_groups,
+        "narrative_keys": [
+            *[f"theme:{theme}" for theme in attributed_themes],
+            *[f"group:{group}" for group in attributed_groups],
+        ],
+    }
+
+
 def accepted_evidence_records(evidence_objects, limit=ACCEPTED_EVIDENCE_LIMIT):
     records = []
     truncated = False
@@ -331,6 +408,22 @@ def finalize_source_intelligence_diagnostics(
             len(analyzer_input_evidence),
             matched_headlines,
         )
+    return source_intelligence
+
+
+def persist_attributed_accepted_evidence(
+    source_intelligence,
+    evidence_objects,
+    theme_attribution,
+    registry,
+):
+    accepted_records, truncated = accepted_attributed_evidence_records(
+        evidence_objects,
+        theme_attribution,
+        registry,
+    )
+    source_intelligence["accepted_evidence"] = accepted_records
+    source_intelligence["accepted_evidence_truncated"] = truncated
     return source_intelligence
 
 

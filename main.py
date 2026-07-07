@@ -23,6 +23,7 @@ from mne.evidence import (
     evidence_to_headlines,
     finalize_source_intelligence_diagnostics,
     normalize_rss_entries_to_evidence,
+    persist_attributed_accepted_evidence,
     source_intelligence_counts,
 )
 from mne.headline_deduplication import dedupe_headlines
@@ -320,6 +321,12 @@ def main(args=None):
             source_intelligence,
             scored_evidence,
             matched_headlines=matched_headlines,
+        )
+        source_intelligence = persist_attributed_accepted_evidence(
+            source_intelligence,
+            scored_evidence,
+            theme_attribution,
+            source_registry,
         )
         stage.set_result(
             status=SUCCESS,

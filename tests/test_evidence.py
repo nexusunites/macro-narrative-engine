@@ -2,12 +2,22 @@ import unittest
 
 from mne.evidence import (
     EVIDENCE_TYPE_HEADLINE,
+    accepted_attributed_evidence_records,
     finalize_source_intelligence_diagnostics,
     evidence_to_headlines,
     generate_evidence_id,
     normalize_rss_entries_to_evidence,
     source_intelligence_counts,
 )
+
+
+class RegistryStub:
+    def source_by_id(self, source_id):
+        return {
+            "source_id": source_id,
+            "display_name": "Wall Street Journal",
+            "provider": "Dow Jones",
+        }
 
 
 class EvidenceObjectTests(unittest.TestCase):
@@ -138,6 +148,47 @@ class EvidenceObjectTests(unittest.TestCase):
             source_intelligence["zero_match_warning"]["sample_accepted_titles"],
             ["First unrelated headline", "Second unrelated headline"],
         )
+
+    def test_accepted_attributed_records_persist_research_workspace_fields(self):
+        entries = [
+            {
+                "title": "AI demand lifts shares",
+                "summary": "Summary",
+                "url": "https://example.com/ai",
+                "timestamp": "2026-07-06T12:00:00+00:00",
+                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+            },
+            {
+                "title": "Duplicate stale headline",
+                "timestamp": "2026-07-06T12:00:00+00:00",
+                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+            },
+        ]
+        evidence = normalize_rss_entries_to_evidence(
+            entries,
+            run_timestamp="2026-07-06T12:00:00+00:00",
+        )
+        evidence[1].accepted = False
+        evidence[1].rejection_reason = "stale"
+
+        records, truncated = accepted_attributed_evidence_records(
+            evidence,
+            [{"themes": ["ai"]}, {"themes": ["ai"]}],
+            RegistryStub(),
+        )
+
+        self.assertFalse(truncated)
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["title"], "AI demand lifts shares")
+        self.assertEqual(records[0]["source_name"], evidence[0].source_name)
+        self.assertEqual(records[0]["provider"], "Dow Jones")
+        self.assertEqual(records[0]["evidence_type"], EVIDENCE_TYPE_HEADLINE)
+        self.assertEqual(records[0]["published_at"], "2026-07-06T12:00:00+00:00")
+        self.assertEqual(records[0]["url"], "https://example.com/ai")
+        self.assertEqual(records[0]["freshness_state"], "FRESH")
+        self.assertTrue(records[0]["accepted"])
+        self.assertIn("theme:ai", records[0]["narrative_keys"])
+        self.assertIn("group:AI / Tech Growth", records[0]["narrative_keys"])
 
     def test_zero_match_warning_is_omitted_when_matches_exist(self):
         entries = [

@@ -201,6 +201,10 @@
                 <em>{{ event.lifecycle_state or "Unavailable" }}</em>
               </a>
             {% endfor %}
+        {% else %}
+          <article class="card research-card">
+            <p class="muted">No relevant catalyst lifecycle context is available for this narrative in the selected run.</p>
+          </article>
         {% endif %}
         {% if is_admin and investigation.platform_observability %}
           <a class="research-list-row admin-entry" href="/admin">

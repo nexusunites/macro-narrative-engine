@@ -238,7 +238,9 @@ def _is_dominant_run_narrative(run, narrative_level, narrative_id):
 
 
 def _supporting_evidence(source_intelligence, narrative_level, narrative_id):
-    evidence_objects = source_intelligence.get("evidence_objects")
+    evidence_objects = source_intelligence.get("accepted_evidence")
+    if not isinstance(evidence_objects, list):
+        evidence_objects = source_intelligence.get("evidence_objects")
     if not isinstance(evidence_objects, list):
         return []
 
@@ -246,7 +248,9 @@ def _supporting_evidence(source_intelligence, narrative_level, narrative_id):
         evidence
         for evidence in evidence_objects
         if isinstance(evidence, dict)
-        and evidence.get("accepted") is True
+        and evidence.get("accepted", True) is True
+        and not evidence.get("rejection_state")
+        and not evidence.get("rejection_reason")
         and _matches_narrative(evidence, narrative_level, narrative_id)
     ]
 

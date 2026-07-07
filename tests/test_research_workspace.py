@@ -214,6 +214,54 @@ class ResearchWorkspaceTests(unittest.TestCase):
             ["accepted-ai"],
         )
 
+    def test_supporting_evidence_reads_persisted_accepted_attributed_records(self):
+        run = sample_run()
+        run["source_intelligence"].pop("evidence_objects")
+        run["source_intelligence"]["accepted_evidence"] = [
+            {
+                "evidence_id": "accepted-ai",
+                "source_id": "s1",
+                "source_name": "Source One",
+                "title": "AI capex expands",
+                "url": "https://example.com/ai",
+                "accepted": True,
+                "themes": ["ai"],
+                "groups": ["AI / Tech Growth"],
+                "narrative_keys": ["theme:ai", "group:AI / Tech Growth"],
+            },
+            {
+                "evidence_id": "rejected-ai",
+                "source_id": "s1",
+                "source_name": "Source One",
+                "title": "Rejected AI capex expands",
+                "accepted": False,
+                "themes": ["ai"],
+                "groups": ["AI / Tech Growth"],
+                "narrative_keys": ["theme:ai", "group:AI / Tech Growth"],
+            },
+            {
+                "evidence_id": "accepted-rates",
+                "source_id": "s2",
+                "source_name": "Source Two",
+                "title": "Rates move higher",
+                "accepted": True,
+                "themes": ["rates"],
+                "groups": ["Macro Pressure"],
+                "narrative_keys": ["theme:rates", "group:Macro Pressure"],
+            },
+        ]
+
+        investigation = build_narrative_investigation(
+            run,
+            "group",
+            "AI / Tech Growth",
+        )
+
+        self.assertEqual(
+            [row["evidence_id"] for row in investigation["supporting_evidence"]],
+            ["accepted-ai"],
+        )
+
     def test_events_require_existing_narrative_link_and_empty_without_one(self):
         ai = build_narrative_investigation(sample_run(), "group", "AI / Tech Growth")
         ai_theme = build_narrative_investigation(sample_run(), "theme", "ai")
