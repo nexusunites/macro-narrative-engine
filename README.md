@@ -2,6 +2,7 @@
 
 ## Project Documentation
 
+- [Product Vision](docs/product_vision.md)
 - [Architecture](ARCHITECTURE.md)
 - [Project Status](docs/project_status.md)
 - [Roadmap](docs/roadmap.md)

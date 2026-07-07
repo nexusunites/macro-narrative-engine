@@ -2,6 +2,8 @@
 
 MNE is a macro narrative intelligence engine for tracking financial news narratives, market context, and macro regime signals. It is not a trading bot.
 
+`docs/product_vision.md` is the top-level product philosophy reference for MNE. Architecture decisions should preserve that product vision: evidence before opinion, understanding before prediction, investigation before conclusions, deterministic intelligence before AI, and transparency before automation.
+
 ## Current Priority
 
 Keep the core engine clean before adding external integrations.
@@ -39,6 +41,7 @@ surfaces consume Intelligence; none of them produce or override it.
 
 MNE's permanent architecture references include:
 
+- `docs/product_vision.md` -- Product Vision
 - `docs/source_intelligence_platform.md` -- Source Intelligence Platform (SIP)
 - `docs/historical_replay_engine.md` -- Historical Replay Engine (HRE)
 - `docs/narrative_memory_system.md` -- Narrative Memory System (NMS)
