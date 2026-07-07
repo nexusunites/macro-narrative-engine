@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 
 from config import RESULTS_DIR
 from mne.narrative_signals import compute_group_scores
+from mne.source_registry import SourceRegistryError, load_source_registry
 from mne.storage import get_recent_daily_runs
 
 
@@ -68,6 +69,13 @@ def safe_result_path(filename):
 def load_result(path):
     with open(path, "r", encoding="utf-8") as fh:
         return json.load(fh)
+
+
+def build_source_registry_diagnostics():
+    try:
+        return load_source_registry().diagnostics()
+    except SourceRegistryError as error:
+        return {"error": str(error)}
 
 
 def pct(value):
@@ -907,6 +915,7 @@ def build_view_model(run, current_file):
             "Coverage": f"{run.get('coverage_pct')}%" if run.get("coverage_pct") is not None else None,
         },
         "source_intelligence": run.get("source_intelligence") or {},
+        "source_registry": build_source_registry_diagnostics(),
         "theme_match_audit": run.get("theme_match_audit"),
         "diagnostics": {
             key: value

@@ -76,15 +76,39 @@
           </table>
         </article>
         {% set source_intelligence = view.source_intelligence | default({}) %}
+        {% set source_registry = view.source_registry | default({}) %}
         <article class="card">
           <h3>Source Intelligence</h3>
           <table>
             <tbody>
+              <tr><th>Registry Version</th><td>{{ source_intelligence.get("registry_version", "Unavailable") }}</td></tr>
               <tr><th>Total Evidence Objects</th><td>{{ source_intelligence.get("evidence_count", "Unavailable") }}</td></tr>
               <tr><th>Accepted Evidence Objects</th><td>{{ source_intelligence.get("accepted_count", "Unavailable") }}</td></tr>
               <tr><th>Rejected Evidence Objects</th><td>{{ source_intelligence.get("rejected_count", "Unavailable") }}</td></tr>
             </tbody>
           </table>
+        </article>
+        <article class="card">
+          <h3>Source Registry</h3>
+          {% if source_registry.get("error") %}
+            <p class="muted">{{ source_registry.get("error") }}</p>
+          {% else %}
+            <table>
+              <tbody>
+                <tr><th>Current Version</th><td>{{ source_registry.get("registry_version", "Unavailable") }}</td></tr>
+                <tr><th>Active Sources</th><td>{{ source_registry.get("active_count", "Unavailable") }}</td></tr>
+                <tr><th>Non-active Sources</th><td>{{ source_registry.get("non_active_count", "Unavailable") }}</td></tr>
+                {% for status, count in source_registry.get("status_counts", {}).items() %}
+                  <tr><th>{{ status }}</th><td>{{ count }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <ul class="admin-evidence-list">
+              {% for source in source_registry.get("sources", []) %}
+                <li>{{ source.display_name }}{% if source.status != "ACTIVE" %} ({{ source.status }}){% endif %}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
         </article>
         <article class="card">
           <h3>Coverage</h3>

@@ -52,6 +52,7 @@ from mne.reporting import (
     print_top_theme_examples,
 )
 from mne.rss_fetch import fetch_headlines_from_rss
+from mne.source_registry import load_source_registry
 from mne.storage import (
     build_daily_snapshot_preview,
     get_recent_runs,
@@ -65,17 +66,6 @@ from mne.trends import print_daily_count_trends, print_daily_share_trends, print
 
 print("STARTING main.py")
 
-
-RSS_URLS = [
-    "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",  # WSJ Markets
-    "https://www.cnbc.com/id/100003114/device/rss/rss.html",  # CNBC Top News
-    "https://feeds.reuters.com/reuters/businessNews",
-    "https://www.ft.com/?format=rss",  # Financial Times
-    "https://www.bloomberg.com/feed/podcast/etf-report.xml",  # Bloomberg ETF Report
-    "https://www.bbc.co.uk/news/business/rss.xml",  # BBC Business
-    "https://www.npr.org/rss/rss.php?id=1001",  # NPR Business
-    "https://www.economist.com/finance-and-economics/rss.xml",  # Economist Finance
-]
 
 NASDAQ_TICKERS = {
     "QQQ": "QQQ",
@@ -135,12 +125,19 @@ def main(args=None):
         print(mode_warning)
     print()
 
-    rss_entries = fetch_headlines_from_rss(RSS_URLS, as_entries=True)
+    source_registry = load_source_registry()
+    rss_urls = source_registry.active_rss_urls
+
+    rss_entries = fetch_headlines_from_rss(rss_urls, as_entries=True)
     evidence_objects = normalize_rss_entries_to_evidence(
         rss_entries,
         run_timestamp=now_utc.isoformat(),
+        registry=source_registry,
     )
-    source_intelligence = source_intelligence_counts(evidence_objects)
+    source_intelligence = source_intelligence_counts(
+        evidence_objects,
+        registry_version=source_registry.registry_version,
+    )
     raw_headlines = evidence_to_headlines(evidence_objects)
     deduplication = dedupe_headlines(raw_headlines)
     headlines = deduplication["deduped_headlines"]
@@ -148,7 +145,7 @@ def main(args=None):
     print(f"Loaded {deduplication['raw_headline_count']} raw headlines from RSS")
     print(f"Deduped to {deduplication['deduped_headline_count']} unique headlines")
     print(f"Removed {deduplication['duplicate_count']} duplicates")
-    print(f"Loaded {len(RSS_URLS)} RSS feeds")
+    print(f"Loaded {len(rss_urls)} RSS feeds")
 
     if should_abort_for_failed_headline_collection(deduplication):
         print()
@@ -157,7 +154,7 @@ def main(args=None):
         print(f"Failure reason: {failure_reason}")
         failed_run = {
             "timestamp": stamp,
-            "rss_urls": RSS_URLS,
+            "rss_urls": rss_urls,
             "raw_headline_count": deduplication["raw_headline_count"],
             "deduped_headline_count": deduplication["deduped_headline_count"],
             "duplicate_count": deduplication["duplicate_count"],
@@ -240,7 +237,7 @@ def main(args=None):
     run = {
         "timestamp": stamp,
         "taxonomy_version": taxonomy_version,
-        "rss_urls": RSS_URLS,
+        "rss_urls": rss_urls,
         "raw_headline_count": deduplication["raw_headline_count"],
         "deduped_headline_count": deduplication["deduped_headline_count"],
         "duplicate_count": deduplication["duplicate_count"],
@@ -429,7 +426,7 @@ def main(args=None):
     report_text = build_daily_report(
         readable_time=readable_time,
         headline_count=len(headlines),
-        feed_count=len(RSS_URLS),
+        feed_count=len(rss_urls),
         coverage_pct=coverage_pct,
         signals=signals,
         nonzero_results=nonzero,

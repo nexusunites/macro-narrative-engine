@@ -3,27 +3,11 @@ import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
-from urllib.parse import urlparse
+
+from mne.source_registry import SourceRegistryError, load_source_registry
 
 
 EVIDENCE_TYPE_HEADLINE = "Headline"
-UNKNOWN_SOURCE_ID = "unknown-source"
-UNKNOWN_SOURCE_NAME = "Unknown Source"
-
-
-SOURCE_NAMES_BY_URL = {
-    "https://feeds.a.dj.com/rss/RSSMarketsMain.xml": ("wsj-markets", "WSJ Markets"),
-    "https://www.cnbc.com/id/100003114/device/rss/rss.html": ("cnbc-top-news", "CNBC Top News"),
-    "https://feeds.reuters.com/reuters/businessNews": ("reuters-business-news", "Reuters Business News"),
-    "https://www.ft.com/?format=rss": ("financial-times", "Financial Times"),
-    "https://www.bloomberg.com/feed/podcast/etf-report.xml": ("bloomberg-etf-report", "Bloomberg ETF Report"),
-    "https://www.bbc.co.uk/news/business/rss.xml": ("bbc-business", "BBC Business"),
-    "https://www.npr.org/rss/rss.php?id=1001": ("npr-business", "NPR Business"),
-    "https://www.economist.com/finance-and-economics/rss.xml": (
-        "economist-finance-economics",
-        "Economist Finance and Economics",
-    ),
-}
 
 
 @dataclass
@@ -60,20 +44,6 @@ def generate_evidence_id(
     if url:
         parts.append(url)
     return hashlib.sha256("".join(parts).encode("utf-8")).hexdigest()
-
-
-def source_identity(feed_url: str | None):
-    if feed_url in SOURCE_NAMES_BY_URL:
-        return SOURCE_NAMES_BY_URL[feed_url]
-
-    if feed_url:
-        parsed = urlparse(feed_url)
-        host = parsed.netloc or parsed.path
-        if host:
-            slug = re.sub(r"[^a-z0-9]+", "-", host.casefold()).strip("-")
-            return slug or UNKNOWN_SOURCE_ID, host
-
-    return UNKNOWN_SOURCE_ID, UNKNOWN_SOURCE_NAME
 
 
 def _text_or_none(value):
@@ -118,7 +88,8 @@ def _normalize_entry(entry, fallback_timestamp: str):
     }
 
 
-def normalize_rss_entries_to_evidence(entries, run_timestamp: str | None = None):
+def normalize_rss_entries_to_evidence(entries, run_timestamp: str | None = None, registry=None):
+    registry = registry or load_source_registry()
     fallback_timestamp = run_timestamp or datetime.now(timezone.utc).isoformat()
     evidence_objects = []
     seen_ids = set()
@@ -129,7 +100,14 @@ def normalize_rss_entries_to_evidence(entries, run_timestamp: str | None = None)
         if not title:
             continue
 
-        source_id, source_name = source_identity(normalized["feed_url"])
+        source = registry.source_by_url(normalized["feed_url"])
+        if source["status"] != "ACTIVE":
+            raise SourceRegistryError(
+                "RSS entry resolved to a non-active source that should not have been fetched: "
+                f"{source['source_id']} ({source['status']})"
+            )
+        source_id = source["source_id"]
+        source_name = source["display_name"]
         evidence_id = generate_evidence_id(
             source_id=source_id,
             evidence_type=EVIDENCE_TYPE_HEADLINE,
@@ -171,7 +149,7 @@ def evidence_to_headlines(evidence_objects):
     return headlines
 
 
-def source_intelligence_counts(evidence_objects):
+def source_intelligence_counts(evidence_objects, registry_version: str | None = None):
     evidence_count = len(evidence_objects)
     accepted_count = 0
     for evidence in evidence_objects:
@@ -180,8 +158,12 @@ def source_intelligence_counts(evidence_objects):
         else:
             accepted_count += int(bool(evidence.get("accepted")))
     rejected_count = evidence_count - accepted_count
-    return {
+    counts = {}
+    if registry_version is not None:
+        counts["registry_version"] = registry_version
+    counts.update({
         "evidence_count": evidence_count,
         "accepted_count": accepted_count,
         "rejected_count": rejected_count,
-    }
+    })
+    return counts

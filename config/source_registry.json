@@ -1,0 +1,165 @@
+{
+  "registry_version": "1.0.0",
+  "sources": [
+    {
+      "source_id": "wsj-markets",
+      "display_name": "WSJ Markets",
+      "provider": "Wall Street Journal",
+      "category": "Market Structure",
+      "priority": "TIER_1",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 180,
+      "expected_update_frequency_minutes": 60,
+      "supported_narratives": ["Markets", "Rates", "Credit", "Volatility", "General Business"],
+      "supported_groups": ["Macro", "Market Structure", "General Business"],
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list."
+    },
+    {
+      "source_id": "cnbc-top-news",
+      "display_name": "CNBC Top News",
+      "provider": "CNBC",
+      "category": "General Business",
+      "priority": "TIER_3",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 120,
+      "expected_update_frequency_minutes": 45,
+      "supported_narratives": ["Markets", "Companies", "Technology", "General Business"],
+      "supported_groups": ["Companies", "Technology", "General Business"],
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list."
+    },
+    {
+      "source_id": "reuters-business-news",
+      "display_name": "Reuters Business News",
+      "provider": "Reuters",
+      "category": "General Business",
+      "priority": "TIER_1",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://feeds.reuters.com/reuters/businessNews",
+      "status": "DISABLED",
+      "freshness_threshold_minutes": 120,
+      "expected_update_frequency_minutes": 45,
+      "supported_narratives": ["Macro", "Companies", "Technology", "Energy", "General Business"],
+      "supported_groups": ["Macro", "Companies", "Technology", "Energy", "General Business"],
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list. Disabled during Sprint 2 verification because the current URL returned a DNS resolution failure on 2026-07-06."
+    },
+    {
+      "source_id": "financial-times",
+      "display_name": "Financial Times",
+      "provider": "Financial Times",
+      "category": "Macro",
+      "priority": "TIER_1",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.ft.com/?format=rss",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 240,
+      "expected_update_frequency_minutes": 90,
+      "supported_narratives": ["Macro", "Rates", "Credit", "Geopolitics", "Companies"],
+      "supported_groups": ["Macro", "Rates", "Credit", "Geopolitics", "Companies"],
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list."
+    },
+    {
+      "source_id": "bloomberg-etf-report",
+      "display_name": "Bloomberg ETF Report",
+      "provider": "Bloomberg",
+      "category": "ETFs",
+      "priority": "TIER_2",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.bloomberg.com/feed/podcast/etf-report.xml",
+      "status": "DISABLED",
+      "freshness_threshold_minutes": 10080,
+      "expected_update_frequency_minutes": 1440,
+      "supported_narratives": ["ETFs", "Market Structure", "Rates", "Technology"],
+      "supported_groups": ["ETFs", "Market Structure", "Rates", "Technology"],
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list. Disabled during Sprint 2 verification because the current URL returned zero parseable entries due malformed XML on 2026-07-06."
+    },
+    {
+      "source_id": "bbc-business",
+      "display_name": "BBC Business",
+      "provider": "BBC",
+      "category": "General Business",
+      "priority": "TIER_3",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.bbc.co.uk/news/business/rss.xml",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 240,
+      "expected_update_frequency_minutes": 120,
+      "supported_narratives": ["General Business", "Companies", "Energy", "Inflation"],
+      "supported_groups": ["General Business", "Companies", "Energy", "Inflation"],
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list."
+    },
+    {
+      "source_id": "npr-business",
+      "display_name": "NPR Business",
+      "provider": "NPR",
+      "category": "General Business",
+      "priority": "TIER_3",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.npr.org/rss/rss.php?id=1001",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 720,
+      "expected_update_frequency_minutes": 240,
+      "supported_narratives": ["General Business", "Companies", "Economic Data", "Inflation"],
+      "supported_groups": ["General Business", "Companies", "Economic Data", "Inflation"],
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list."
+    },
+    {
+      "source_id": "economist-finance-economics",
+      "display_name": "Economist Finance and Economics",
+      "provider": "The Economist",
+      "category": "Macro",
+      "priority": "TIER_2",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.economist.com/finance-and-economics/rss.xml",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 1440,
+      "expected_update_frequency_minutes": 360,
+      "supported_narratives": ["Macro", "Inflation", "Rates", "Economic Data", "Geopolitics"],
+      "supported_groups": ["Macro", "Inflation", "Rates", "Economic Data", "Geopolitics"],
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list."
+    }
+  ],
+  "evidence_types": [
+    { "evidence_type": "Headline", "status": "active" }
+  ],
+  "categories": [
+    { "category": "Macro", "description": "Broad macroeconomic and cross-asset narrative sources." },
+    { "category": "Economic Data", "description": "Sources focused on economic indicators, labor, growth, and activity data." },
+    { "category": "Inflation", "description": "Sources that commonly cover price pressure, consumer prices, and inflation expectations." },
+    { "category": "Rates", "description": "Sources that commonly cover interest rates, central-bank expectations, and bond-market narratives." },
+    { "category": "Energy", "description": "Sources that commonly cover oil, gas, power, and energy-market narratives." },
+    { "category": "Technology", "description": "Sources that commonly cover technology sector and AI-related business narratives." },
+    { "category": "Companies", "description": "Sources that commonly cover company-level business developments." },
+    { "category": "Geopolitics", "description": "Sources that commonly cover geopolitical developments with market or macro relevance." },
+    { "category": "Market Structure", "description": "Sources focused on market mechanics, flows, volatility, liquidity, and cross-asset behavior." },
+    { "category": "ETFs", "description": "Sources focused on ETF flows, products, and related market structure." },
+    { "category": "Credit", "description": "Sources that commonly cover credit markets, spreads, funding, and debt conditions." },
+    { "category": "Volatility", "description": "Sources that commonly cover volatility, risk appetite, and market stress." },
+    { "category": "General Business", "description": "Broad business-news sources providing breadth and secondary confirmation." }
+  ],
+  "priority_tiers": [
+    {
+      "tier": "TIER_1",
+      "description": "Core narrative sources - primary, high-reliability, high-relevance feeds expected to be central to daily narrative detection."
+    },
+    {
+      "tier": "TIER_2",
+      "description": "Specialist sources - narrower scope, high relevance within their category, not broad enough to anchor a dominant narrative alone."
+    },
+    {
+      "tier": "TIER_3",
+      "description": "Context sources - general business/background sources providing breadth and secondary confirmation."
+    }
+  ]
+}
