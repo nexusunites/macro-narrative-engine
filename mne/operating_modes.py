@@ -60,8 +60,8 @@ def generate_macro_context(
     market_snapshot,
 ):
     group_text = dominant_group or "No dominant narrative group is active"
-    market_state = get_state(market_environment) or "market confirmation is unclear"
-    breadth_state = get_state(breadth_confirmation) or "breadth is unclear"
+    market_state = get_state(market_environment) or "unclear"
+    breadth_state = get_state(breadth_confirmation) or "unclear"
 
     if dominant_group:
         subject = f"{group_text} is the dominant narrative group"

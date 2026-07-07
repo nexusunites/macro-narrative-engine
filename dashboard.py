@@ -195,6 +195,27 @@ def fmt_file_timestamp(path):
         return None
 
 
+def fmt_run_label(path):
+    label = fmt_history_label(None, path)
+    if label != path.stem:
+        return label
+
+    modified = fmt_file_timestamp(path)
+    if modified:
+        return f"{path.stem} (modified {modified})"
+    return path.stem
+
+
+def build_run_options(paths):
+    return [
+        {
+            "filename": path.name,
+            "label": fmt_run_label(path),
+        }
+        for path in paths
+    ]
+
+
 def fmt_history_label(value, path):
     candidates = [value, path.stem]
     for candidate in candidates:
@@ -730,13 +751,23 @@ def build_regime_history():
         coordinates.append(f"{item['x']},{item['y']}")
 
     comparison_index = -4 if len(history) >= 4 else 0
-    score_delta = history[-1]["score"] - history[comparison_index]["score"]
-    if score_delta >= 5:
-        summary = "Alignment improving over recent runs"
-    elif score_delta <= -5:
-        summary = "Alignment weakening over recent runs"
+    window_delta = history[-1]["score"] - history[comparison_index]["score"]
+    latest_delta = history[-1]["score"] - history[-2]["score"]
+    if window_delta >= 5:
+        window_summary = "higher over the recent window"
+    elif window_delta <= -5:
+        window_summary = "lower over the recent window"
     else:
-        summary = "Alignment broadly stable"
+        window_summary = "broadly stable over the recent window"
+
+    if latest_delta >= 5:
+        latest_summary = "latest move up"
+    elif latest_delta <= -5:
+        latest_summary = "latest move down"
+    else:
+        latest_summary = "latest move stable"
+
+    summary = f"Alignment {window_summary}; {latest_summary}."
 
     return {
         "points": history,
@@ -1059,6 +1090,7 @@ def build_template_context(
         "request": request,
         "results_dir": RESULTS_DIR,
         "recent_files": [path.name for path in recent_files],
+        "recent_runs": build_run_options(recent_files),
         "selected_file": current_file.name if current_file else None,
         "message": None,
         "notice": selection.notice if selection else None,

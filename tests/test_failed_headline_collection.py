@@ -5,7 +5,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 import main
-from mne_test_utils import temporary_mne_data_dir
+
+try:
+    from mne_test_utils import temporary_mne_data_dir
+except ModuleNotFoundError as exc:
+    if exc.name != "mne_test_utils":
+        raise
+    from tests.mne_test_utils import temporary_mne_data_dir
 
 
 def sample_source_health(entries_seen=0, entries_parsed=0, state="EMPTY"):
@@ -99,7 +105,16 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         self.assertEqual(source_intelligence["evidence_count"], 0)
         self.assertEqual(source_intelligence["accepted_count"], 0)
         self.assertEqual(source_intelligence["rejected_count"], 0)
-        self.assertEqual(source_intelligence["source_health"], source_health)
+        self.assertEqual(
+            source_intelligence["source_health"],
+            [
+                {
+                    **source_health[0],
+                    "healthy_but_severely_stale": False,
+                    "staleness_ratio": None,
+                }
+            ],
+        )
         self.assertEqual(source_intelligence["evidence_freshness"]["fresh_count"], 0)
         self.assertIn("source_freshness", source_intelligence)
         self.assertEqual(source_intelligence["rejected_evidence_preview"], [])
@@ -228,7 +243,16 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         self.assertEqual(source_intelligence["evidence_count"], 1)
         self.assertEqual(source_intelligence["accepted_count"], 1)
         self.assertEqual(source_intelligence["rejected_count"], 0)
-        self.assertEqual(source_intelligence["source_health"], source_health)
+        self.assertEqual(
+            source_intelligence["source_health"],
+            [
+                {
+                    **source_health[0],
+                    "healthy_but_severely_stale": False,
+                    "staleness_ratio": 0.08,
+                }
+            ],
+        )
         self.assertEqual(source_intelligence["evidence_freshness"]["fresh_count"], 1)
         self.assertEqual(source_intelligence["rejected_evidence_preview"], [])
         write_daily_snapshot.assert_called_once()

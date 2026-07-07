@@ -24,8 +24,8 @@
       <form method="get" action="/" class="run-selector compact">
         <label for="run">Run</label>
         <select id="run" name="run" onchange="this.form.submit()">
-          {% for file in recent_files %}
-            <option value="{{ file }}" {% if file == selected_file %}selected{% endif %}>{{ file }}</option>
+          {% for run in recent_runs %}
+            <option value="{{ run.filename }}" {% if run.filename == selected_file %}selected{% endif %}>{{ run.label }}</option>
           {% endfor %}
         </select>
       </form>
