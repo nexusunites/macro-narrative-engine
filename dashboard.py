@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from config import RESULTS_DIR, ensure_data_dir
+from mne.config_diagnostics import build_configuration_report, format_startup_report
 from mne.narrative_signals import compute_group_scores
 from mne.platform_observability import stage_by_name
 from mne.research_workspace import (
@@ -1012,6 +1013,7 @@ def build_view_model(run, current_file):
         "platform_observability": build_platform_observability_diagnostics(
             run.get("platform_observability") or {}
         ),
+        "configuration_report": build_configuration_report().to_dict(),
         "source_registry": build_source_registry_diagnostics(),
         "theme_match_audit": run.get("theme_match_audit"),
         "diagnostics": {
@@ -1160,4 +1162,6 @@ def admin_narrative_investigation(request: Request, key: str):
 
 if __name__ == "__main__":
     ensure_data_dir()
+    print(format_startup_report(build_configuration_report()))
+    print()
     uvicorn.run("dashboard:app", host="127.0.0.1", port=8000, reload=False)

@@ -21,6 +21,11 @@ def get_data_dir() -> Path:
     return _resolved_data_dir
 
 
+def data_dir_source() -> str:
+    """Returns the data directory source for visibility only."""
+    return "environment_variable" if os.environ.get("MNE_DATA_DIR") else "portable_default"
+
+
 def ensure_data_dir() -> Path:
     global _data_dir_created
     data_dir = get_data_dir()

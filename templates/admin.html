@@ -52,6 +52,48 @@
         </div>
       </section>
 
+      {% set config_report = view.configuration_report | default({}) %}
+      <section class="content-section">
+        <div class="section-heading">
+          <p class="eyebrow">Configuration</p>
+          <h2>Active Data Directory</h2>
+        </div>
+        <article class="card">
+          <table>
+            <tbody>
+              <tr><th>Active Data Directory</th><td>{{ config_report.get("active_data_dir", "Unavailable") }}</td></tr>
+              <tr><th>Configuration Source</th><td>{{ config_report.get("config_source", "Unavailable") }}</td></tr>
+              <tr><th>Results Directory</th><td>{{ config_report.get("results_dir", "Unavailable") }}</td></tr>
+              <tr><th>Headlines Directory</th><td>{{ config_report.get("headlines_dir", "Unavailable") }}</td></tr>
+              <tr><th>Result Files Found</th><td>{{ config_report.get("result_file_count", "Unavailable") }}</td></tr>
+              <tr><th>Archive Status</th><td>{{ config_report.get("archive_status", "Unavailable") }}</td></tr>
+              {% if config_report.get("registry_version") %}
+                <tr><th>Registry Version</th><td>{{ config_report.get("registry_version") }}</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+          {% if config_report.get("is_portable_default") %}
+            <p class="muted">
+              MNE_DATA_DIR is not set - MNE is using its portable default directory.
+              Historical Google Drive data will not appear here. See the README
+              "Runtime Data Storage" section to configure MNE_DATA_DIR.
+            </p>
+          {% endif %}
+          {% if config_report.get("is_portable_default") and config_report.get("documented_google_drive_archive_exists") %}
+            <p class="muted">
+              A documented Google Drive archive appears to exist at
+              {{ config_report.get("documented_google_drive_archive") }}. If that is
+              your intended archive, MNE_DATA_DIR may not be configured.
+            </p>
+          {% endif %}
+          {% if config_report.get("archive_status") == "EMPTY" %}
+            <p class="muted">This directory has no prior runs - MNE is starting a fresh archive.</p>
+          {% elif config_report.get("archive_status") == "MINIMAL" %}
+            <p class="muted">Only {{ config_report.get("result_file_count") }} prior run(s) found in this directory - history views will be sparse.</p>
+          {% endif %}
+        </article>
+      </section>
+
       <section class="content-section">
         <div class="section-heading">
           <p class="eyebrow">Recent Runs</p>

@@ -8,6 +8,7 @@ from config import DATA_DIR, OPERATING_MODE, RESULTS_DIR, ensure_data_dir
 from mne.breadth import BREADTH_TICKERS, classify_breadth_confirmation
 from mne.catalyst_environment import classify_catalyst_environment
 from mne.change_summary import build_change_summary
+from mne.config_diagnostics import build_configuration_report, format_startup_report
 from mne.environment import classify_market_environment
 from mne.event_lifecycle import ENGINE_VERSION as EVENT_LIFECYCLE_ENGINE_VERSION
 from mne.event_lifecycle import evaluate_event_lifecycle_run
@@ -159,7 +160,7 @@ def main(args=None):
 
     print("=== Daily Narrative Snapshot ===")
     print()
-    print(f"Active Data Directory: {DATA_DIR}")
+    print(format_startup_report(build_configuration_report()))
     print()
 
     now = datetime.now()
