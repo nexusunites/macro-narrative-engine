@@ -111,6 +111,78 @@
           {% endif %}
         </article>
         <article class="card">
+          <h3>Source Health</h3>
+          {% set source_health = source_intelligence.get("source_health", []) %}
+          {% if source_health %}
+            <table>
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Status</th>
+                  <th>Health</th>
+                  <th>Severity</th>
+                  <th>Seen</th>
+                  <th>Parsed</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for source in source_health %}
+                  <tr>
+                    <td>{{ source.source_name }}</td>
+                    <td>ACTIVE</td>
+                    <td>{{ source.state }}</td>
+                    <td>{{ source.severity }}</td>
+                    <td>{{ source.entries_seen }}</td>
+                    <td>{{ source.entries_parsed }}</td>
+                    <td>{{ source.reason }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="muted">No source health diagnostics persisted for this run.</p>
+          {% endif %}
+        </article>
+        <article class="card">
+          <h3>Evidence Freshness</h3>
+          {% set evidence_freshness = source_intelligence.get("evidence_freshness", {}) %}
+          <table>
+            <tbody>
+              <tr><th>Fresh Evidence</th><td>{{ evidence_freshness.get("fresh_count", "Unavailable") }}</td></tr>
+              <tr><th>Stale Evidence</th><td>{{ evidence_freshness.get("stale_count", "Unavailable") }}</td></tr>
+              <tr><th>Unknown Freshness</th><td>{{ evidence_freshness.get("unknown_count", "Unavailable") }}</td></tr>
+            </tbody>
+          </table>
+          {% set source_freshness = source_intelligence.get("source_freshness", []) %}
+          {% if source_freshness %}
+            <table>
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Status</th>
+                  <th>Newest Timestamp</th>
+                  <th>Newest Age</th>
+                  <th>Threshold</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for source in source_freshness %}
+                  <tr>
+                    <td>{{ source.source_name }}</td>
+                    <td>{{ source.status }}</td>
+                    <td>{{ source.newest_evidence_timestamp or "Unavailable" }}</td>
+                    <td>{{ source.newest_evidence_age_minutes if source.newest_evidence_age_minutes is not none else "Unavailable" }}</td>
+                    <td>{{ source.freshness_threshold_minutes }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="muted">No source freshness diagnostics persisted for this run.</p>
+          {% endif %}
+        </article>
+        <article class="card">
           <h3>Coverage</h3>
           <p class="admin-value">{{ view.headline_stats.Coverage or "Unavailable" }}</p>
           <p class="muted">Matched headlines divided by total headlines for this run.</p>

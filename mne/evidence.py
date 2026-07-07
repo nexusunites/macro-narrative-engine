@@ -4,6 +4,14 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from mne.freshness import (
+    STALE,
+    UNKNOWN,
+    build_source_freshness_outputs,
+    evaluate_evidence_freshness,
+    evidence_freshness_counts,
+    rejected_evidence_preview,
+)
 from mne.source_registry import SourceRegistryError, load_source_registry
 
 
@@ -16,13 +24,16 @@ class EvidenceObject:
     source_id: str
     source_name: str
     evidence_type: str
-    timestamp: str
+    timestamp: str | None
     title: str
     summary: str | None
     url: str | None
     metadata: dict[str, Any] = field(default_factory=dict)
     accepted: bool = True
     rejection_reason: str | None = None
+    freshness_state: str = UNKNOWN
+    freshness_age_minutes: int | None = None
+    freshness_checked_at: str | None = None
 
     def to_dict(self):
         return asdict(self)
@@ -63,7 +74,7 @@ def _entry_timestamp(entry, fallback_timestamp: str):
     timestamp = _entry_value(entry, "timestamp")
     if timestamp:
         return str(timestamp)
-    return fallback_timestamp
+    return None
 
 
 def _normalize_entry(entry, fallback_timestamp: str):
@@ -88,11 +99,25 @@ def _normalize_entry(entry, fallback_timestamp: str):
     }
 
 
-def normalize_rss_entries_to_evidence(entries, run_timestamp: str | None = None, registry=None):
+def _health_checked_at_by_source_id(source_health):
+    checked_at = {}
+    for health in source_health or []:
+        if isinstance(health, dict) and health.get("source_id"):
+            checked_at[health["source_id"]] = health.get("checked_at")
+    return checked_at
+
+
+def normalize_rss_entries_to_evidence(
+    entries,
+    run_timestamp: str | None = None,
+    registry=None,
+    source_health=None,
+):
     registry = registry or load_source_registry()
     fallback_timestamp = run_timestamp or datetime.now(timezone.utc).isoformat()
     evidence_objects = []
     seen_ids = set()
+    checked_at_by_source_id = _health_checked_at_by_source_id(source_health)
 
     for entry in entries:
         normalized = _normalize_entry(entry, fallback_timestamp)
@@ -108,16 +133,28 @@ def normalize_rss_entries_to_evidence(entries, run_timestamp: str | None = None,
             )
         source_id = source["source_id"]
         source_name = source["display_name"]
+        evaluation_time = checked_at_by_source_id.get(source_id) or fallback_timestamp
+        freshness = evaluate_evidence_freshness(
+            normalized["timestamp"],
+            source["freshness_threshold_minutes"],
+            evaluation_time,
+        )
         evidence_id = generate_evidence_id(
             source_id=source_id,
             evidence_type=EVIDENCE_TYPE_HEADLINE,
-            timestamp=normalized["timestamp"],
+            timestamp=normalized["timestamp"] or "",
             title=title,
             url=normalized["url"],
         )
         accepted = evidence_id not in seen_ids
         rejection_reason = None if accepted else "duplicate"
         seen_ids.add(evidence_id)
+        if accepted and freshness.freshness_state == STALE:
+            accepted = False
+            rejection_reason = "stale"
+        elif accepted and freshness.freshness_state == UNKNOWN:
+            accepted = False
+            rejection_reason = "unknown_timestamp"
 
         evidence_objects.append(
             EvidenceObject(
@@ -132,6 +169,9 @@ def normalize_rss_entries_to_evidence(entries, run_timestamp: str | None = None,
                 metadata=normalized["metadata"],
                 accepted=accepted,
                 rejection_reason=rejection_reason,
+                freshness_state=freshness.freshness_state,
+                freshness_age_minutes=freshness.age_minutes,
+                freshness_checked_at=evaluation_time,
             )
         )
 
@@ -149,7 +189,12 @@ def evidence_to_headlines(evidence_objects):
     return headlines
 
 
-def source_intelligence_counts(evidence_objects, registry_version: str | None = None):
+def source_intelligence_counts(
+    evidence_objects,
+    registry_version: str | None = None,
+    source_health=None,
+    registry=None,
+):
     evidence_count = len(evidence_objects)
     accepted_count = 0
     for evidence in evidence_objects:
@@ -166,4 +211,16 @@ def source_intelligence_counts(evidence_objects, registry_version: str | None = 
         "accepted_count": accepted_count,
         "rejected_count": rejected_count,
     })
+    if source_health is not None:
+        counts["source_health"] = list(source_health)
+    counts["evidence_freshness"] = evidence_freshness_counts(evidence_objects)
+    if registry is not None:
+        counts["source_freshness"] = build_source_freshness_outputs(
+            registry,
+            evidence_objects,
+            source_health,
+        )
+    preview, truncated = rejected_evidence_preview(evidence_objects)
+    counts["rejected_evidence_preview"] = preview
+    counts["rejected_evidence_preview_truncated"] = truncated
     return counts

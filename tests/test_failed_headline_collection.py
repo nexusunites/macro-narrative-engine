@@ -7,6 +7,24 @@ from unittest.mock import patch
 import main
 
 
+def sample_source_health(entries_seen=0, entries_parsed=0, state="EMPTY"):
+    return [
+        {
+            "source_id": "wsj-markets",
+            "source_name": "WSJ Markets",
+            "state": state,
+            "severity": "WARNING" if state == "EMPTY" else "INFO",
+            "reason": "Zero entries present in feed",
+            "recommended_action": "Confirm whether the source is expected to publish entries.",
+            "http_status": 200,
+            "entries_seen": entries_seen,
+            "entries_parsed": entries_parsed,
+            "fetch_error": None,
+            "checked_at": "2026-07-06T12:00:00+00:00",
+        }
+    ]
+
+
 class FailedHeadlineCollectionTest(unittest.TestCase):
     def test_normal_headline_counts_do_not_abort(self):
         deduplication = {
@@ -46,9 +64,14 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
 
     def test_zero_headline_run_persists_source_diagnostics_only(self):
         output = io.StringIO()
+        source_health = sample_source_health()
 
         with (
-            patch.object(main, "fetch_headlines_from_rss", return_value=[]),
+            patch.object(
+                main,
+                "fetch_headlines_from_rss",
+                return_value={"entries": [], "source_health": source_health},
+            ),
             patch.object(main, "save_headlines") as save_headlines,
             patch.object(
                 main,
@@ -69,14 +92,15 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         save_headlines.assert_not_called()
         save_run_json.assert_called_once()
         persisted_run = save_run_json.call_args.args[0]
-        self.assertEqual(
-            persisted_run["source_intelligence"],
-            {
-                "evidence_count": 0,
-                "accepted_count": 0,
-                "rejected_count": 0,
-            },
-        )
+        source_intelligence = persisted_run["source_intelligence"]
+        self.assertEqual(source_intelligence["registry_version"], "1.0.0")
+        self.assertEqual(source_intelligence["evidence_count"], 0)
+        self.assertEqual(source_intelligence["accepted_count"], 0)
+        self.assertEqual(source_intelligence["rejected_count"], 0)
+        self.assertEqual(source_intelligence["source_health"], source_health)
+        self.assertEqual(source_intelligence["evidence_freshness"]["fresh_count"], 0)
+        self.assertIn("source_freshness", source_intelligence)
+        self.assertEqual(source_intelligence["rejected_evidence_preview"], [])
         self.assertEqual(
             persisted_run["narrative_run_status"],
             "skipped_failed_headline_collection",
@@ -88,8 +112,28 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         print_share_trends.assert_not_called()
 
     def test_nonzero_headline_run_continues_to_normal_persistence_and_trends(self):
+        source_health = sample_source_health(
+            entries_seen=1,
+            entries_parsed=1,
+            state="HEALTHY",
+        )
+        source_health[0]["reason"] = "Feed parsed successfully; 1 entries parsed"
+        source_health[0]["recommended_action"] = "No action needed."
         with (
-            patch.object(main, "fetch_headlines_from_rss", return_value=["No theme here"]),
+            patch.object(
+                main,
+                "fetch_headlines_from_rss",
+                return_value={
+                    "entries": [
+                        {
+                            "title": "No theme here",
+                            "timestamp": "2026-07-06T11:45:00+00:00",
+                            "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                        }
+                    ],
+                    "source_health": source_health,
+                },
+            ),
             patch.object(main, "save_headlines", return_value=Path("/tmp/headlines.txt")) as save_headlines,
             patch.object(main, "load_themes", return_value=({}, "test-taxonomy")),
             patch.object(main, "analyze_themes", return_value=({}, {}, 0, {}, {})),
@@ -173,14 +217,14 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         self.assertEqual(save_headlines.call_count, 2)
         save_run_json.assert_called_once()
         persisted_run = save_run_json.call_args.args[0]
-        self.assertEqual(
-            persisted_run["source_intelligence"],
-            {
-                "evidence_count": 1,
-                "accepted_count": 1,
-                "rejected_count": 0,
-            },
-        )
+        source_intelligence = persisted_run["source_intelligence"]
+        self.assertEqual(source_intelligence["registry_version"], "1.0.0")
+        self.assertEqual(source_intelligence["evidence_count"], 1)
+        self.assertEqual(source_intelligence["accepted_count"], 1)
+        self.assertEqual(source_intelligence["rejected_count"], 0)
+        self.assertEqual(source_intelligence["source_health"], source_health)
+        self.assertEqual(source_intelligence["evidence_freshness"]["fresh_count"], 1)
+        self.assertEqual(source_intelligence["rejected_evidence_preview"], [])
         write_daily_snapshot.assert_called_once()
         save_report.assert_called_once()
         print_momentum.assert_called_once()

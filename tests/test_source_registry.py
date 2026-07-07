@@ -91,13 +91,40 @@ class SourceRegistryTests(unittest.TestCase):
 
         with (
             patch.object(main, "load_source_registry", return_value=registry),
-            patch.object(main, "fetch_headlines_from_rss", return_value=[]) as fetch,
-            patch.object(main, "save_run_json", return_value=(Path("/tmp"), Path("/tmp/run.json"))),
+            patch.object(
+                main,
+                "fetch_headlines_from_rss",
+                return_value={
+                    "entries": [],
+                    "source_health": [
+                        {
+                            "source_id": "reuters-business-news",
+                            "source_name": "Reuters Business News",
+                            "state": "EMPTY",
+                            "severity": "WARNING",
+                            "reason": "Zero entries present in feed",
+                            "recommended_action": "Confirm whether the source is expected to publish entries.",
+                            "http_status": 200,
+                            "entries_seen": 0,
+                            "entries_parsed": 0,
+                            "fetch_error": None,
+                            "checked_at": "2026-07-06T12:00:00+00:00",
+                        }
+                    ],
+                },
+            ) as fetch,
+            patch.object(
+                main,
+                "save_run_json",
+                return_value=(Path("/tmp"), Path("/tmp/run.json")),
+            ) as save_run_json,
         ):
             main.main([])
 
         fetch.assert_called_once()
         self.assertEqual(fetch.call_args.args[0], [REUTERS_URL])
+        persisted_run = save_run_json.call_args.args[0]
+        self.assertEqual(len(persisted_run["source_intelligence"]["source_health"]), 1)
 
 
 if __name__ == "__main__":

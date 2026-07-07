@@ -35,7 +35,7 @@ class EvidenceObjectTests(unittest.TestCase):
                 "summary": "Summary",
                 "url": "https://example.com/fed",
                 "timestamp": "2026-07-06T12:00:00+00:00",
-                "feed_url": "https://feeds.reuters.com/reuters/businessNews",
+                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
                 "metadata": {"guid": "item-1"},
             },
             {
@@ -43,33 +43,48 @@ class EvidenceObjectTests(unittest.TestCase):
                 "summary": "Summary",
                 "url": "https://example.com/fed",
                 "timestamp": "2026-07-06T12:00:00+00:00",
-                "feed_url": "https://feeds.reuters.com/reuters/businessNews",
+                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
                 "metadata": {"guid": "item-1"},
             },
         ]
 
-        evidence = normalize_rss_entries_to_evidence(entries)
+        evidence = normalize_rss_entries_to_evidence(
+            entries,
+            run_timestamp="2026-07-06T12:30:00+00:00",
+        )
 
         self.assertEqual(len(evidence), 2)
         self.assertTrue(evidence[0].accepted)
         self.assertIsNone(evidence[0].rejection_reason)
+        self.assertEqual(evidence[0].freshness_state, "FRESH")
         self.assertFalse(evidence[1].accepted)
         self.assertEqual(evidence[1].rejection_reason, "duplicate")
+        self.assertEqual(evidence[1].freshness_state, "FRESH")
         self.assertEqual(evidence_to_headlines(evidence), ["Fed holds rates"])
-        self.assertEqual(
-            source_intelligence_counts(evidence),
-            {
-                "evidence_count": 2,
-                "accepted_count": 1,
-                "rejected_count": 1,
-            },
-        )
+        counts = source_intelligence_counts(evidence)
+        self.assertEqual(counts["evidence_count"], 2)
+        self.assertEqual(counts["accepted_count"], 1)
+        self.assertEqual(counts["rejected_count"], 1)
+        self.assertEqual(counts["evidence_freshness"]["fresh_count"], 2)
+        self.assertEqual(counts["rejected_evidence_preview"][0]["rejection_reason"], "duplicate")
 
     def test_adapter_preserves_accepted_headline_order_and_text(self):
         entries = [
-            "  First headline  ",
-            "Second headline",
-            "first headline",
+            {
+                "title": "  First headline  ",
+                "timestamp": "2026-07-06T12:00:00+00:00",
+                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+            },
+            {
+                "title": "Second headline",
+                "timestamp": "2026-07-06T12:00:00+00:00",
+                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+            },
+            {
+                "title": "first headline",
+                "timestamp": "2026-07-06T12:00:00+00:00",
+                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+            },
         ]
 
         evidence = normalize_rss_entries_to_evidence(
