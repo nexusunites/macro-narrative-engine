@@ -6,10 +6,12 @@
 - [Project Status](docs/project_status.md)
 - [Roadmap](docs/roadmap.md)
 - [Source Intelligence Platform](docs/source_intelligence_platform.md)
-- [Narrative Memory System](docs/narrative_memory_system.md)
 - [Historical Replay Engine](docs/historical_replay_engine.md)
-- [Narrative Style Guide](docs/narrative_style_guide.md)
+- [Narrative Memory System](docs/narrative_memory_system.md)
 - [Intelligence Experience Architecture](docs/intelligence_experience_architecture.md)
+- Platform Observability Layer
+- [Research Workspace Architecture](docs/research_workspace_architecture.md)
+- [Narrative Style Guide](docs/narrative_style_guide.md)
 
 ## Runtime Data Storage
 

@@ -35,6 +35,21 @@ organizes, explains, compares, visualizes, searches, and enables exploration of
 that intelligence. Dashboard, research, AI analyst, reports, mobile, and API
 surfaces consume Intelligence; none of them produce or override it.
 
+## Canonical Architecture References
+
+MNE's permanent architecture references include:
+
+- `docs/source_intelligence_platform.md` -- Source Intelligence Platform (SIP)
+- `docs/historical_replay_engine.md` -- Historical Replay Engine (HRE)
+- `docs/narrative_memory_system.md` -- Narrative Memory System (NMS)
+- `docs/intelligence_experience_architecture.md` -- Intelligence Experience Architecture (IXA)
+- Platform Observability Layer (POL)
+- `docs/research_workspace_architecture.md` -- Research Workspace Architecture (RWA)
+
+The Research Workspace Architecture defines how investigation is organized inside
+MNE. It is an architecture reference only; implementation details, UI routes,
+APIs, and future workspace scaffolding remain separately scoped.
+
 ## Data Storage
 
 Raw and deduplicated headlines are saved with second-resolution date/time filenames inside the configured runtime data directory. By default this is `~/Google Drive/MNE-data/headlines/`, and it can be overridden with `MNE_DATA_DIR`. Results, headlines, and reports receive a numeric suffix when a filename for the same second already exists, so historical files are not overwritten. Result JSON records its filename stem as `run_id`.
