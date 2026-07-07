@@ -4,6 +4,8 @@ MNE is a macro narrative intelligence engine for tracking financial news narrati
 
 `docs/product_vision.md` is the top-level product philosophy reference for MNE. Architecture decisions should preserve that product vision: evidence before opinion, understanding before prediction, investigation before conclusions, deterministic intelligence before AI, and transparency before automation.
 
+`docs/product_backlog.md` is the master implementation backlog for MNE. Future sprint handoffs and sequencing decisions should originate there, while architecture documents remain the canonical references for system design.
+
 `docs/security_ip_model.md` is the permanent strategic and platform-protection reference for MNE. Architecture, access, data, documentation, and collaboration decisions should preserve the security and intellectual property principles defined there.
 
 ## Current Priority
@@ -44,6 +46,7 @@ surfaces consume Intelligence; none of them produce or override it.
 MNE's permanent architecture references include:
 
 - `docs/product_vision.md` -- Product Vision
+- `docs/product_backlog.md` -- Product Backlog
 - `docs/security_ip_model.md` -- Security & Intellectual Property Model
 - `docs/source_intelligence_platform.md` -- Source Intelligence Platform (SIP)
 - `docs/historical_replay_engine.md` -- Historical Replay Engine (HRE)
