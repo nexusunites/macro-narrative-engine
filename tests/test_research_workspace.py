@@ -3,6 +3,7 @@ import unittest
 from mne.research_workspace import (
     build_narrative_investigation,
     build_narrative_selector,
+    select_latest_meaningful_run,
     split_narrative_key,
 )
 
@@ -124,6 +125,46 @@ def sample_run():
 
 
 class ResearchWorkspaceTests(unittest.TestCase):
+    def test_select_latest_meaningful_run_skips_empty_latest_with_notice(self):
+        files = [
+            type("PathStub", (), {"name": "2026-07-07_114250.json"})(),
+            type("PathStub", (), {"name": "2026-07-06_114048.json"})(),
+        ]
+        runs = {
+            "2026-07-07_114250.json": {
+                "theme_scores": {"ai": 0},
+                "group_scores": {"AI / Tech Growth": 0},
+            },
+            "2026-07-06_114048.json": {
+                "theme_scores": {"ai": 4},
+                "group_scores": {"AI / Tech Growth": 4},
+            },
+        }
+
+        selection = select_latest_meaningful_run(
+            files,
+            lambda path: runs[path.name],
+        )
+
+        self.assertEqual(selection.path.name, "2026-07-06_114048.json")
+        self.assertEqual(
+            selection.notice,
+            (
+                "Latest run had no narrative signal; showing latest meaningful run: "
+                "2026-07-06_114048.json."
+            ),
+        )
+
+    def test_select_latest_meaningful_run_has_no_notice_when_latest_has_signal(self):
+        files = [type("PathStub", (), {"name": "2026-07-07_114250.json"})()]
+        selection = select_latest_meaningful_run(
+            files,
+            lambda path: {"theme_scores": {"ai": 4}},
+        )
+
+        self.assertEqual(selection.path.name, "2026-07-07_114250.json")
+        self.assertIsNone(selection.notice)
+
     def test_selector_lists_groups_and_themes_from_existing_scores(self):
         selector = build_narrative_selector(sample_run())
 
@@ -131,6 +172,18 @@ class ResearchWorkspaceTests(unittest.TestCase):
 
         self.assertIn("group:AI / Tech Growth", keys)
         self.assertIn("theme:ai", keys)
+
+    def test_selector_filters_zero_signal_narratives(self):
+        selector = build_narrative_selector(
+            {
+                "theme_scores": {"ai": 0, "rates": 3},
+                "group_scores": {"AI / Tech Growth": 0, "Macro Pressure": 3},
+            }
+        )
+
+        keys = [item["key"] for item in selector]
+
+        self.assertEqual(keys, ["group:Macro Pressure", "theme:rates"])
 
     def test_investigation_reads_coverage_values_and_filters_sources_exactly(self):
         investigation = build_narrative_investigation(
@@ -172,6 +225,33 @@ class ResearchWorkspaceTests(unittest.TestCase):
             ["theme-only-event"],
         )
         self.assertEqual(macro["events"], [])
+
+    def test_events_can_use_existing_definition_lookup_by_event_id(self):
+        run = sample_run()
+        run["event_lifecycle"]["events"] = [
+            {
+                "event_id": "ai-definition-event",
+                "event_name": "AI Supplier Earnings",
+                "lifecycle_state": "Upcoming",
+            }
+        ]
+
+        investigation = build_narrative_investigation(
+            run,
+            "group",
+            "AI / Tech Growth",
+            event_definitions=[
+                {
+                    "event_id": "ai-definition-event",
+                    "narrative_groups": ["AI / Tech Growth"],
+                }
+            ],
+        )
+
+        self.assertEqual(
+            [event["event_id"] for event in investigation["events"]],
+            ["ai-definition-event"],
+        )
 
     def test_platform_observability_is_admin_only(self):
         user_view = build_narrative_investigation(sample_run(), "group", "AI / Tech Growth")

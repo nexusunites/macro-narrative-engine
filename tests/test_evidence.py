@@ -2,6 +2,7 @@ import unittest
 
 from mne.evidence import (
     EVIDENCE_TYPE_HEADLINE,
+    finalize_source_intelligence_diagnostics,
     evidence_to_headlines,
     generate_evidence_id,
     normalize_rss_entries_to_evidence,
@@ -66,6 +67,12 @@ class EvidenceObjectTests(unittest.TestCase):
         self.assertEqual(counts["accepted_count"], 1)
         self.assertEqual(counts["rejected_count"], 1)
         self.assertEqual(counts["evidence_freshness"]["fresh_count"], 2)
+        self.assertEqual(counts["accepted_evidence"][0]["title"], "Fed holds rates")
+        self.assertFalse(counts["accepted_evidence_truncated"])
+        self.assertEqual(counts["evidence_funnel"]["fetched"], 2)
+        self.assertEqual(counts["evidence_funnel"]["accepted_fresh"], 1)
+        self.assertEqual(counts["evidence_funnel"]["rejected_duplicate"], 1)
+        self.assertEqual(counts["evidence_funnel"]["analyzer_input_count"], 1)
         self.assertEqual(counts["rejected_evidence_preview"][0]["rejection_reason"], "duplicate")
 
     def test_adapter_preserves_accepted_headline_order_and_text(self):
@@ -93,6 +100,66 @@ class EvidenceObjectTests(unittest.TestCase):
         )
 
         self.assertEqual(evidence_to_headlines(evidence), ["First headline", "Second headline"])
+
+    def test_finalizer_records_analyzer_input_and_zero_match_warning(self):
+        entries = [
+            {
+                "title": "First unrelated headline",
+                "timestamp": "2026-07-06T12:00:00+00:00",
+                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+            },
+            {
+                "title": "Second unrelated headline",
+                "timestamp": "2026-07-06T12:00:00+00:00",
+                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+            },
+        ]
+        evidence = normalize_rss_entries_to_evidence(
+            entries,
+            run_timestamp="2026-07-06T12:00:00+00:00",
+        )
+        source_intelligence = source_intelligence_counts(evidence)
+
+        finalize_source_intelligence_diagnostics(
+            source_intelligence,
+            evidence,
+            matched_headlines=0,
+        )
+
+        self.assertEqual(
+            [item["title"] for item in source_intelligence["accepted_evidence"]],
+            ["First unrelated headline", "Second unrelated headline"],
+        )
+        self.assertEqual(
+            source_intelligence["evidence_funnel"]["analyzer_input_count"],
+            2,
+        )
+        self.assertEqual(
+            source_intelligence["zero_match_warning"]["sample_accepted_titles"],
+            ["First unrelated headline", "Second unrelated headline"],
+        )
+
+    def test_zero_match_warning_is_omitted_when_matches_exist(self):
+        entries = [
+            {
+                "title": "AI demand lifts shares",
+                "timestamp": "2026-07-06T12:00:00+00:00",
+                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+            }
+        ]
+        evidence = normalize_rss_entries_to_evidence(
+            entries,
+            run_timestamp="2026-07-06T12:00:00+00:00",
+        )
+        source_intelligence = source_intelligence_counts(evidence)
+
+        finalize_source_intelligence_diagnostics(
+            source_intelligence,
+            evidence,
+            matched_headlines=1,
+        )
+
+        self.assertIsNone(source_intelligence["zero_match_warning"])
 
 
 if __name__ == "__main__":

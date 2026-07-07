@@ -1,4 +1,25 @@
-from mne.narrative_signals import NARRATIVE_GROUPS
+from dataclasses import dataclass
+from typing import Optional
+
+from mne.narrative_signals import NARRATIVE_GROUPS, compute_group_scores
+
+
+@dataclass(frozen=True)
+class RunSelection:
+    run: Optional[dict]
+    path: Optional[object]
+    latest_path: Optional[object] = None
+
+    @property
+    def notice(self):
+        if self.run is None or self.path is None or self.latest_path is None:
+            return None
+        if self.path == self.latest_path:
+            return None
+        return (
+            "Latest run had no narrative signal; showing latest meaningful run: "
+            f"{self.path.name}."
+        )
 
 
 def narrative_key(narrative_level, narrative_id):
@@ -14,15 +35,46 @@ def split_narrative_key(value):
     return level, narrative_id
 
 
-def latest_completed_run(files, load_result):
+def _has_narrative_data(run):
+    theme_scores = run.get("theme_scores") or run.get("theme_counts") or {}
+    group_scores = run.get("group_scores") or {}
+    if not isinstance(theme_scores, dict):
+        theme_scores = {}
+    if not isinstance(group_scores, dict):
+        group_scores = {}
+    return any(
+        isinstance(v, (int, float)) and v > 0 for v in theme_scores.values()
+    ) or any(
+        isinstance(v, (int, float)) and v > 0 for v in group_scores.values()
+    )
+
+
+def _score_sort_value(item):
+    value = item[1]
+    if isinstance(value, (int, float)):
+        return -value
+    return 0
+
+
+def select_latest_meaningful_run(files, load_result):
+    latest_path = None
     for path in files:
         try:
             run = load_result(path)
         except Exception:
             continue
-        if isinstance(run, dict):
-            return run, path
-    return None, None
+        if not isinstance(run, dict):
+            continue
+        if latest_path is None:
+            latest_path = path
+        if _has_narrative_data(run):
+            return RunSelection(run=run, path=path, latest_path=latest_path)
+    return RunSelection(run=None, path=None, latest_path=latest_path)
+
+
+def latest_completed_run(files, load_result):
+    selection = select_latest_meaningful_run(files, load_result)
+    return selection.run, selection.path
 
 
 def build_narrative_selector(run):
@@ -31,8 +83,15 @@ def build_narrative_selector(run):
     theme_scores = run.get("theme_scores") or run.get("theme_counts") or {}
     group_scores = run.get("group_scores") or {}
 
+    if not group_scores and isinstance(theme_scores, dict):
+        group_scores = compute_group_scores(theme_scores)
+
     if isinstance(group_scores, dict):
-        for narrative_id, score in sorted(group_scores.items()):
+        for narrative_id, score in sorted(
+            group_scores.items(), key=_score_sort_value
+        ):
+            if not (isinstance(score, (int, float)) and score > 0):
+                continue
             narratives.append(
                 {
                     "narrative_level": "group",
@@ -44,7 +103,11 @@ def build_narrative_selector(run):
             )
 
     if isinstance(theme_scores, dict):
-        for narrative_id, score in sorted(theme_scores.items()):
+        for narrative_id, score in sorted(
+            theme_scores.items(), key=_score_sort_value
+        ):
+            if not (isinstance(score, (int, float)) and score > 0):
+                continue
             narratives.append(
                 {
                     "narrative_level": "theme",
@@ -58,7 +121,13 @@ def build_narrative_selector(run):
     return narratives
 
 
-def build_narrative_investigation(run, narrative_level, narrative_id, admin=False):
+def build_narrative_investigation(
+    run,
+    narrative_level,
+    narrative_id,
+    admin=False,
+    event_definitions=None,
+):
     run = run if isinstance(run, dict) else {}
     source_intelligence = (
         run.get("source_intelligence") if isinstance(run.get("source_intelligence"), dict) else {}
@@ -77,7 +146,12 @@ def build_narrative_investigation(run, narrative_level, narrative_id, admin=Fals
         ),
         "coverage": coverage_record,
         "source_summary": _source_summary(source_intelligence, coverage_record),
-        "events": _events(run.get("event_lifecycle"), narrative_level, narrative_id),
+        "events": _events(
+            run.get("event_lifecycle"),
+            narrative_level,
+            narrative_id,
+            event_definitions=event_definitions,
+        ),
         "platform_observability": (
             _platform_observability(run.get("platform_observability")) if admin else None
         ),
@@ -224,16 +298,38 @@ def _source_summary(source_intelligence, coverage_record):
     return rows
 
 
-def _events(event_lifecycle, narrative_level, narrative_id):
+def _events(event_lifecycle, narrative_level, narrative_id, event_definitions=None):
     if not isinstance(event_lifecycle, dict):
         return []
 
+    definition_index = _index_event_definitions(event_definitions)
     return [
         event
         for event in event_lifecycle.get("events", [])
         if isinstance(event, dict)
-        and _matches_direct_narrative(event, narrative_level, narrative_id)
+        and _event_matches_narrative(event, definition_index, narrative_level, narrative_id)
     ]
+
+
+def _event_matches_narrative(event, definition_index, narrative_level, narrative_id):
+    if _matches_direct_narrative(event, narrative_level, narrative_id):
+        return True
+
+    definition = definition_index.get(event.get("event_id"))
+    return bool(
+        isinstance(definition, dict)
+        and _matches_direct_narrative(definition, narrative_level, narrative_id)
+    )
+
+
+def _index_event_definitions(event_definitions):
+    if not isinstance(event_definitions, list):
+        return {}
+    return {
+        str(event.get("event_id")): event
+        for event in event_definitions
+        if isinstance(event, dict) and event.get("event_id")
+    }
 
 
 def _platform_observability(platform_observability):

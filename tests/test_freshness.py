@@ -177,6 +177,76 @@ class FreshnessTests(unittest.TestCase):
         self.assertEqual(statuses["failed-source"], UNKNOWN)
         self.assertEqual(counts["rejected_evidence_preview"][0]["rejection_reason"], "stale")
 
+    def test_healthy_but_severely_stale_source_is_annotated(self):
+        stale_source = source("stale-source", "https://example.com/stale.xml", threshold=60)
+        registry = registry_with_sources(stale_source)
+        source_health = [
+            {
+                "source_id": "stale-source",
+                "source_name": "Stale Source",
+                "state": "HEALTHY",
+                "severity": "INFO",
+                "checked_at": "2026-07-06T12:00:00+00:00",
+            }
+        ]
+        evidence = normalize_rss_entries_to_evidence(
+            [
+                {
+                    "title": "Very old headline",
+                    "timestamp": "2026-06-29T12:00:00+00:00",
+                    "feed_url": "https://example.com/stale.xml",
+                }
+            ],
+            run_timestamp="2026-07-06T12:00:00+00:00",
+            registry=registry,
+            source_health=source_health,
+        )
+
+        counts = source_intelligence_counts(
+            evidence,
+            registry_version="1.0.0",
+            source_health=source_health,
+            registry=registry,
+        )
+
+        self.assertTrue(counts["source_health"][0]["healthy_but_severely_stale"])
+        self.assertEqual(counts["source_health"][0]["staleness_ratio"], 168.0)
+
+    def test_mildly_stale_source_is_not_annotated_as_severe(self):
+        stale_source = source("stale-source", "https://example.com/stale.xml", threshold=60)
+        registry = registry_with_sources(stale_source)
+        source_health = [
+            {
+                "source_id": "stale-source",
+                "source_name": "Stale Source",
+                "state": "HEALTHY",
+                "severity": "INFO",
+                "checked_at": "2026-07-06T12:00:00+00:00",
+            }
+        ]
+        evidence = normalize_rss_entries_to_evidence(
+            [
+                {
+                    "title": "Mildly old headline",
+                    "timestamp": "2026-07-06T10:00:00+00:00",
+                    "feed_url": "https://example.com/stale.xml",
+                }
+            ],
+            run_timestamp="2026-07-06T12:00:00+00:00",
+            registry=registry,
+            source_health=source_health,
+        )
+
+        counts = source_intelligence_counts(
+            evidence,
+            registry_version="1.0.0",
+            source_health=source_health,
+            registry=registry,
+        )
+
+        self.assertFalse(counts["source_health"][0]["healthy_but_severely_stale"])
+        self.assertEqual(counts["source_health"][0]["staleness_ratio"], 2.0)
+
     def test_stale_exclusion_changes_narrative_scores_attributably(self):
         registry = registry_with_sources(source("score-source", "https://example.com/score.xml"))
         entries = [

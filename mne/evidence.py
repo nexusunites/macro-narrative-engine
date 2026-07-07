@@ -17,6 +17,8 @@ from mne.source_registry import SourceRegistryError, load_source_registry
 
 EVIDENCE_TYPE_HEADLINE = "Headline"
 ENGINE_VERSION = "1.0.0"
+ACCEPTED_EVIDENCE_LIMIT = 500
+SEVERE_STALENESS_RATIO_THRESHOLD = 100
 
 
 @dataclass
@@ -190,6 +192,148 @@ def evidence_to_headlines(evidence_objects):
     return headlines
 
 
+def evidence_is_accepted(evidence):
+    if isinstance(evidence, EvidenceObject):
+        return evidence.accepted
+    return bool(evidence.get("accepted"))
+
+
+def evidence_record(evidence):
+    if isinstance(evidence, EvidenceObject):
+        return {
+            "evidence_id": evidence.evidence_id,
+            "source_id": evidence.source_id,
+            "title": evidence.title,
+            "timestamp": evidence.timestamp,
+        }
+    return {
+        "evidence_id": evidence.get("evidence_id"),
+        "source_id": evidence.get("source_id"),
+        "title": evidence.get("title"),
+        "timestamp": evidence.get("timestamp"),
+    }
+
+
+def accepted_evidence_records(evidence_objects, limit=ACCEPTED_EVIDENCE_LIMIT):
+    records = []
+    truncated = False
+
+    for evidence in evidence_objects:
+        if not evidence_is_accepted(evidence):
+            continue
+        if len(records) >= limit:
+            truncated = True
+            continue
+        records.append(evidence_record(evidence))
+
+    return records, truncated
+
+
+def rejection_reason_counts(evidence_objects):
+    counts = {
+        "stale": 0,
+        "duplicate": 0,
+        "unknown_timestamp": 0,
+    }
+    for evidence in evidence_objects:
+        if evidence_is_accepted(evidence):
+            continue
+        reason = (
+            evidence.rejection_reason
+            if isinstance(evidence, EvidenceObject)
+            else evidence.get("rejection_reason")
+        )
+        if reason in counts:
+            counts[reason] += 1
+    return counts
+
+
+def evidence_funnel_counts(evidence_objects, analyzer_input_count=None):
+    rejected = rejection_reason_counts(evidence_objects)
+    accepted_count = sum(1 for evidence in evidence_objects if evidence_is_accepted(evidence))
+    if analyzer_input_count is None:
+        analyzer_input_count = accepted_count
+    return {
+        "fetched": len(evidence_objects),
+        "accepted_fresh": accepted_count,
+        "rejected_stale": rejected["stale"],
+        "rejected_duplicate": rejected["duplicate"],
+        "rejected_unknown_timestamp": rejected["unknown_timestamp"],
+        "analyzer_input_count": analyzer_input_count,
+    }
+
+
+def zero_match_warning(accepted_evidence, accepted_count, matched_headlines, sample_size=5):
+    if accepted_count <= 0 or matched_headlines != 0:
+        return None
+    return {
+        "triggered": True,
+        "accepted_count": accepted_count,
+        "matched_headlines": 0,
+        "sample_accepted_titles": [
+            evidence.get("title")
+            for evidence in accepted_evidence[:sample_size]
+            if evidence.get("title")
+        ],
+    }
+
+
+def annotate_healthy_but_stale_sources(
+    source_health,
+    source_freshness,
+    severe_ratio_threshold=SEVERE_STALENESS_RATIO_THRESHOLD,
+):
+    freshness_by_source_id = {
+        item.get("source_id"): item
+        for item in source_freshness or []
+        if isinstance(item, dict) and item.get("source_id")
+    }
+    annotated = []
+
+    for health in source_health or []:
+        row = dict(health)
+        freshness = freshness_by_source_id.get(row.get("source_id")) or {}
+        age = freshness.get("newest_evidence_age_minutes")
+        threshold = freshness.get("freshness_threshold_minutes")
+        staleness_ratio = None
+        if isinstance(age, (int, float)) and isinstance(threshold, (int, float)) and threshold > 0:
+            staleness_ratio = round(age / threshold, 2)
+
+        severity = row.get("severity")
+        non_critical = severity in {"INFO", "WARNING"} or row.get("state") == "HEALTHY"
+        row["healthy_but_severely_stale"] = bool(
+            non_critical
+            and freshness.get("status") == STALE
+            and staleness_ratio is not None
+            and staleness_ratio >= severe_ratio_threshold
+        )
+        row["staleness_ratio"] = staleness_ratio
+        annotated.append(row)
+
+    return annotated
+
+
+def finalize_source_intelligence_diagnostics(
+    source_intelligence,
+    analyzer_input_evidence,
+    matched_headlines=None,
+):
+    accepted_records, truncated = accepted_evidence_records(analyzer_input_evidence)
+    source_intelligence["accepted_evidence"] = accepted_records
+    source_intelligence["accepted_evidence_truncated"] = truncated
+    source_intelligence["evidence_funnel"] = {
+        **(source_intelligence.get("evidence_funnel") or {}),
+        "analyzer_input_count": len(analyzer_input_evidence),
+    }
+    if matched_headlines is not None:
+        source_intelligence["zero_match_warning"] = zero_match_warning(
+            accepted_records,
+            len(analyzer_input_evidence),
+            matched_headlines,
+        )
+    return source_intelligence
+
+
 def source_intelligence_counts(
     evidence_objects,
     registry_version: str | None = None,
@@ -212,16 +356,25 @@ def source_intelligence_counts(
         "accepted_count": accepted_count,
         "rejected_count": rejected_count,
     })
-    if source_health is not None:
-        counts["source_health"] = list(source_health)
+    source_freshness = None
     counts["evidence_freshness"] = evidence_freshness_counts(evidence_objects)
     if registry is not None:
-        counts["source_freshness"] = build_source_freshness_outputs(
+        source_freshness = build_source_freshness_outputs(
             registry,
             evidence_objects,
             source_health,
         )
+        counts["source_freshness"] = source_freshness
+    if source_health is not None:
+        counts["source_health"] = annotate_healthy_but_stale_sources(
+            source_health,
+            source_freshness,
+        )
     preview, truncated = rejected_evidence_preview(evidence_objects)
     counts["rejected_evidence_preview"] = preview
     counts["rejected_evidence_preview_truncated"] = truncated
+    accepted, accepted_truncated = accepted_evidence_records(evidence_objects)
+    counts["accepted_evidence"] = accepted
+    counts["accepted_evidence_truncated"] = accepted_truncated
+    counts["evidence_funnel"] = evidence_funnel_counts(evidence_objects)
     return counts

@@ -12,13 +12,14 @@ from fastapi.templating import Jinja2Templates
 
 from config import RESULTS_DIR, ensure_data_dir
 from mne.config_diagnostics import build_configuration_report, format_startup_report
+from mne.event_lifecycle import load_event_definitions
 from mne.narrative_signals import compute_group_scores
 from mne.platform_observability import stage_by_name
 from mne.research_workspace import (
     build_narrative_investigation,
     build_narrative_selector,
-    latest_completed_run,
     narrative_key,
+    select_latest_meaningful_run,
     split_narrative_key,
 )
 from mne.source_registry import SourceRegistryError, load_source_registry
@@ -1038,10 +1039,21 @@ def build_view_model(run, current_file):
     }
 
 
-def build_template_context(request: Request, run: Optional[str]):
+def build_template_context(
+    request: Request,
+    run: Optional[str],
+    meaningful_default: bool = True,
+):
     recent_files = list_result_files()
     selected_path = safe_result_path(run) if run else None
-    current_file = selected_path or (recent_files[0] if recent_files else None)
+    selection = (
+        None
+        if selected_path or not meaningful_default
+        else select_latest_meaningful_run(list_all_result_files(), load_result)
+    )
+    current_file = selected_path or (selection.path if selection else None)
+    if current_file is None and recent_files and not meaningful_default:
+        current_file = recent_files[0]
 
     context = {
         "request": request,
@@ -1049,6 +1061,7 @@ def build_template_context(request: Request, run: Optional[str]):
         "recent_files": [path.name for path in recent_files],
         "selected_file": current_file.name if current_file else None,
         "message": None,
+        "notice": selection.notice if selection else None,
         "view": None,
         "regime_history": build_regime_history(),
         "narrative_leadership_history": build_narrative_leadership_history(),
@@ -1087,12 +1100,14 @@ def build_template_context(request: Request, run: Optional[str]):
 
 
 def build_research_context(request: Request):
-    run, current_file = latest_completed_run(list_all_result_files(), load_result)
+    selection = select_latest_meaningful_run(list_all_result_files(), load_result)
+    run, current_file = selection.run, selection.path
     context = {
         "request": request,
         "results_dir": RESULTS_DIR,
         "selected_file": current_file.name if current_file else None,
         "message": None,
+        "notice": selection.notice,
         "selector": [],
     }
     if not run:
@@ -1104,12 +1119,14 @@ def build_research_context(request: Request):
 
 
 def build_investigation_context(request: Request, key: str, admin: bool = False):
-    run, current_file = latest_completed_run(list_all_result_files(), load_result)
+    selection = select_latest_meaningful_run(list_all_result_files(), load_result)
+    run, current_file = selection.run, selection.path
     context = {
         "request": request,
         "results_dir": RESULTS_DIR,
         "selected_file": current_file.name if current_file else None,
         "message": None,
+        "notice": selection.notice,
         "investigation": None,
         "is_admin": admin,
     }
@@ -1121,18 +1138,24 @@ def build_investigation_context(request: Request, key: str, admin: bool = False)
         context["message"] = "No completed MNE result files found. Run main.py first."
         return context
 
+    try:
+        event_definitions = load_event_definitions()
+    except Exception:
+        event_definitions = []
+
     context["investigation"] = build_narrative_investigation(
         run,
         narrative_level,
         narrative_id,
         admin=admin,
+        event_definitions=event_definitions,
     )
     return context
 
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, run: Optional[str] = Query(default=None)):
-    context = build_template_context(request, run)
+    context = build_template_context(request, run, meaningful_default=True)
     return templates.TemplateResponse("dashboard.html", context)
 
 
@@ -1150,7 +1173,7 @@ def narrative_investigation(request: Request, key: str):
 
 @app.get("/admin", response_class=HTMLResponse)
 def admin_dashboard(request: Request, run: Optional[str] = Query(default=None)):
-    context = build_template_context(request, run)
+    context = build_template_context(request, run, meaningful_default=False)
     return templates.TemplateResponse("admin.html", context)
 
 

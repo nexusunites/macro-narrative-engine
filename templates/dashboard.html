@@ -45,6 +45,12 @@
     {% endif %}
 
     {% if view %}
+      {% if notice %}
+        <section class="run-notice">
+          <p>{{ notice }}</p>
+        </section>
+      {% endif %}
+
       <section id="overview" class="hero-section">
         <div class="hero-copy">
           <div class="hero-meta">

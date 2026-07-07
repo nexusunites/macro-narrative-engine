@@ -144,6 +144,21 @@ select {
   padding: 26px 0 64px;
 }
 
+.run-notice {
+  margin-bottom: 18px;
+  border: 1px solid rgba(215, 179, 106, 0.34);
+  border-radius: 8px;
+  background: rgba(215, 179, 106, 0.1);
+  color: var(--muted-strong);
+  padding: 13px 16px;
+}
+
+.run-notice p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+
 .hero-section {
   padding: clamp(34px, 6vw, 70px) 0 clamp(26px, 4vw, 46px);
   border-bottom: 1px solid var(--border);
@@ -343,6 +358,15 @@ select {
 .admin-evidence-list code {
   white-space: normal;
   word-break: break-word;
+}
+
+.admin-diagnostic-banner {
+  border-color: rgba(245, 158, 11, 0.42);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), rgba(255, 255, 255, 0.014)), var(--panel);
+}
+
+.admin-diagnostic-banner h3 {
+  margin-top: 0;
 }
 
 .change-compared {
@@ -602,6 +626,82 @@ select {
 .research-card p {
   margin: 0;
   color: var(--muted-strong);
+}
+
+.evidence-reveal {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 0;
+}
+
+.evidence-reveal summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 72px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  cursor: pointer;
+  list-style: none;
+  padding: 16px 18px;
+}
+
+.evidence-reveal summary::-webkit-details-marker {
+  display: none;
+}
+
+.evidence-reveal summary:hover {
+  border-color: var(--border-strong);
+  background: var(--panel-soft);
+}
+
+.evidence-reveal summary span {
+  display: grid;
+  gap: 4px;
+}
+
+.evidence-reveal summary .eyebrow {
+  margin: 0;
+}
+
+.evidence-reveal summary strong {
+  color: var(--text);
+  font-size: 19px;
+  line-height: 1.2;
+}
+
+.evidence-reveal summary em {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted-strong);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 720;
+  padding: 7px 10px;
+}
+
+.evidence-reveal[open] summary {
+  margin-bottom: 24px;
+}
+
+.evidence-reveal[open] summary em {
+  color: var(--accent);
+}
+
+.evidence-reveal .investigation-section + .investigation-section {
+  margin-top: 28px;
+}
+
+.research-entry-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-entry {
+  border-color: rgba(104, 211, 145, 0.22);
 }
 
 .research-evidence-list {

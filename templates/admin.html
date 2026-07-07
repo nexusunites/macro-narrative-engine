@@ -106,6 +106,29 @@
         </article>
       </section>
 
+      {% set source_intelligence = view.source_intelligence | default({}) %}
+      {% set zero_match_warning = source_intelligence.get("zero_match_warning") %}
+      {% if zero_match_warning %}
+        <section class="content-section">
+          <article class="card admin-diagnostic-banner">
+            <p class="eyebrow">Narrative Diagnostics</p>
+            <h3>Accepted Evidence Had Zero Taxonomy Matches</h3>
+            <p class="muted">
+              {{ zero_match_warning.accepted_count }} accepted headline(s) reached narrative scoring,
+              but none matched the tracked taxonomy. This can be a valid run when the accepted news is
+              outside the current narrative set.
+            </p>
+            {% if zero_match_warning.sample_accepted_titles %}
+              <ul class="admin-evidence-list">
+                {% for title in zero_match_warning.sample_accepted_titles %}
+                  <li>{{ title }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </article>
+        </section>
+      {% endif %}
+
       <section class="content-section card-grid admin-grid">
         <article class="card">
           <h3>Headline Counts</h3>
@@ -117,7 +140,6 @@
             </tbody>
           </table>
         </article>
-        {% set source_intelligence = view.source_intelligence | default({}) %}
         {% set source_registry = view.source_registry | default({}) %}
         <article class="card">
           <h3>Source Intelligence</h3>
@@ -129,6 +151,24 @@
               <tr><th>Rejected Evidence Objects</th><td>{{ source_intelligence.get("rejected_count", "Unavailable") }}</td></tr>
             </tbody>
           </table>
+        </article>
+        <article class="card">
+          <h3>Evidence Funnel</h3>
+          {% set evidence_funnel = source_intelligence.get("evidence_funnel", {}) %}
+          {% if evidence_funnel %}
+            <table>
+              <tbody>
+                <tr><th>Fetched</th><td>{{ evidence_funnel.get("fetched", "Unavailable") }}</td></tr>
+                <tr><th>Accepted Fresh</th><td>{{ evidence_funnel.get("accepted_fresh", "Unavailable") }}</td></tr>
+                <tr><th>Rejected Stale</th><td>{{ evidence_funnel.get("rejected_stale", "Unavailable") }}</td></tr>
+                <tr><th>Rejected Duplicate</th><td>{{ evidence_funnel.get("rejected_duplicate", "Unavailable") }}</td></tr>
+                <tr><th>Rejected Unknown Timestamp</th><td>{{ evidence_funnel.get("rejected_unknown_timestamp", "Unavailable") }}</td></tr>
+                <tr><th>Analyzer Input</th><td>{{ evidence_funnel.get("analyzer_input_count", "Unavailable") }}</td></tr>
+              </tbody>
+            </table>
+          {% else %}
+            <p class="muted">No evidence funnel summary persisted for this run.</p>
+          {% endif %}
         </article>
         <article class="card">
           <h3>Source Registry</h3>
@@ -165,6 +205,8 @@
                   <th>Severity</th>
                   <th>Seen</th>
                   <th>Parsed</th>
+                  <th>Severe Stale</th>
+                  <th>Ratio</th>
                   <th>Reason</th>
                 </tr>
               </thead>
@@ -177,6 +219,8 @@
                     <td>{{ source.severity }}</td>
                     <td>{{ source.entries_seen }}</td>
                     <td>{{ source.entries_parsed }}</td>
+                    <td>{{ "Yes" if source.healthy_but_severely_stale else "No" }}</td>
+                    <td>{{ source.staleness_ratio if source.staleness_ratio is not none else "Unavailable" }}</td>
                     <td>{{ source.reason }}</td>
                   </tr>
                 {% endfor %}
@@ -238,6 +282,44 @@
               <tr><th>Dominant Group Score</th><td>{{ view.run.dominant_group_score if view.run.dominant_group_score is not none else "Unavailable" }}</td></tr>
             </tbody>
           </table>
+        </article>
+      </section>
+
+      <section class="content-section">
+        <div class="section-heading">
+          <p class="eyebrow">Source Intelligence</p>
+          <h2>Accepted Evidence</h2>
+          <p class="leadership-read">Accepted, deduplicated evidence that reached narrative scoring for this run.</p>
+        </div>
+        <article class="card">
+          {% set accepted_evidence = source_intelligence.get("accepted_evidence", []) %}
+          {% if accepted_evidence %}
+            {% if source_intelligence.get("accepted_evidence_truncated") %}
+              <p class="muted">Accepted evidence was truncated for display and persistence.</p>
+            {% endif %}
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Source</th>
+                  <th>Timestamp</th>
+                  <th>Evidence ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for evidence in accepted_evidence %}
+                  <tr>
+                    <td>{{ evidence.title }}</td>
+                    <td>{{ evidence.source_id }}</td>
+                    <td>{{ evidence.timestamp or "Unavailable" }}</td>
+                    <td><code>{{ evidence.evidence_id }}</code></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="muted">No accepted evidence records were persisted for this run.</p>
+          {% endif %}
         </article>
       </section>
 

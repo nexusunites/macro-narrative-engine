@@ -21,6 +21,7 @@ from mne.coverage_intelligence import (
 from mne.evidence import (
     ENGINE_VERSION as SIP_ENGINE_VERSION,
     evidence_to_headlines,
+    finalize_source_intelligence_diagnostics,
     normalize_rss_entries_to_evidence,
     source_intelligence_counts,
 )
@@ -315,6 +316,11 @@ def main(args=None):
             results, examples, matched_headlines, theme_scores, theme_match_audit = theme_analysis
             theme_attribution = [{"headline": headline, "themes": []} for headline in headlines]
         group_scores = compute_group_scores(theme_scores)
+        source_intelligence = finalize_source_intelligence_diagnostics(
+            source_intelligence,
+            scored_evidence,
+            matched_headlines=matched_headlines,
+        )
         stage.set_result(
             status=SUCCESS,
             diagnostic_message="Narrative scoring completed from accepted evidence.",
