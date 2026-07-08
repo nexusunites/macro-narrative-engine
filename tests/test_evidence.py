@@ -11,6 +11,9 @@ from mne.evidence import (
 )
 
 
+ACTIVE_TEST_FEED_URL = "https://www.cnbc.com/id/100003114/device/rss/rss.html"
+
+
 class RegistryStub:
     def source_by_id(self, source_id):
         return {
@@ -46,7 +49,7 @@ class EvidenceObjectTests(unittest.TestCase):
                 "summary": "Summary",
                 "url": "https://example.com/fed",
                 "timestamp": "2026-07-06T12:00:00+00:00",
-                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                "feed_url": ACTIVE_TEST_FEED_URL,
                 "metadata": {"guid": "item-1"},
             },
             {
@@ -54,7 +57,7 @@ class EvidenceObjectTests(unittest.TestCase):
                 "summary": "Summary",
                 "url": "https://example.com/fed",
                 "timestamp": "2026-07-06T12:00:00+00:00",
-                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                "feed_url": ACTIVE_TEST_FEED_URL,
                 "metadata": {"guid": "item-1"},
             },
         ]
@@ -90,17 +93,17 @@ class EvidenceObjectTests(unittest.TestCase):
             {
                 "title": "  First headline  ",
                 "timestamp": "2026-07-06T12:00:00+00:00",
-                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                "feed_url": ACTIVE_TEST_FEED_URL,
             },
             {
                 "title": "Second headline",
                 "timestamp": "2026-07-06T12:00:00+00:00",
-                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                "feed_url": ACTIVE_TEST_FEED_URL,
             },
             {
                 "title": "first headline",
                 "timestamp": "2026-07-06T12:00:00+00:00",
-                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                "feed_url": ACTIVE_TEST_FEED_URL,
             },
         ]
 
@@ -116,12 +119,12 @@ class EvidenceObjectTests(unittest.TestCase):
             {
                 "title": "First unrelated headline",
                 "timestamp": "2026-07-06T12:00:00+00:00",
-                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                "feed_url": ACTIVE_TEST_FEED_URL,
             },
             {
                 "title": "Second unrelated headline",
                 "timestamp": "2026-07-06T12:00:00+00:00",
-                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                "feed_url": ACTIVE_TEST_FEED_URL,
             },
         ]
         evidence = normalize_rss_entries_to_evidence(
@@ -156,12 +159,12 @@ class EvidenceObjectTests(unittest.TestCase):
                 "summary": "Summary",
                 "url": "https://example.com/ai",
                 "timestamp": "2026-07-06T12:00:00+00:00",
-                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                "feed_url": ACTIVE_TEST_FEED_URL,
             },
             {
                 "title": "Duplicate stale headline",
                 "timestamp": "2026-07-06T12:00:00+00:00",
-                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                "feed_url": ACTIVE_TEST_FEED_URL,
             },
         ]
         evidence = normalize_rss_entries_to_evidence(
@@ -195,7 +198,7 @@ class EvidenceObjectTests(unittest.TestCase):
             {
                 "title": "AI demand lifts shares",
                 "timestamp": "2026-07-06T12:00:00+00:00",
-                "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                "feed_url": ACTIVE_TEST_FEED_URL,
             }
         ]
         evidence = normalize_rss_entries_to_evidence(

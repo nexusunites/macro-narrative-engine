@@ -1,5 +1,5 @@
 {
-  "registry_version": "1.0.0",
+  "registry_version": "1.1.0",
   "coverage_thresholds": {
     "LIMITED": {
       "min_evidence_count": 2,
@@ -36,12 +36,12 @@
       "ingestion_type": "RSS",
       "supported_evidence_types": ["Headline"],
       "url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
-      "status": "ACTIVE",
+      "status": "DISABLED",
       "freshness_threshold_minutes": 180,
       "expected_update_frequency_minutes": 60,
       "supported_narratives": ["Markets", "Rates", "Credit", "Volatility", "General Business"],
       "supported_groups": ["Macro", "Market Structure", "General Business"],
-      "notes": "Migrated from Sprint 1 hardcoded RSS source list."
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list. ENI Phase 1 2026-07-08: Direct live fetch returned HTTP 200 with 20 parseable entries, but newest entry timestamp was 2025-01-27, about 526 days stale. Endpoint itself is frozen/obsolete, so source is disabled rather than left ACTIVE with stale content."
     },
     {
       "source_id": "cnbc-top-news",
@@ -57,7 +57,7 @@
       "expected_update_frequency_minutes": 45,
       "supported_narratives": ["Markets", "Companies", "Technology", "General Business"],
       "supported_groups": ["Companies", "Technology", "General Business"],
-      "notes": "Migrated from Sprint 1 hardcoded RSS source list."
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list. ENI Phase 1 2026-07-08: Default requests client reproduced HTTP 403, while the same public RSS feed returned HTTP 200 with a standard browser-style User-Agent. Fetch client now sends an ordinary User-Agent; source remains ACTIVE after live verification with fresh accepted evidence."
     },
     {
       "source_id": "reuters-business-news",
@@ -73,7 +73,7 @@
       "expected_update_frequency_minutes": 45,
       "supported_narratives": ["Macro", "Companies", "Technology", "Energy", "General Business"],
       "supported_groups": ["Macro", "Companies", "Technology", "Energy", "General Business"],
-      "notes": "Migrated from Sprint 1 hardcoded RSS source list. Disabled during Sprint 2 verification because the current URL returned a DNS resolution failure on 2026-07-06."
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list. Disabled during Sprint 2 verification because the current URL returned a DNS resolution failure on 2026-07-06. ENI Phase 1 2026-07-08: Direct live verification still could not resolve feeds.reuters.com; remains DISABLED because no currently working legitimate RSS replacement was confirmed."
     },
     {
       "source_id": "financial-times",
@@ -83,13 +83,13 @@
       "priority": "TIER_1",
       "ingestion_type": "RSS",
       "supported_evidence_types": ["Headline"],
-      "url": "https://www.ft.com/?format=rss",
+      "url": "https://www.ft.com/rss/home/international",
       "status": "ACTIVE",
       "freshness_threshold_minutes": 240,
       "expected_update_frequency_minutes": 90,
       "supported_narratives": ["Macro", "Rates", "Credit", "Geopolitics", "Companies"],
       "supported_groups": ["Macro", "Rates", "Credit", "Geopolitics", "Companies"],
-      "notes": "Migrated from Sprint 1 hardcoded RSS source list."
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list. ENI Phase 1 2026-07-08: Updated URL to the live redirect target observed from the registered feed; source remained fresh and contributed accepted evidence."
     },
     {
       "source_id": "bloomberg-etf-report",
@@ -105,7 +105,7 @@
       "expected_update_frequency_minutes": 1440,
       "supported_narratives": ["ETFs", "Market Structure", "Rates", "Technology"],
       "supported_groups": ["ETFs", "Market Structure", "Rates", "Technology"],
-      "notes": "Migrated from Sprint 1 hardcoded RSS source list. Disabled during Sprint 2 verification because the current URL returned zero parseable entries due malformed XML on 2026-07-06."
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list. Disabled during Sprint 2 verification because the current URL returned zero parseable entries due malformed XML on 2026-07-06. ENI Phase 1 2026-07-08: Direct live verification returned HTTP 403 Forbidden; remains DISABLED because the public feed is not currently usable by the RSS fetch path."
     },
     {
       "source_id": "bbc-business",
@@ -115,13 +115,13 @@
       "priority": "TIER_3",
       "ingestion_type": "RSS",
       "supported_evidence_types": ["Headline"],
-      "url": "https://www.bbc.co.uk/news/business/rss.xml",
+      "url": "https://feeds.bbci.co.uk/news/business/rss.xml",
       "status": "ACTIVE",
       "freshness_threshold_minutes": 240,
       "expected_update_frequency_minutes": 120,
       "supported_narratives": ["General Business", "Companies", "Energy", "Inflation"],
       "supported_groups": ["General Business", "Companies", "Energy", "Inflation"],
-      "notes": "Migrated from Sprint 1 hardcoded RSS source list."
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list. ENI Phase 1 2026-07-08: Updated URL to the live redirect target observed from the registered feed; source remained fresh and contributed accepted evidence."
     },
     {
       "source_id": "npr-business",
@@ -131,13 +131,173 @@
       "priority": "TIER_3",
       "ingestion_type": "RSS",
       "supported_evidence_types": ["Headline"],
-      "url": "https://www.npr.org/rss/rss.php?id=1001",
+      "url": "https://feeds.npr.org/1001/rss.xml",
       "status": "ACTIVE",
       "freshness_threshold_minutes": 720,
       "expected_update_frequency_minutes": 240,
       "supported_narratives": ["General Business", "Companies", "Economic Data", "Inflation"],
       "supported_groups": ["General Business", "Companies", "Economic Data", "Inflation"],
-      "notes": "Migrated from Sprint 1 hardcoded RSS source list."
+      "notes": "Migrated from Sprint 1 hardcoded RSS source list. ENI Phase 1 2026-07-08: Updated URL to the live redirect target observed from the registered feed; source remained fresh and contributed accepted evidence."
+    },
+    {
+      "source_id": "marketwatch-top-stories",
+      "display_name": "MarketWatch Top Stories",
+      "provider": "MarketWatch",
+      "category": "Market Structure",
+      "priority": "TIER_2",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 360,
+      "expected_update_frequency_minutes": 120,
+      "supported_narratives": ["Markets", "Rates", "Credit", "Volatility", "Companies", "General Business"],
+      "supported_groups": ["Market Structure", "Rates", "Credit", "Volatility", "Companies", "General Business"],
+      "notes": "ENI Phase 1 2026-07-08 addition. Public Dow Jones/MarketWatch RSS feed verified live with HTTP 200, valid parsed entries, fresh timestamps, and accepted headline evidence. Added to expand financial-news and markets coverage independent of existing FT/BBC/NPR/Economist cluster."
+    },
+    {
+      "source_id": "yahoo-finance-news",
+      "display_name": "Yahoo Finance News",
+      "provider": "Yahoo Finance",
+      "category": "Market Structure",
+      "priority": "TIER_3",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://finance.yahoo.com/news/rssindex",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 2880,
+      "expected_update_frequency_minutes": 720,
+      "supported_narratives": ["Markets", "Companies", "Technology", "General Business"],
+      "supported_groups": ["Market Structure", "Companies", "Technology", "General Business"],
+      "notes": "ENI Phase 1 2026-07-08 addition. Public Yahoo Finance RSS endpoint verified with standard browser-style User-Agent, parsed into valid entries, and produced accepted fresh evidence. Threshold reflects a slower feed cadence observed during verification."
+    },
+    {
+      "source_id": "investing-com-news",
+      "display_name": "Investing.com News",
+      "provider": "Investing.com",
+      "category": "Market Structure",
+      "priority": "TIER_3",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.investing.com/rss/news.rss",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 240,
+      "expected_update_frequency_minutes": 60,
+      "supported_narratives": ["Markets", "Companies", "Technology", "Energy", "General Business"],
+      "supported_groups": ["Market Structure", "Companies", "Technology", "Energy", "General Business"],
+      "notes": "ENI Phase 1 2026-07-08 addition. Public RSS endpoint verified live with HTTP 200, valid parsed entries, fresh timestamps, and accepted headline evidence. Added as a lower-priority market-news breadth source; evidence remains subject to unchanged duplicate, timestamp, freshness, and taxonomy validation."
+    },
+    {
+      "source_id": "federal-reserve-press-releases",
+      "display_name": "Federal Reserve Press Releases",
+      "provider": "Federal Reserve",
+      "category": "Rates",
+      "priority": "TIER_1",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.federalreserve.gov/feeds/press_all.xml",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 1440,
+      "expected_update_frequency_minutes": 1440,
+      "supported_narratives": ["Rates", "Macro", "Inflation", "Economic Data", "Credit"],
+      "supported_groups": ["Rates", "Macro", "Inflation", "Economic Data", "Credit"],
+      "notes": "ENI Phase 1 2026-07-08 addition. Official Federal Reserve RSS feed verified live with HTTP 200, valid parsed entries, fresh source status, and accepted headline evidence. Added as a primary-source central-bank feed to reduce dependence on journalistic intermediaries."
+    },
+    {
+      "source_id": "federal-reserve-speeches",
+      "display_name": "Federal Reserve Speeches",
+      "provider": "Federal Reserve",
+      "category": "Rates",
+      "priority": "TIER_1",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.federalreserve.gov/feeds/speeches.xml",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 4320,
+      "expected_update_frequency_minutes": 2880,
+      "supported_narratives": ["Rates", "Macro", "Inflation", "Economic Data", "Credit"],
+      "supported_groups": ["Rates", "Macro", "Inflation", "Economic Data", "Credit"],
+      "notes": "ENI Phase 1 2026-07-08 addition. Official Federal Reserve speeches RSS feed verified live with HTTP 200, valid parsed entries, fresh source status, and accepted headline evidence. Threshold reflects irregular central-bank speech cadence while preserving timestamp and freshness rejection."
+    },
+    {
+      "source_id": "bls-employment-situation",
+      "display_name": "BLS Employment Situation",
+      "provider": "Bureau of Labor Statistics",
+      "category": "Economic Data",
+      "priority": "TIER_1",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.bls.gov/feed/empsit.rss",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 64800,
+      "expected_update_frequency_minutes": 43200,
+      "supported_narratives": ["Economic Data", "Macro", "Inflation", "Rates"],
+      "supported_groups": ["Economic Data", "Macro", "Inflation", "Rates"],
+      "notes": "ENI Phase 1 2026-07-08 addition. Official BLS RSS feed verified from the BLS RSS directory with HTTP 200 under ordinary client identification, valid parsed entries, and accepted evidence. Forty-five-day threshold reflects monthly employment-release cadence."
+    },
+    {
+      "source_id": "bls-consumer-price-index",
+      "display_name": "BLS Consumer Price Index",
+      "provider": "Bureau of Labor Statistics",
+      "category": "Inflation",
+      "priority": "TIER_1",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.bls.gov/feed/cpi.rss",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 64800,
+      "expected_update_frequency_minutes": 43200,
+      "supported_narratives": ["Inflation", "Economic Data", "Macro", "Rates"],
+      "supported_groups": ["Inflation", "Economic Data", "Macro", "Rates"],
+      "notes": "ENI Phase 1 2026-07-08 addition. Official BLS CPI RSS feed verified from the BLS RSS directory with HTTP 200 under ordinary client identification, valid parsed entries, and accepted evidence. Forty-five-day threshold reflects monthly CPI-release cadence."
+    },
+    {
+      "source_id": "bea-news-releases",
+      "display_name": "BEA News Releases",
+      "provider": "Bureau of Economic Analysis",
+      "category": "Economic Data",
+      "priority": "TIER_1",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://apps.bea.gov/rss/rss.xml",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 21600,
+      "expected_update_frequency_minutes": 10080,
+      "supported_narratives": ["Economic Data", "Macro", "Inflation", "Rates"],
+      "supported_groups": ["Economic Data", "Macro", "Inflation", "Rates"],
+      "notes": "ENI Phase 1 2026-07-08 addition. Official BEA News Release Feed (RSS) verified live with HTTP 200, valid parsed entries, and accepted evidence. Threshold reflects weekly-to-monthly economic release cadence."
+    },
+    {
+      "source_id": "eia-today-in-energy",
+      "display_name": "EIA Today in Energy",
+      "provider": "Energy Information Administration",
+      "category": "Energy",
+      "priority": "TIER_1",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.eia.gov/rss/todayinenergy.xml",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 14400,
+      "expected_update_frequency_minutes": 1440,
+      "supported_narratives": ["Energy", "Macro", "Inflation", "Commodities"],
+      "supported_groups": ["Energy", "Macro", "Inflation"],
+      "notes": "ENI Phase 1 2026-07-08 addition. Official EIA RSS feed verified live with HTTP 200, valid parsed entries, and accepted evidence. Ten-day threshold reflects weekday publication rhythm with holiday/weekend gaps."
+    },
+    {
+      "source_id": "sec-press-releases",
+      "display_name": "SEC Press Releases",
+      "provider": "Securities and Exchange Commission",
+      "category": "General Business",
+      "priority": "TIER_2",
+      "ingestion_type": "RSS",
+      "supported_evidence_types": ["Headline"],
+      "url": "https://www.sec.gov/news/pressreleases.rss",
+      "status": "ACTIVE",
+      "freshness_threshold_minutes": 2880,
+      "expected_update_frequency_minutes": 1440,
+      "supported_narratives": ["Companies", "Market Structure", "Credit", "General Business"],
+      "supported_groups": ["Companies", "Market Structure", "Credit", "General Business"],
+      "notes": "ENI Phase 1 2026-07-08 addition. Official SEC press-release RSS feed verified live with HTTP 200, valid parsed entries, fresh source status, and accepted headline evidence. Scope is press-release headlines only; filings ingestion remains out of scope."
     },
     {
       "source_id": "economist-finance-economics",

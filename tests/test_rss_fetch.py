@@ -45,13 +45,14 @@ class RssFetchHealthTests(unittest.TestCase):
         )
 
     def test_healthy_feed_returns_entries_and_health(self):
-        with patch("mne.rss_fetch.requests.get", return_value=response(content=feed_with_items("First", "Second"))):
+        with patch("mne.rss_fetch.requests.get", return_value=response(content=feed_with_items("First", "Second"))) as get:
             result = self.fetch()
 
         self.assertEqual([entry["title"] for entry in result["entries"]], ["First", "Second"])
         self.assertEqual(result["source_health"][0]["state"], "HEALTHY")
         self.assertEqual(result["source_health"][0]["entries_seen"], 2)
         self.assertEqual(result["source_health"][0]["entries_parsed"], 2)
+        self.assertIn("User-Agent", get.call_args.kwargs["headers"])
 
     def test_offline_fetch_persists_health_record(self):
         with patch(

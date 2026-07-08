@@ -17,8 +17,8 @@ except ModuleNotFoundError as exc:
 def sample_source_health(entries_seen=0, entries_parsed=0, state="EMPTY"):
     return [
         {
-            "source_id": "wsj-markets",
-            "source_name": "WSJ Markets",
+            "source_id": "cnbc-top-news",
+            "source_name": "CNBC Top News",
             "state": state,
             "severity": "WARNING" if state == "EMPTY" else "INFO",
             "reason": "Zero entries present in feed",
@@ -101,7 +101,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         save_run_json.assert_called_once()
         persisted_run = save_run_json.call_args.args[0]
         source_intelligence = persisted_run["source_intelligence"]
-        self.assertEqual(source_intelligence["registry_version"], "1.0.0")
+        self.assertEqual(source_intelligence["registry_version"], "1.1.0")
         self.assertEqual(source_intelligence["evidence_count"], 0)
         self.assertEqual(source_intelligence["accepted_count"], 0)
         self.assertEqual(source_intelligence["rejected_count"], 0)
@@ -146,7 +146,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
                         {
                             "title": "No theme here",
                             "timestamp": "2026-07-06T11:45:00+00:00",
-                            "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                            "feed_url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
                         }
                     ],
                     "source_health": source_health,
@@ -239,7 +239,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         save_run_json.assert_called_once()
         persisted_run = save_run_json.call_args.args[0]
         source_intelligence = persisted_run["source_intelligence"]
-        self.assertEqual(source_intelligence["registry_version"], "1.0.0")
+        self.assertEqual(source_intelligence["registry_version"], "1.1.0")
         self.assertEqual(source_intelligence["evidence_count"], 1)
         self.assertEqual(source_intelligence["accepted_count"], 1)
         self.assertEqual(source_intelligence["rejected_count"], 0)
@@ -249,7 +249,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
                 {
                     **source_health[0],
                     "healthy_but_severely_stale": False,
-                    "staleness_ratio": 0.08,
+                    "staleness_ratio": 0.12,
                 }
             ],
         )

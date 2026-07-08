@@ -6,6 +6,14 @@ from datetime import datetime, timezone
 from mne.feed_health import FetchMetadata, build_source_health_output, checked_at_now
 
 
+DEFAULT_RSS_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 MNE-RSS/1.0"
+    ),
+}
+
+
 def _entry_timestamp(entry):
     parsed_timestamp = getattr(entry, "published_parsed", None) or getattr(
         entry, "updated_parsed", None
@@ -81,7 +89,12 @@ def fetch_headline_entries_with_health_from_rss(
         metadata = None
 
         try:
-            response = requests.get(url, timeout=timeout, allow_redirects=True)
+            response = requests.get(
+                url,
+                timeout=timeout,
+                allow_redirects=True,
+                headers=DEFAULT_RSS_HEADERS,
+            )
             http_status = response.status_code
             final_url = response.url
             redirected = _is_redirected(url, final_url)

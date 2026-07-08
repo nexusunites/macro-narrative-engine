@@ -18,8 +18,8 @@ from mne.platform_observability import (
 def healthy_source_health():
     return [
         {
-            "source_id": "wsj-markets",
-            "source_name": "WSJ Markets",
+            "source_id": "cnbc-top-news",
+            "source_name": "CNBC Top News",
             "state": "HEALTHY",
             "severity": "INFO",
             "reason": "Feed parsed successfully; 1 entries parsed",
@@ -66,7 +66,7 @@ class PlatformObservabilityTests(unittest.TestCase):
                         {
                             "title": "No theme here",
                             "timestamp": "2026-07-06T11:45:00+00:00",
-                            "feed_url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+                            "feed_url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
                         }
                     ],
                     "source_health": source_health,
