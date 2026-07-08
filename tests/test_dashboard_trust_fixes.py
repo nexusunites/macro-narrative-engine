@@ -79,6 +79,101 @@ class DashboardTrustFixTests(unittest.TestCase):
             "Alignment higher over the recent window; latest move down.",
         )
 
+    def test_admin_renders_evidence_network_section_neutrally(self):
+        run_path = Path("/tmp/2026-07-08_120000.json")
+        run = {
+            "timestamp": "2026-07-08_120000",
+            "source_intelligence": {
+                "network_health": {
+                    "network_status": "NETWORK_PARTIAL",
+                    "providers": [
+                        {
+                            "provider": "Federal Reserve",
+                            "sources_total": 2,
+                            "sources_healthy": 2,
+                            "sources_degraded": 0,
+                            "evidence_contributed": 3,
+                            "provider_state": "HEALTHY",
+                        }
+                    ],
+                    "categories": [
+                        {
+                            "category": "Rates",
+                            "providers_total": 1,
+                            "providers_healthy": 1,
+                            "sources_total": 2,
+                            "sources_healthy": 2,
+                            "evidence_contributed": 3,
+                            "single_provider_dependency": True,
+                            "category_state": "HEALTHY",
+                        },
+                        {
+                            "category": "ETFs",
+                            "providers_total": 0,
+                            "providers_healthy": 0,
+                            "sources_total": 0,
+                            "sources_healthy": 0,
+                            "evidence_contributed": 0,
+                            "single_provider_dependency": False,
+                            "category_state": "UNCOVERED",
+                        },
+                    ],
+                    "concentration": {
+                        "total_accepted_evidence": 3,
+                        "provider_shares": [
+                            {
+                                "provider": "Federal Reserve",
+                                "evidence_count": 3,
+                                "share": 1.0,
+                            }
+                        ],
+                        "top_provider": "Federal Reserve",
+                        "top_provider_share": 1.0,
+                        "concentration_flag": True,
+                    },
+                    "thresholds_used": {
+                        "concentration_threshold": 0.40,
+                        "evidence_floor": 5,
+                    },
+                }
+            },
+        }
+
+        with (
+            patch.object(dashboard, "build_configuration_report"),
+            patch.object(dashboard, "build_source_registry_diagnostics", return_value={}),
+        ):
+            dashboard.build_configuration_report.return_value.to_dict.return_value = {}
+            view = dashboard.build_view_model(run, run_path)
+            original_url_for = dashboard.templates.env.globals.get("url_for")
+            dashboard.templates.env.globals["url_for"] = lambda *args, **kwargs: "/static/styles.css"
+            try:
+                html = dashboard.templates.env.get_template("admin.html").render(
+                    request=object(),
+                    results_dir="/tmp/results",
+                    recent_runs=[
+                        {
+                            "filename": run_path.name,
+                            "label": "07/08 12:00",
+                        }
+                    ],
+                    selected_file=run_path.name,
+                    message=None,
+                    view=view,
+                )
+            finally:
+                if original_url_for is None:
+                    dashboard.templates.env.globals.pop("url_for", None)
+                else:
+                    dashboard.templates.env.globals["url_for"] = original_url_for
+
+        self.assertIn("Evidence Network", html)
+        self.assertIn("NETWORK_PARTIAL", html)
+        self.assertIn("Federal Reserve contributed", html)
+        self.assertIn("UNCOVERED", html)
+        self.assertNotIn("klaxon", html.lower())
+        self.assertNotIn("alarm", html.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

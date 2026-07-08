@@ -107,6 +107,7 @@
       </section>
 
       {% set source_intelligence = view.source_intelligence | default({}) %}
+      {% set network_health = source_intelligence.get("network_health", {}) %}
       {% set zero_match_warning = source_intelligence.get("zero_match_warning") %}
       {% if zero_match_warning %}
         <section class="content-section">
@@ -283,6 +284,132 @@
             </tbody>
           </table>
         </article>
+      </section>
+
+      <section class="content-section">
+        <div class="section-heading">
+          <p class="eyebrow">Source Intelligence</p>
+          <h2>Evidence Network</h2>
+          <p class="leadership-read">Provider, category, and concentration rollups for accepted evidence in this run.</p>
+        </div>
+        {% if network_health %}
+          <article class="card">
+            <h3>Overall Network Status</h3>
+            <p class="admin-value">{{ network_health.get("network_status", "Unavailable") }}</p>
+            {% set thresholds = network_health.get("thresholds_used", {}) %}
+            <table>
+              <tbody>
+                <tr><th>Concentration Threshold</th><td>{{ thresholds.get("concentration_threshold", "Unavailable") }}</td></tr>
+                <tr><th>Evidence Floor</th><td>{{ thresholds.get("evidence_floor", "Unavailable") }}</td></tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="card">
+            <h3>Providers</h3>
+            {% if network_health.get("providers") %}
+              <table>
+                <thead>
+                  <tr>
+                    <th>Provider</th>
+                    <th>State</th>
+                    <th>Sources Healthy / Total</th>
+                    <th>Evidence</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for provider in network_health.get("providers", []) %}
+                    <tr>
+                      <td>{{ provider.provider }}</td>
+                      <td>{{ provider.provider_state }}</td>
+                      <td>{{ provider.sources_healthy }} / {{ provider.sources_total }}</td>
+                      <td>{{ provider.evidence_contributed }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="muted">No provider rollups were persisted for this run.</p>
+            {% endif %}
+          </article>
+
+          <article class="card">
+            <h3>Categories</h3>
+            {% if network_health.get("categories") %}
+              <table>
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>State</th>
+                    <th>Providers Healthy / Total</th>
+                    <th>Sources Healthy / Total</th>
+                    <th>Evidence</th>
+                    <th>Dependency</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for category in network_health.get("categories", []) %}
+                    <tr>
+                      <td>{{ category.category }}</td>
+                      <td>{{ category.category_state }}</td>
+                      <td>{{ category.providers_healthy }} / {{ category.providers_total }}</td>
+                      <td>{{ category.sources_healthy }} / {{ category.sources_total }}</td>
+                      <td>{{ category.evidence_contributed }}</td>
+                      <td>
+                        {% if category.category_state == "UNCOVERED" %}
+                          UNCOVERED
+                        {% elif category.single_provider_dependency %}
+                          Single provider
+                        {% else %}
+                          None
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="muted">No category rollups were persisted for this run.</p>
+            {% endif %}
+          </article>
+
+          {% set network_concentration = network_health.get("concentration", {}) %}
+          <article class="card">
+            <h3>Provider Concentration</h3>
+            <table>
+              <tbody>
+                <tr><th>Total Accepted Evidence</th><td>{{ network_concentration.get("total_accepted_evidence", "Unavailable") }}</td></tr>
+                <tr><th>Top Provider</th><td>{{ network_concentration.get("top_provider") or "None" }}</td></tr>
+                <tr><th>Top Provider Share</th><td>{{ network_concentration.get("top_provider_share") if network_concentration.get("top_provider_share") is not none else "Unavailable" }}</td></tr>
+                <tr><th>Concentration Flag</th><td>{{ "Reported" if network_concentration.get("concentration_flag") else "Not reported" }}</td></tr>
+              </tbody>
+            </table>
+            {% if network_concentration.get("provider_shares") %}
+              <table>
+                <thead><tr><th>Provider</th><th>Evidence</th><th>Share</th></tr></thead>
+                <tbody>
+                  {% for provider in network_concentration.get("provider_shares", []) %}
+                    <tr>
+                      <td>{{ provider.provider }}</td>
+                      <td>{{ provider.evidence_count }}</td>
+                      <td>{{ provider.share }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% endif %}
+            {% if network_concentration.get("concentration_flag") and network_concentration.get("top_provider") %}
+              <p class="muted">
+                {{ network_concentration.get("top_provider") }} contributed
+                {{ network_concentration.get("top_provider_share") }} of accepted evidence this run.
+              </p>
+            {% endif %}
+          </article>
+        {% else %}
+          <article class="card">
+            <p class="muted">No Evidence Network block was persisted for this run.</p>
+          </article>
+        {% endif %}
       </section>
 
       <section class="content-section">

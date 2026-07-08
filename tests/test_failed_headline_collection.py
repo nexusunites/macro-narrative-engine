@@ -101,7 +101,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         save_run_json.assert_called_once()
         persisted_run = save_run_json.call_args.args[0]
         source_intelligence = persisted_run["source_intelligence"]
-        self.assertEqual(source_intelligence["registry_version"], "1.1.0")
+        self.assertEqual(source_intelligence["registry_version"], "1.2.0")
         self.assertEqual(source_intelligence["evidence_count"], 0)
         self.assertEqual(source_intelligence["accepted_count"], 0)
         self.assertEqual(source_intelligence["rejected_count"], 0)
@@ -118,6 +118,15 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         self.assertEqual(source_intelligence["evidence_freshness"]["fresh_count"], 0)
         self.assertIn("source_freshness", source_intelligence)
         self.assertEqual(source_intelligence["rejected_evidence_preview"], [])
+        self.assertIn("network_health", source_intelligence)
+        self.assertEqual(
+            source_intelligence["network_health"]["network_status"],
+            "NETWORK_CRITICAL",
+        )
+        self.assertEqual(
+            source_intelligence["network_health"]["concentration"]["total_accepted_evidence"],
+            0,
+        )
         self.assertEqual(
             persisted_run["narrative_run_status"],
             "skipped_failed_headline_collection",
@@ -187,6 +196,9 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
                     "macro_calendar_warning": False,
                 },
             ))
+            stack.enter_context(
+                patch.object(main, "evaluate_event_lifecycle_run", return_value={"current_event": None, "events": []})
+            )
             stack.enter_context(patch.object(
                 main,
                 "classify_positioning_environment",
@@ -196,6 +208,8 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
                     "reason": "No positioning signal.",
                 },
             ))
+            stack.enter_context(patch.object(main, "get_recent_runs", return_value=[]))
+            stack.enter_context(patch.object(main, "load_daily_snapshots", return_value=[]))
             stack.enter_context(patch.object(main, "calculate_narrative_dynamics", return_value={}))
             stack.enter_context(patch.object(main, "calculate_narrative_pulse", return_value={}))
             stack.enter_context(patch.object(
@@ -239,7 +253,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         save_run_json.assert_called_once()
         persisted_run = save_run_json.call_args.args[0]
         source_intelligence = persisted_run["source_intelligence"]
-        self.assertEqual(source_intelligence["registry_version"], "1.1.0")
+        self.assertEqual(source_intelligence["registry_version"], "1.2.0")
         self.assertEqual(source_intelligence["evidence_count"], 1)
         self.assertEqual(source_intelligence["accepted_count"], 1)
         self.assertEqual(source_intelligence["rejected_count"], 0)
@@ -255,6 +269,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         )
         self.assertEqual(source_intelligence["evidence_freshness"]["fresh_count"], 1)
         self.assertEqual(source_intelligence["rejected_evidence_preview"], [])
+        self.assertIn("network_health", source_intelligence)
         write_daily_snapshot.assert_called_once()
         save_report.assert_called_once()
         print_momentum.assert_called_once()

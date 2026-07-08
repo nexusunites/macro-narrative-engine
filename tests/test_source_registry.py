@@ -16,6 +16,10 @@ REUTERS_URL = "https://feeds.reuters.com/reuters/businessNews"
 def valid_registry_data():
     return {
         "registry_version": "1.0.0",
+        "network_thresholds": {
+            "concentration_threshold": 0.40,
+            "evidence_floor": 5,
+        },
         "coverage_thresholds": {
             "LIMITED": {
                 "min_evidence_count": 2,
@@ -78,6 +82,10 @@ class SourceRegistryTests(unittest.TestCase):
         registry = load_source_registry(self.write_registry(valid_registry_data()))
 
         self.assertEqual(registry.registry_version, "1.0.0")
+        self.assertEqual(
+            registry.network_thresholds,
+            {"concentration_threshold": 0.40, "evidence_floor": 5},
+        )
         self.assertEqual(registry.active_rss_urls, [REUTERS_URL])
         self.assertEqual(
             registry.source_by_url(REUTERS_URL)["display_name"],
@@ -103,6 +111,13 @@ class SourceRegistryTests(unittest.TestCase):
         data["sources"][0]["status"] = "PAUSED"
 
         with self.assertRaisesRegex(SourceRegistryError, "invalid status"):
+            load_source_registry(self.write_registry(data))
+
+    def test_invalid_network_thresholds_fail_loudly(self):
+        data = valid_registry_data()
+        data["network_thresholds"]["concentration_threshold"] = 1.5
+
+        with self.assertRaisesRegex(SourceRegistryError, "concentration_threshold"):
             load_source_registry(self.write_registry(data))
 
     def test_only_active_sources_are_sent_to_fetch(self):
@@ -152,7 +167,13 @@ class SourceRegistryTests(unittest.TestCase):
         fetch.assert_called_once()
         self.assertEqual(fetch.call_args.args[0], [REUTERS_URL])
         persisted_run = save_run_json.call_args.args[0]
-        self.assertEqual(len(persisted_run["source_intelligence"]["source_health"]), 1)
+        source_intelligence = persisted_run["source_intelligence"]
+        self.assertEqual(len(source_intelligence["source_health"]), 1)
+        self.assertIn("network_health", source_intelligence)
+        self.assertEqual(
+            source_intelligence["network_health"]["thresholds_used"],
+            {"concentration_threshold": 0.40, "evidence_floor": 5},
+        )
 
 
 if __name__ == "__main__":

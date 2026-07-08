@@ -1,5 +1,9 @@
 {
-  "registry_version": "1.1.0",
+  "registry_version": "1.2.0",
+  "network_thresholds": {
+    "concentration_threshold": 0.40,
+    "evidence_floor": 5
+  },
   "coverage_thresholds": {
     "LIMITED": {
       "min_evidence_count": 2,

@@ -15,6 +15,7 @@ REQUIRED_TOP_LEVEL_KEYS = {
     "categories",
     "priority_tiers",
     "coverage_thresholds",
+    "network_thresholds",
 }
 REQUIRED_SOURCE_FIELDS = {
     "source_id",
@@ -61,6 +62,10 @@ DEFAULT_COVERAGE_THRESHOLDS = {
         "min_unique_provider_count": 4,
     },
 }
+DEFAULT_NETWORK_THRESHOLDS = {
+    "concentration_threshold": 0.40,
+    "evidence_floor": 5,
+}
 
 
 class SourceRegistryError(ValueError):
@@ -76,6 +81,9 @@ class SourceRegistry:
     priority_tiers: tuple[dict[str, Any], ...]
     coverage_thresholds: dict[str, Any] = field(
         default_factory=lambda: copy.deepcopy(DEFAULT_COVERAGE_THRESHOLDS)
+    )
+    network_thresholds: dict[str, Any] = field(
+        default_factory=lambda: copy.deepcopy(DEFAULT_NETWORK_THRESHOLDS)
     )
 
     @property
@@ -154,6 +162,7 @@ def load_source_registry(path: Path | str = REGISTRY_PATH):
         categories=tuple(data["categories"]),
         priority_tiers=tuple(data["priority_tiers"]),
         coverage_thresholds=dict(data["coverage_thresholds"]),
+        network_thresholds=dict(data["network_thresholds"]),
     )
 
 
@@ -176,6 +185,7 @@ def validate_source_registry(data):
         if not isinstance(data[key], list):
             raise SourceRegistryError(f"Source registry field {key!r} must be an array.")
     _validate_coverage_thresholds(data["coverage_thresholds"])
+    _validate_network_thresholds(data["network_thresholds"])
 
     source_ids = set()
     urls = set()
@@ -299,3 +309,31 @@ def _validate_coverage_thresholds(thresholds):
             raise SourceRegistryError(
                 f"Source registry coverage_thresholds.{state}.max_evidence_count must be a non-negative integer or null."
             )
+
+
+def _validate_network_thresholds(thresholds):
+    if not isinstance(thresholds, dict):
+        raise SourceRegistryError("Source registry field 'network_thresholds' must be an object.")
+
+    required_fields = {"concentration_threshold", "evidence_floor"}
+    missing_fields = required_fields - set(thresholds)
+    if missing_fields:
+        missing = ", ".join(sorted(missing_fields))
+        raise SourceRegistryError(f"Source registry network_thresholds missing fields: {missing}")
+
+    concentration_threshold = thresholds.get("concentration_threshold")
+    if (
+        not isinstance(concentration_threshold, (int, float))
+        or isinstance(concentration_threshold, bool)
+        or concentration_threshold < 0
+        or concentration_threshold > 1
+    ):
+        raise SourceRegistryError(
+            "Source registry network_thresholds.concentration_threshold must be a number between 0 and 1."
+        )
+
+    evidence_floor = thresholds.get("evidence_floor")
+    if not isinstance(evidence_floor, int) or isinstance(evidence_floor, bool) or evidence_floor < 0:
+        raise SourceRegistryError(
+            "Source registry network_thresholds.evidence_floor must be a non-negative integer."
+        )

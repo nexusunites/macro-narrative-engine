@@ -28,6 +28,7 @@ from mne.evidence import (
 )
 from mne.headline_deduplication import dedupe_headlines
 from mne.market_context import get_market_snapshot
+from mne.network_health import build_network_health
 from mne.narrative_brief import ENGINE_VERSION as NARRATIVE_BRIEF_ENGINE_VERSION
 from mne.narrative_brief import generate_narrative_brief
 from mne.narrative_leadership import build_narrative_leadership
@@ -260,6 +261,12 @@ def main(args=None):
         print(ZERO_HEADLINE_WARNING)
         failure_reason = headline_collection_failure_reason(deduplication)
         print(f"Failure reason: {failure_reason}")
+        source_intelligence["network_health"] = build_network_health(
+            source_registry,
+            source_intelligence.get("source_health", []),
+            source_intelligence.get("source_freshness", []),
+            source_intelligence.get("accepted_evidence", []),
+        )
         failed_run = {
             "timestamp": stamp,
             "rss_urls": rss_urls,
@@ -327,6 +334,12 @@ def main(args=None):
             scored_evidence,
             theme_attribution,
             source_registry,
+        )
+        source_intelligence["network_health"] = build_network_health(
+            source_registry,
+            source_intelligence.get("source_health", []),
+            source_intelligence.get("source_freshness", []),
+            source_intelligence.get("accepted_evidence", []),
         )
         stage.set_result(
             status=SUCCESS,

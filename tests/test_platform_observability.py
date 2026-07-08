@@ -123,6 +123,8 @@ class PlatformObservabilityTests(unittest.TestCase):
             ))
             stack.enter_context(patch.object(main, "calculate_narrative_dynamics", return_value={}))
             stack.enter_context(patch.object(main, "calculate_narrative_pulse", return_value={}))
+            stack.enter_context(patch.object(main, "get_recent_runs", return_value=[]))
+            stack.enter_context(patch.object(main, "load_daily_snapshots", return_value=[]))
             stack.enter_context(patch.object(
                 main,
                 "calculate_regime_alignment",
