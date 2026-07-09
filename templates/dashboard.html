@@ -51,6 +51,29 @@
         </section>
       {% endif %}
 
+      {% if view.dashboard_trust_summary %}
+        <section class="dashboard-trust-summary trust-summary-{{ view.dashboard_trust_summary.state|lower|replace(' ', '-') }}">
+          <div class="trust-summary-copy">
+            <p class="eyebrow">Data Quality</p>
+            <div class="trust-summary-heading">
+              <h2>{{ view.dashboard_trust_summary.state }}</h2>
+              <span>Summary confidence: {{ view.dashboard_trust_summary.confidence }}</span>
+            </div>
+            <p>{{ view.dashboard_trust_summary.reason }}</p>
+          </div>
+          {% if view.dashboard_trust_summary.facts %}
+            <ul class="trust-summary-facts">
+              {% for fact in view.dashboard_trust_summary.facts %}
+                <li>{{ fact }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if view.dashboard_trust_summary.admin_link_visible %}
+            <a class="trust-summary-admin-link" href="/admin{% if selected_file %}?run={{ selected_file }}{% endif %}">View operational details in Admin</a>
+          {% endif %}
+        </section>
+      {% endif %}
+
       <section id="overview" class="hero-section">
         <div class="hero-copy">
           <div class="hero-meta">

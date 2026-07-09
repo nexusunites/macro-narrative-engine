@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 
 from config import RESULTS_DIR, ensure_data_dir
 from mne.config_diagnostics import build_configuration_report, format_startup_report
+from mne.dashboard_trust_summary import build_dashboard_trust_summary
 from mne.event_lifecycle import load_event_definitions
 from mne.narrative_signals import compute_group_scores
 from mne.operations_center import build_operations_center
@@ -1122,6 +1123,10 @@ def build_template_context(
         return context
 
     view = build_view_model(result, current_file)
+    view["dashboard_trust_summary"] = build_dashboard_trust_summary(
+        result,
+        latest_meaningful_fallback_active=bool(selection and selection.notice),
+    )
     if isinstance(result.get("change_summary"), dict):
         view["change_summary"] = result["change_summary"]
     else:

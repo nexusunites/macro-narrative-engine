@@ -159,6 +159,93 @@ select {
   font-weight: 650;
 }
 
+.dashboard-trust-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px 22px;
+  align-items: center;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-left: 3px solid rgba(194, 202, 212, 0.75);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 16px 18px;
+}
+
+.trust-summary-strong-evidence-base {
+  border-left-color: rgba(104, 211, 145, 0.78);
+}
+
+.trust-summary-usable-evidence-base {
+  border-left-color: rgba(118, 179, 218, 0.78);
+}
+
+.trust-summary-limited-evidence-base,
+.trust-summary-thin-evidence-base {
+  border-left-color: rgba(215, 179, 106, 0.8);
+}
+
+.trust-summary-copy {
+  display: grid;
+  gap: 7px;
+}
+
+.trust-summary-copy .eyebrow,
+.trust-summary-copy p,
+.trust-summary-heading h2 {
+  margin: 0;
+}
+
+.trust-summary-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: baseline;
+}
+
+.trust-summary-heading h2 {
+  font-size: 20px;
+}
+
+.trust-summary-heading span,
+.trust-summary-copy p {
+  color: var(--muted-strong);
+  font-size: 13px;
+}
+
+.trust-summary-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trust-summary-facts li {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted-strong);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.trust-summary-admin-link {
+  grid-column: 1 / -1;
+  justify-self: start;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.trust-summary-admin-link:hover {
+  color: var(--text);
+}
+
 .hero-section {
   padding: clamp(34px, 6vw, 70px) 0 clamp(26px, 4vw, 46px);
   border-bottom: 1px solid var(--border);
@@ -1384,9 +1471,14 @@ pre {
   }
 
   .hero-section,
+  .dashboard-trust-summary,
   .operations-lists,
   .two-column {
     grid-template-columns: 1fr;
+  }
+
+  .trust-summary-facts {
+    justify-content: flex-start;
   }
 
   .metric-grid {
