@@ -24,6 +24,7 @@ The following major platform capabilities are considered complete as part of **P
 - **Platform Observability (POL)** — per-stage pipeline telemetry, run metadata, and engine version reporting.
 - **Configuration Portability** — environment-driven, cross-platform data directory resolution with no import-time filesystem side effects.
 - **Evidence Diagnostics** — accepted-evidence persistence (capped at 500 entries with an explicit truncation flag), the evidence funnel summary, the zero-match warning, and the healthy-but-severely-stale source flag.
+- **Operations Center MVP** — render-time, admin-only operational summary using existing persisted signals, with component summaries for Configuration, Pipeline / Platform Observability, Evidence Network, Source Confidence, Source Reliability, Coverage Intelligence, and Freshness / Feed Health.
 
 This is a summary for orientation only — each system's canonical reference is its own architecture document in this repository.
 
@@ -202,13 +203,13 @@ This is a summary for orientation only — each system's canonical reference is 
 | CNBC 403 remediation | **Implemented.** `cnbc-top-news` was restored using legitimate public-feed User-Agent behavior. | Restores a previously lost source | Done | Low–Medium | Complete |
 | Provider/category network health measurement | **Implemented.** Persist provider rollups, category rollups, provider concentration, and overall `network_status` in `source_intelligence.network_health`, with admin visibility in the Evidence Network section. | Gives admins a direct read on evidence-network diversity and concentration risk | Done | Medium | Complete |
 | Source Reliability / Quarantine Tracking | **Implemented.** `mne/source_reliability.py` evaluates repeated source weakness across recent persisted runs using `source_reliability_thresholds`, persists `source_intelligence.source_reliability` every run, and exposes recommendations in the Admin Source Reliability / Quarantine Tracking section. Recommendation-only: source status changes remain manual. | Gives admins a direct read on persistent source weakness without silently changing the evidence network | Done | Medium | Complete |
-| Source Quarantine automation | Future, not implemented. Automatically changing source status based on reliability findings remains out of scope; source disable/quarantine/enable decisions are still manual. | Prevents a quietly-degraded source from going unnoticed indefinitely once operational controls are deliberately enabled | Source Reliability / Quarantine Tracking (done), source-status governance, Operations Center (not built) | Medium | Future |
+| Source Quarantine automation | Future, not implemented. Automatically changing source status based on reliability findings remains out of scope; source disable/quarantine/enable decisions are still manual. | Prevents a quietly-degraded source from going unnoticed indefinitely once operational controls are deliberately enabled | Source Reliability / Quarantine Tracking (done), source-status governance, Operations Center MVP (done) | Medium | Future |
 | Source Confidence Model | **Implemented.** Cross-listed with Epic 5. Answers "Was today's evidence collected cleanly?" and persists under `source_intelligence.source_confidence`, with Admin visibility. Distinct from Network Health and from future Network Confidence. | Honest run-level read on evidence-collection quality | Done | Medium | Complete |
-| Network Confidence Model | Future, not implemented. Design and implement the deterministic model evaluating whether the Evidence Network is currently capable of supporting reliable macro understanding — per the ENI architecture. Distinct from Source Confidence and from the implemented network-health measurement block: Source Confidence measures the *quality of collected evidence* (health, freshness, ingestion mechanics); Network Confidence will synthesize the *resilience and adequacy of the evidence network itself* into a confidence model. A day can score high on one and low on the other. | Catches the failure mode per-evidence validation cannot: clean collection from a dangerously thinned network | Evidence Network Health Measurement (done), Operations Center (not built), Coverage Intelligence (done) | Medium | High |
+| Network Confidence Model | Future, not implemented. Design and implement the deterministic model evaluating whether the Evidence Network is currently capable of supporting reliable macro understanding — per the ENI architecture. Distinct from Source Confidence and from the implemented network-health measurement block: Source Confidence measures the *quality of collected evidence* (health, freshness, ingestion mechanics); Network Confidence will synthesize the *resilience and adequacy of the evidence network itself* into a confidence model. A day can score high on one and low on the other. | Catches the failure mode per-evidence validation cannot: clean collection from a dangerously thinned network | Evidence Network Health Measurement (done), Operations Center MVP (done), Coverage Intelligence (done) | Medium | High |
 | Non-headline connectors (Phase 2) | SEC filings, transcripts, government publications, and other evidence types | Richer, more diverse evidence base | Evidence Normalization Layer (done, proven with headlines only) | High | Future |
 | Historical evidence connectors | Archival ingestion needed for dates before live capture | Enables Historical Replay beyond the current live window | Historical Replay core (Epic 2); becomes High priority once Epic 2 begins | High | Future |
 | Full Source Registry admin editing UI | In-app registry editing, replacing config-file-only edits | Faster source management | Source Registry (done) | Medium | Medium |
-| Full Operations Center MVP | Future, not implemented. Unified operational workflows for reviewing source reliability recommendations, deciding manual source status changes, and coordinating Network Confidence follow-on work remain future scope. | Gives operators a controlled place to act on diagnostics without automatic status changes | Existing admin diagnostics, Source Reliability / Quarantine Tracking (done), Network Confidence Model (not built) | Medium | Future |
+| Operations Center refinements | Future. The first Operations Center summary layer is implemented, but fuller operational workflows for reviewing source reliability recommendations, deciding manual source status changes, and coordinating Network Confidence follow-on work remain future scope. | Gives operators a more mature place to act on diagnostics without automatic status changes | Operations Center MVP (done), Source Reliability / Quarantine Tracking (done), Network Confidence Model (not built) | Medium | Future |
 
 ---
 
@@ -216,9 +217,9 @@ This is a summary for orientation only — each system's canonical reference is 
 
 **Goal:** Give admins a coherent way to understand platform health and behavior, not just scattered per-engine diagnostics.
 
-**Why it matters:** Every SIP/EQE/POL sprint added its own admin section correctly and additively — but nothing has unified them into one coherent experience yet.
+**Why it matters:** Every SIP/EQE/POL sprint added its own admin section correctly and additively. The Operations Center MVP now adds the first unified top-level readout, while fuller operational workflows and historical diagnostics remain future work.
 
-**Current status:** **Implemented incrementally**, functional but not unified — Source Registry, Feed Health, Freshness, Coverage Intelligence, Platform Observability, and the new Evidence Diagnostics sections all exist as separate additions.
+**Current status:** **Operations Center MVP implemented.** Admin now renders a top-level Operations Center Summary above the existing detailed diagnostics. The summary reports overall operational status, confidence, reason, recommendation, what is working, and what needs attention, with component summaries for Configuration, Pipeline / Platform Observability, Evidence Network, Source Confidence, Source Reliability, Coverage Intelligence, and Freshness / Feed Health. Existing admin diagnostics remain available below the summary. Operations Center is render-time/admin-only and uses existing persisted signals only; it does not change persistence, scoring, sources, taxonomy, or engine logic.
 
 **Dependencies:** None blocking.
 
@@ -226,10 +227,10 @@ This is a summary for orientation only — each system's canonical reference is 
 
 | Item | Description | User value | Dependencies | Complexity | Priority |
 |---|---|---|---|---|---|
-| Unified Admin Diagnostics Hub | Consolidate existing sections into one coherent, navigable admin IA | Faster diagnosis, less hunting across bolted-on sections | All existing admin sections (done) | Medium | Medium |
-| Historical/skipped-run browser | Admin view of total-failure or skipped-run days | Visibility into days MNE couldn't complete a full run | Platform Observability (done) | Low | Medium |
-| Version comparison view | Compare replayed vs. live runs across engine versions | Debugging and trust-building for Historical Replay | Historical Replay Engine (Epic 2) | Medium | Future |
-| Temporal integrity audit tooling | Explicit, one-click confirmation that no future evidence leaked into a replay | Direct proof of Historical Replay's core guarantee | Historical Replay Engine (Epic 2) | Medium | Future |
+| Unified Admin Diagnostics Hub / Operations Center MVP | **Implemented at MVP level.** `mne/operations_center.py` builds a render-time/admin-only operational summary from existing persisted signals, and `/admin` displays it above the existing detailed diagnostics. Future refinements may still improve navigation and operational workflows, but the first Operations Center layer is complete. | Faster diagnosis, less hunting across bolted-on sections | Done | Medium | Complete |
+| Historical/skipped-run browser | Future. Admin view of total-failure or skipped-run days remains unbuilt. | Visibility into days MNE couldn't complete a full run | Platform Observability (done) | Low | Medium |
+| Version comparison view | Future. Compare replayed vs. live runs across engine versions; remains unbuilt. | Debugging and trust-building for Historical Replay | Historical Replay Engine (Epic 2) | Medium | Future |
+| Temporal integrity audit tooling | Future. Explicit, one-click confirmation that no future evidence leaked into a replay remains unbuilt. | Direct proof of Historical Replay's core guarantee | Historical Replay Engine (Epic 2) | Medium | Future |
 
 ---
 
@@ -288,7 +289,7 @@ Following the guiding philosophy — **build the smallest amount of software tha
 
 **Phase 2 — Near-term.** Once the Research Workspace MVP is live and the dashboard's quick fixes are in:
 3. Epic 6: consolidated degraded-run banner and Level 3/4 content migration into the now-existing Research Workspace.
-4. Epic 8: Unified Admin Diagnostics Hub. Source Reliability / Quarantine Tracking is already complete as a recommendation-only diagnostic; Source Quarantine automation, Network Confidence, and the Full Operations Center MVP remain future work.
+4. Epic 8 / Epic 7: remaining admin and source-intelligence controls. Operations Center MVP and Source Reliability / Quarantine Tracking are already complete as recommendation-only/admin-only diagnostics; Source Quarantine automation, Network Confidence, historical/skipped-run browsing, version comparison, and temporal integrity audit tooling remain future work.
 
 **Phase 3 — Mid-term.** Once the Research Workspace has real usage on live data:
 6. Epic 2: Historical Replay Engine core (Historical Evidence Pipeline through determinism verification).
