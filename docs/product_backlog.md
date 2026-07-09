@@ -15,6 +15,7 @@ The following major platform capabilities are considered complete as part of **P
 
 - **Source Intelligence Platform (SIP)** — Evidence Objects with deterministic IDs, the Source Registry (`config/source_registry.json`), Feed Health, and Freshness Validation, all operational in production.
 - **Coverage Intelligence (EQE)** — per-narrative evidence breadth, diversity, and concentration measurement, first layer of the Evidence Quality Engine.
+- **Evidence Network Initiative foundations** — ENI Phase 1 source coverage repair/expansion and ENI Phase 2 network health measurement, including provider/category rollups, provider concentration, overall network status, persisted `source_intelligence.network_health`, and the Admin Evidence Network section.
 - **Narrative Intelligence** — theme/group scoring, taxonomy, Narrative Leadership, Rotation, Pulse, Dynamics, Crowding, Change Summary, Regime Alignment, Breadth Confirmation, and related market/catalyst context engines.
 - **Narrative Brief Engine** — deterministic, template-composed, evidence-traceable daily briefs with graceful fallback behavior.
 - **Event Lifecycle Engine** — deterministic catalyst phase awareness.
@@ -187,19 +188,20 @@ This is a summary for orientation only — each system's canonical reference is 
 
 **Why it matters:** This is the foundation every other Epic's trustworthiness rests on — and it's mostly done.
 
-**Current status:** **Substantially Implemented.** Confirmed live: Evidence Objects, deterministic `evidence_id`, the Source Registry (`registry_version` 1.0.0), Feed Health, Freshness Validation, Coverage Intelligence, and the Evidence Diagnostics & Persistence Fix (accepted-evidence persistence, evidence funnel, zero-match warning, healthy-but-severely-stale flag).
+**Current status:** **Substantially Implemented.** Confirmed live: Evidence Objects, deterministic `evidence_id`, the Source Registry, Feed Health, Freshness Validation, Coverage Intelligence, and the Evidence Diagnostics & Persistence Fix (accepted-evidence persistence, evidence funnel, zero-match warning, healthy-but-severely-stale flag). ENI Phase 1 source coverage expansion is implemented: the source registry was expanded, CNBC was restored with legitimate public-feed User-Agent behavior, WSJ was investigated and disabled after serving stale January 2025 content, Reuters and Bloomberg remain disabled, accepted evidence improved materially, provider/category diversity improved, and the registry version was updated. ENI Phase 2 network health measurement is implemented: `source_intelligence.network_health` persists provider rollups, category rollups, provider concentration, and overall `network_status` every run, with an Admin Evidence Network section available for inspection.
 
-**Dependencies:** Feed remediation items need direct investigation, not more architecture, before they can be closed.
+**Dependencies:** Remaining unbuilt items depend on existing SIP foundations, the implemented ENI network-health measurement block, or future admin/operations surfaces as noted below. Feed remediation investigation for WSJ and CNBC is complete.
 
 **Epic priority:** **High**
 
 | Item | Description | User value | Dependencies | Complexity | Priority |
 |---|---|---|---|---|---|
-| WSJ feed remediation | Confirm and fix the suspected silent-redirect/stale-mirror issue on `wsj-markets` | Restores a currently-degraded source | None (investigation-first) | Low–Medium | Critical |
-| CNBC 403 remediation | Resolve the blocked `cnbc-top-news` source | Restores a fully-lost source | None | Low–Medium | High |
+| WSJ feed remediation | **Implemented as investigation completed.** `wsj-markets` was confirmed to serve stale January 2025 content and was disabled rather than treated as a healthy source. | Prevents stale evidence from silently entering the network | Done | Low–Medium | Complete |
+| CNBC 403 remediation | **Implemented.** `cnbc-top-news` was restored using legitimate public-feed User-Agent behavior. | Restores a previously lost source | Done | Low–Medium | Complete |
+| Provider/category network health measurement | **Implemented.** Persist provider rollups, category rollups, provider concentration, and overall `network_status` in `source_intelligence.network_health`, with admin visibility in the Evidence Network section. | Gives admins a direct read on evidence-network diversity and concentration risk | Done | Medium | Complete |
 | Source Quarantine automation | Auto-exclude sources exceeding their expiration threshold across runs | Prevents a quietly-degraded source from going unnoticed indefinitely | Feed Health, Freshness Validation (done) | Medium | High |
 | Source Confidence Model | (Cross-listed with Epic 5) | See Epic 5 | — | Medium | High |
-| Network Confidence Model | Design and implement the deterministic model evaluating whether the Evidence Network is currently capable of supporting reliable macro understanding — per the ENI architecture. Distinct from Source Confidence: Source Confidence measures the *quality of collected evidence* (health, freshness, ingestion mechanics); Network Confidence measures the *resilience and adequacy of the evidence network itself* (diversity, provider concentration, dependency risk). A day can score high on one and low on the other. | Catches the failure mode per-evidence validation cannot: clean collection from a dangerously thinned network | Evidence Network Initiative (architecture accepted), Operations Center, Coverage Intelligence (done) | Medium | High |
+| Network Confidence Model | Future, not implemented. Design and implement the deterministic model evaluating whether the Evidence Network is currently capable of supporting reliable macro understanding — per the ENI architecture. Distinct from Source Confidence and from the implemented network-health measurement block: Source Confidence measures the *quality of collected evidence* (health, freshness, ingestion mechanics); Network Confidence will synthesize the *resilience and adequacy of the evidence network itself* into a confidence model. A day can score high on one and low on the other. | Catches the failure mode per-evidence validation cannot: clean collection from a dangerously thinned network | Evidence Network Health Measurement (done), Operations Center (not built), Coverage Intelligence (done) | Medium | High |
 | Non-headline connectors (Phase 2) | SEC filings, transcripts, government publications, and other evidence types | Richer, more diverse evidence base | Evidence Normalization Layer (done, proven with headlines only) | High | Future |
 | Historical evidence connectors | Archival ingestion needed for dates before live capture | Enables Historical Replay beyond the current live window | Historical Replay core (Epic 2); becomes High priority once Epic 2 begins | High | Future |
 | Full Source Registry admin editing UI | In-app registry editing, replacing config-file-only edits | Faster source management | Source Registry (done) | Medium | Medium |
@@ -279,24 +281,23 @@ Following the guiding philosophy — **build the smallest amount of software tha
 **Phase 1 — Immediate.** The highest-leverage work available right now, sequenced by the size of the user-visible value each unlocks:
 1. Epic 6: dashboard trust fixes — hero sentence bug, human-readable run selector, trend-label verification (all Low complexity, immediate trust wins).
 2. Epic 1: Research Workspace MVP — the Narrative Investigation MVP, its dashboard entry point, and the first complete investigative user experience. This is the single largest immediate increase in user-visible value available anywhere in this backlog, because it exposes intelligence that already exists and is already proven — the smallest amount of new software for the largest value unlock.
-3. Epic 7: feed remediation — the WSJ stale-feed investigation and CNBC 403 remediation. WSJ remains **Critical** in item-level severity (a silently degraded source is a real data-quality problem), but per the priority-vs-sequencing distinction in "How to Read This Backlog," severity and sequencing are different axes: these are operational platform improvements rather than the next major product capability, and are sequenced after the larger user-value unlocks above.
 
 **Phase 2 — Near-term.** Once the Research Workspace MVP is live and the dashboard's quick fixes are in:
-4. Epic 5 / Epic 7: Source Confidence Model and Source Quarantine automation — completes the Source Intelligence Platform's original synthesis story at the evidence-quality level. (The Network Confidence Model, Epic 7, extends the confidence picture to network resilience and naturally follows once Source Confidence and the Operations Center exist to build on.)
-5. Epic 6: consolidated degraded-run banner and Level 3/4 content migration into the now-existing Research Workspace.
-6. Epic 8: Unified Admin Diagnostics Hub.
+3. Epic 5 / Epic 7: Source Confidence Model and Source Quarantine automation — completes the Source Intelligence Platform's original synthesis story at the evidence-quality level. The Network Confidence Model remains future work and should follow only once Source Confidence and the Operations Center exist to build on; ENI Phase 1/2 source expansion and network-health measurement are already complete.
+4. Epic 6: consolidated degraded-run banner and Level 3/4 content migration into the now-existing Research Workspace.
+5. Epic 8: Unified Admin Diagnostics Hub.
 
 **Phase 3 — Mid-term.** Once the Research Workspace has real usage on live data:
-7. Epic 2: Historical Replay Engine core (Historical Evidence Pipeline through determinism verification).
-8. Epic 1 / Epic 2: Historical Context integration into the Research Workspace.
+6. Epic 2: Historical Replay Engine core (Historical Evidence Pipeline through determinism verification).
+7. Epic 1 / Epic 2: Historical Context integration into the Research Workspace.
 
 **Phase 4 — Longer-term.** Only once Historical Replay is stable and verified:
-9. Epic 3: Narrative Memory, beginning with the Memory Object persistence model and Memory Timeline.
-10. Epic 4: AI Experience, beginning with explanation/summarization — only once there is enough stable, real deterministic output and enough real workspace usage for AI to meaningfully assist with.
+8. Epic 3: Narrative Memory, beginning with the Memory Object persistence model and Memory Timeline.
+9. Epic 4: AI Experience, beginning with explanation/summarization — only once there is enough stable, real deterministic output and enough real workspace usage for AI to meaningfully assist with.
 
 **Phase 5 — Future, as conditions warrant.**
-11. Epic 9: Performance & Scalability work, as accumulated telemetry and growing evidence volume actually call for it.
-12. Epic 10: Future Platform Opportunities, each individually scoped when its Epic-level dependencies (chiefly Narrative Memory) are in place.
+10. Epic 9: Performance & Scalability work, as accumulated telemetry and growing evidence volume actually call for it.
+11. Epic 10: Future Platform Opportunities, each individually scoped when its Epic-level dependencies (chiefly Narrative Memory) are in place.
 
 **Items that must not begin out of order, restated for emphasis:**
 - No item in **Epic 3 (Narrative Memory)** begins before **Epic 2 (Historical Replay)**'s core pipeline is implemented and verified.
