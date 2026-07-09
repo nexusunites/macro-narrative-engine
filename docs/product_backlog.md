@@ -15,7 +15,7 @@ The following major platform capabilities are considered complete as part of **P
 
 - **Source Intelligence Platform (SIP)** — Evidence Objects with deterministic IDs, the Source Registry (`config/source_registry.json`), Feed Health, and Freshness Validation, all operational in production.
 - **Source Confidence Model** — deterministic evidence-collection confidence persisted under `source_intelligence.source_confidence`, with Admin visibility.
-- **Source Reliability / Quarantine Tracking** — deterministic repeated-weakness tracking across recent persisted runs, persisted under `source_intelligence.source_reliability`, displayed in Admin, and recommendation-only with no automatic source status changes.
+- **Source Trust Layer** — ENI Phase 1 source expansion, ENI Phase 2 network health measurement, Source Confidence, and Source Reliability / Quarantine Tracking are implemented; reliability tracking is recommendation-only with no automatic source status changes.
 - **Coverage Intelligence (EQE)** — per-narrative evidence breadth, diversity, and concentration measurement, first layer of the Evidence Quality Engine.
 - **Evidence Network Initiative foundations** — ENI Phase 1 source coverage repair/expansion and ENI Phase 2 network health measurement, including provider/category rollups, provider concentration, overall network status, persisted `source_intelligence.network_health`, and the Admin Evidence Network section.
 - **Narrative Intelligence** — theme/group scoring, taxonomy, Narrative Leadership, Rotation, Pulse, Dynamics, Crowding, Change Summary, Regime Alignment, Breadth Confirmation, and related market/catalyst context engines.
@@ -25,6 +25,8 @@ The following major platform capabilities are considered complete as part of **P
 - **Configuration Portability** — environment-driven, cross-platform data directory resolution with no import-time filesystem side effects.
 - **Evidence Diagnostics** — accepted-evidence persistence (capped at 500 entries with an explicit truncation flag), the evidence funnel summary, the zero-match warning, and the healthy-but-severely-stale source flag.
 - **Operations Center MVP** — render-time, admin-only operational summary using existing persisted signals, with component summaries for Configuration, Pipeline / Platform Observability, Evidence Network, Source Confidence, Source Reliability, Coverage Intelligence, and Freshness / Feed Health.
+- **Dashboard Data Quality Banner / Trust Summary** — compact user-facing evidence-quality summary in the dashboard, built from existing persisted signals only, without exposing admin diagnostics or changing scoring, sources, persistence, or admin behavior.
+- **Research Workspace MVP + UX Polish** — `/research` selector, narrative investigation page, dashboard entry-point wiring, admin-gated observability reference, paced investigation zones, readable evidence display, neutral coverage explanation, calm event lifecycle empty state, and admin boundary are implemented.
 
 This is a summary for orientation only — each system's canonical reference is its own architecture document in this repository.
 
@@ -52,7 +54,7 @@ This is a summary for orientation only — each system's canonical reference is 
 
 **Why it matters:** This is currently MNE's single biggest gap between backend capability and user-visible value. SIP, the Evidence Quality Engine, the Event Lifecycle Engine, and the Narrative Brief Engine are all fully operational — but none of that reaches a user beyond the flat dashboard. A working Research Workspace converts already-built intelligence into a usable product for the first time.
 
-**Current status:** Architecture (RWA) is complete. Two Codex-ready MVP handoffs (engineering data-contract layer and UX/journey layer) already exist and have not yet been confirmed implemented. The dashboard already carries a `/research` navigation link with no confirmed destination behind it.
+**Current status:** **Implemented.** Research Workspace MVP and UX polish are confirmed implemented. The `/research` selector is purpose-led and card-based; the investigation page is organized into four paced zones (Snapshot, Explanation, Evidence, Research Entry Points); Supporting Evidence is more readable; coverage explanation uses neutral breadth-not-quality language; Event Lifecycle empty state is calm; dashboard links use investigation-oriented wording; and admin-only diagnostics remain gated.
 
 **Dependencies:** None remaining. Every engine this Epic consumes (SIP, Narrative Intelligence, EQE, Event Lifecycle, Narrative Brief) is already implemented and confirmed live.
 
@@ -60,9 +62,10 @@ This is a summary for orientation only — each system's canonical reference is 
 
 | Item | Description | User value | Dependencies | Complexity | Priority |
 |---|---|---|---|---|---|
-| Narrative Investigation MVP | Build the single-narrative investigation page per the two existing MVP handoffs (Narrative Overview, Brief, Evidence, Coverage, Source Summary, Catalyst context) | First real place to answer "why" and "what evidence supports it" | None | Medium | Critical |
-| Dashboard entry-point wiring | The single click-through affordance connecting a dashboard narrative card to its Investigation page | Makes the MVP reachable at all | Narrative Investigation MVP | Low | Critical |
-| Admin-gated Observability reference | Surface the existing POL reference link inside the workspace, admin-only | Faster admin diagnosis without leaving the investigation | Narrative Investigation MVP, POL (done) | Low | Medium |
+| Narrative Investigation MVP | **Implemented.** Single-narrative investigation page with Snapshot, Explanation, Evidence, and Research Entry Points zones. | First real place to answer "why" and "what evidence supports it" | Done | Medium | Complete |
+| Dashboard entry-point wiring | **Implemented.** Dashboard narrative links now route users into the investigation experience with investigation-oriented wording. | Makes the MVP reachable at all | Done | Low | Complete |
+| Admin-gated Observability reference | **Implemented.** Admin-only diagnostics and observability references remain gated from the user-facing research experience. | Faster admin diagnosis without leaving the investigation | Done | Low | Complete |
+| Research Workspace UX polish | **Implemented.** Purpose-led card selector, paced investigation zones, readable Supporting Evidence, neutral coverage language, calm Event Lifecycle empty state, and verified admin boundary. | Makes the research experience legible, calm, and trust-preserving | Done | Medium | Complete |
 | Narrative Comparison mode | Side-by-side investigation of two narratives, periods, or regimes | Supports "how does this compare" questions | Narrative Investigation MVP | Medium | Future |
 | Company Analysis mode | Company-centric narrative investigation | Supports "which companies benefit" questions | Company Memory (not built) | High | Future |
 | Catalyst Analysis standalone mode | Dedicated catalyst/event investigation surface | Deeper event-specific research | Narrative Investigation MVP | Medium | Future |
@@ -168,7 +171,7 @@ This is a summary for orientation only — each system's canonical reference is 
 
 **Why it matters:** The current dashboard works and degrades honestly, but a recent design review surfaced real, fixable issues — some cosmetic, one a genuine trust risk.
 
-**Current status:** **Implemented**, with known UX debt. Confirmed issues: a template composition bug in the hero sentence, a raw-filename run selector, inconsistent navigation (anchor links mixed with real routes), an unverified trend-label claim on the regime history chart, and all Level 3/4 content (historical charts, score tables) currently flattened into the same page as Level 1/2 content.
+**Current status:** **Implemented**, with known UX debt. Dashboard Data Quality Banner / Trust Summary is implemented: the dashboard now has a calm, user-facing evidence-quality summary built from existing persisted signals, and it does not expose admin diagnostics. Remaining known UX debt includes the hero sentence composition bug, raw-filename run selector, unverified trend-label claim on the regime history chart, and historical content migration / Level 3/4 content separation.
 
 **Dependencies:** None blocking the quick fixes. Moving Level 3/4 content out depends on the Research Workspace existing as a destination.
 
@@ -179,8 +182,9 @@ This is a summary for orientation only — each system's canonical reference is 
 | Fix hero sentence composition bug | Correct the malformed "market context is market confirmation is unclear..." string | Removes a visible, credibility-damaging bug | None | Low | Critical |
 | Human-readable run selector | Replace raw filenames with formatted dates/times | Basic usability | None | Low | High |
 | Verify/fix regime trend label logic | Confirm the "improving/worsening" claim actually reflects the chart's volatility | Prevents a misleading claim on a platform built around honest reads | None | Low–Medium | High |
-| Consolidated degraded-run banner | One clear explanation instead of several scattered "not found" messages | Prevents a low-data day from looking broken | Source Confidence Model (Epic 5) for full context, but a partial version is buildable now | Medium | High |
-| Navigation consistency | Replace anchor-link/route mix with a single consistent model | Removes user confusion about what's a real page | Research Workspace (for where /research should actually point) | Medium | High |
+| Consolidated degraded-run / data-quality banner | **Implemented.** Dashboard trust summary provides one compact, user-facing evidence-quality explanation from existing persisted signals only, without exposing admin diagnostics. | Prevents a low-data day from looking broken | Done | Medium | Complete |
+| Navigation consistency | **Partially implemented.** Dashboard links into Research Workspace now use investigation-oriented wording and route to the implemented investigation experience. Broader dashboard navigation cleanup may still remain. | Removes user confusion about what's a real page | Research Workspace MVP (done) | Medium | Medium |
+| Dashboard trust summary | **Implemented.** `mne/dashboard_trust_summary.py` renders the dashboard's compact trust summary without changing scoring, sources, persistence, or admin behavior. | Gives users a calm read on evidence quality without exposing internal diagnostics | Done | Low | Complete |
 | Move Level 3/4 content into Research Workspace | Relocate regime history chart, leadership history table, raw score tables | Restores the dashboard's speed and focus | Research Workspace MVP (Epic 1) | Medium | Medium |
 
 ---
@@ -284,24 +288,24 @@ This is a summary for orientation only — each system's canonical reference is 
 Following the guiding philosophy — **build the smallest amount of software that creates the largest increase in user value** — and respecting every dependency called out above:
 
 **Phase 1 — Immediate.** The highest-leverage work available right now, sequenced by the size of the user-visible value each unlocks:
-1. Epic 6: dashboard trust fixes — hero sentence bug, human-readable run selector, trend-label verification (all Low complexity, immediate trust wins).
-2. Epic 1: Research Workspace MVP — the Narrative Investigation MVP, its dashboard entry point, and the first complete investigative user experience. This is the single largest immediate increase in user-visible value available anywhere in this backlog, because it exposes intelligence that already exists and is already proven — the smallest amount of new software for the largest value unlock.
+1. Epic 6: remaining dashboard trust fixes — hero sentence bug, human-readable run selector, and trend-label verification (all Low complexity, immediate trust wins). The Dashboard Data Quality Banner / Trust Summary is already complete.
+2. Epic 2: Historical Replay Engine prep — finalize the implementation-ready shape for historical evidence filtering, replay orchestration, persistence isolation, and determinism verification.
 
-**Phase 2 — Near-term.** Once the Research Workspace MVP is live and the dashboard's quick fixes are in:
-3. Epic 6: consolidated degraded-run banner and Level 3/4 content migration into the now-existing Research Workspace.
-4. Epic 8 / Epic 7: remaining admin and source-intelligence controls. Operations Center MVP and Source Reliability / Quarantine Tracking are already complete as recommendation-only/admin-only diagnostics; Source Quarantine automation, Network Confidence, historical/skipped-run browsing, version comparison, and temporal integrity audit tooling remain future work.
+**Phase 2 — Near-term.** Once the dashboard's remaining quick fixes are in:
+3. Epic 2: Historical Replay Engine core (Historical Evidence Pipeline through determinism verification).
+4. Epic 6 / Epic 1: historical content migration and future Research Workspace modes only where they are backed by implemented data. Narrative Comparison, Company Analysis, Historical Context integration, Research Session persistence, saved investigations, watchlists, annotations, and shared workspaces remain future work.
+5. Epic 7 / Epic 8: remaining source-intelligence and admin controls. Network Confidence Model, Source Quarantine automation, historical/skipped-run browsing, version comparison, and temporal integrity audit tooling remain future work. Source Confidence Model, Source Reliability / Quarantine Tracking, and Operations Center MVP are already complete.
 
 **Phase 3 — Mid-term.** Once the Research Workspace has real usage on live data:
-6. Epic 2: Historical Replay Engine core (Historical Evidence Pipeline through determinism verification).
-7. Epic 1 / Epic 2: Historical Context integration into the Research Workspace.
+6. Epic 1 / Epic 2: Historical Context integration into the Research Workspace, after Historical Replay core exists.
 
 **Phase 4 — Longer-term.** Only once Historical Replay is stable and verified:
-8. Epic 3: Narrative Memory, beginning with the Memory Object persistence model and Memory Timeline.
-9. Epic 4: AI Experience, beginning with explanation/summarization — only once there is enough stable, real deterministic output and enough real workspace usage for AI to meaningfully assist with.
+7. Epic 3: Narrative Memory, beginning with the Memory Object persistence model and Memory Timeline.
+8. Epic 4: AI Experience, beginning with explanation/summarization — only once there is enough stable, real deterministic output and enough real workspace usage for AI to meaningfully assist with.
 
 **Phase 5 — Future, as conditions warrant.**
-10. Epic 9: Performance & Scalability work, as accumulated telemetry and growing evidence volume actually call for it.
-11. Epic 10: Future Platform Opportunities, each individually scoped when its Epic-level dependencies (chiefly Narrative Memory) are in place.
+9. Epic 9: Performance & Scalability work, as accumulated telemetry and growing evidence volume actually call for it.
+10. Epic 10: Future Platform Opportunities, each individually scoped when its Epic-level dependencies (chiefly Narrative Memory) are in place.
 
 **Items that must not begin out of order, restated for emphasis:**
 - No item in **Epic 3 (Narrative Memory)** begins before **Epic 2 (Historical Replay)**'s core pipeline is implemented and verified.
