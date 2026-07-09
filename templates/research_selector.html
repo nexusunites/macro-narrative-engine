@@ -37,22 +37,32 @@
 
       <section class="research-hero">
         <p class="eyebrow">Research Workspace</p>
-        <h1>Narrative Investigation</h1>
-        <p>Select a narrative from the latest meaningful completed run.</p>
+        <h1>Choose a narrative to investigate</h1>
+        <p>Select an active narrative from the latest meaningful completed run and enter a focused evidence review.</p>
       </section>
 
       <section class="content-section">
-        <div class="research-list">
-          {% for narrative in selector %}
-            <a class="research-list-row" href="{{ url_for('narrative_investigation', key=narrative.key) }}">
-              <span>
-                <strong>{{ narrative.display_name }}</strong>
-                <small>{{ narrative.narrative_level|title }}</small>
-              </span>
-              <em>{{ narrative.score if narrative.score is not none else "Unavailable" }}</em>
-            </a>
-          {% endfor %}
-        </div>
+        {% if selector %}
+          <div class="research-selector-grid">
+            {% for narrative in selector %}
+              <a class="research-selector-card" href="{{ url_for('narrative_investigation', key=narrative.key) }}">
+                <span class="selector-card-topline">
+                  <span class="eyebrow">{{ narrative.type_label }}</span>
+                  <strong>{{ narrative.score if narrative.score is not none else "Unavailable" }}</strong>
+                </span>
+                <span class="selector-card-title">{{ narrative.display_name }}</span>
+                <span class="selector-card-context">{{ narrative.context }}</span>
+                <span class="selector-card-action">Investigate narrative</span>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <article class="empty-state research-empty-state">
+            <p class="eyebrow">Research Workspace</p>
+            <h2>No narratives with supporting evidence in this run</h2>
+            <p>The selected run does not have an investigable narrative signal.</p>
+          </article>
+        {% endif %}
       </section>
     {% endif %}
   </main>

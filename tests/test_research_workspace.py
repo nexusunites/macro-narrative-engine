@@ -1,4 +1,7 @@
 import unittest
+from pathlib import Path
+
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from mne.research_workspace import (
     build_narrative_investigation,
@@ -6,6 +9,31 @@ from mne.research_workspace import (
     select_latest_meaningful_run,
     split_narrative_key,
 )
+
+
+TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "templates"
+
+
+def render_template(name, **context):
+    env = Environment(
+        loader=FileSystemLoader(TEMPLATE_DIR),
+        autoescape=select_autoescape(["html"]),
+    )
+    env.globals["url_for"] = lambda endpoint, **values: (
+        f"/research/{values['key']}"
+        if endpoint == "narrative_investigation"
+        else f"/static/{values.get('path', '')}"
+    )
+    defaults = {
+        "request": object(),
+        "results_dir": "/tmp/results",
+        "selected_file": "2026-07-09_120000.json",
+        "message": None,
+        "notice": None,
+        "is_admin": False,
+    }
+    defaults.update(context)
+    return env.get_template(name).render(**defaults)
 
 
 def sample_run():
@@ -30,8 +58,10 @@ def sample_run():
                     "evidence_id": "accepted-ai",
                     "source_id": "s1",
                     "source_name": "Source One",
+                    "provider": "Provider One",
                     "title": "AI capex expands",
                     "url": "https://example.com/ai",
+                    "timestamp": "2026-07-09T10:00:00Z",
                     "accepted": True,
                     "themes": ["ai"],
                 },
@@ -74,6 +104,7 @@ def sample_run():
                             {
                                 "source_id": "s1",
                                 "source_name": "Source One",
+                                "provider": "Provider One",
                                 "evidence_count": 1,
                             }
                         ],
@@ -172,6 +203,7 @@ class ResearchWorkspaceTests(unittest.TestCase):
 
         self.assertIn("group:AI / Tech Growth", keys)
         self.assertIn("theme:ai", keys)
+        self.assertIn("type_label", selector[0])
 
     def test_selector_filters_zero_signal_narratives(self):
         selector = build_narrative_selector(
@@ -184,6 +216,22 @@ class ResearchWorkspaceTests(unittest.TestCase):
         keys = [item["key"] for item in selector]
 
         self.assertEqual(keys, ["group:Macro Pressure", "theme:rates"])
+
+    def test_research_selector_template_renders_investigable_narratives(self):
+        html = render_template(
+            "research_selector.html",
+            selector=build_narrative_selector(sample_run()),
+        )
+
+        self.assertIn("Choose a narrative to investigate", html)
+        self.assertIn("AI / Tech Growth", html)
+        self.assertIn("Investigate narrative", html)
+
+    def test_research_selector_template_renders_calm_empty_state(self):
+        html = render_template("research_selector.html", selector=[])
+
+        self.assertIn("No narratives with supporting evidence in this run", html)
+        self.assertNotIn("error", html.lower())
 
     def test_investigation_reads_coverage_values_and_filters_sources_exactly(self):
         investigation = build_narrative_investigation(
@@ -212,6 +260,19 @@ class ResearchWorkspaceTests(unittest.TestCase):
         self.assertEqual(
             [row["evidence_id"] for row in investigation["supporting_evidence"]],
             ["accepted-ai"],
+        )
+        self.assertEqual(
+            investigation["supporting_evidence_display"],
+            [
+                {
+                    "title": "AI capex expands",
+                    "source_name": "Source One",
+                    "provider": "Provider One",
+                    "timestamp": "2026-07-09T10:00:00Z",
+                    "url": "https://example.com/ai",
+                    "matched_narrative": "AI / Tech Growth",
+                }
+            ],
         )
 
     def test_supporting_evidence_reads_persisted_accepted_attributed_records(self):
@@ -273,6 +334,100 @@ class ResearchWorkspaceTests(unittest.TestCase):
             ["theme-only-event"],
         )
         self.assertEqual(macro["events"], [])
+
+    def test_investigation_template_renders_zones_and_readable_evidence(self):
+        investigation = build_narrative_investigation(
+            sample_run(),
+            "group",
+            "AI / Tech Growth",
+        )
+        html = render_template(
+            "narrative_investigation.html",
+            investigation=investigation,
+        )
+
+        self.assertIn("Zone 1 / Snapshot", html)
+        self.assertIn("Zone 2 / Explanation", html)
+        self.assertIn("Zone 3 / Evidence", html)
+        self.assertIn("Zone 4 / Research Entry Points", html)
+        self.assertIn("AI capex expands", html)
+        self.assertIn("Source One", html)
+        self.assertIn("Provider One", html)
+        self.assertIn("2026-07-09T10:00:00Z", html)
+        self.assertNotIn("accepted-ai", html)
+        self.assertNotIn("source_id", html)
+        self.assertNotIn("rejected-ai", html)
+
+    def test_coverage_explanation_is_neutral_for_minimal_state(self):
+        investigation = build_narrative_investigation(
+            sample_run(),
+            "group",
+            "AI / Tech Growth",
+        )
+        html = render_template(
+            "narrative_investigation.html",
+            investigation=investigation,
+        )
+
+        self.assertIn("how broad the supporting evidence is", html)
+        self.assertIn("not a judgment of narrative quality", html)
+        self.assertNotIn("failure", html.lower())
+        self.assertNotIn("warning", html.lower())
+
+    def test_event_lifecycle_empty_state_renders_calmly(self):
+        investigation = build_narrative_investigation(
+            sample_run(),
+            "group",
+            "Macro Pressure",
+        )
+        html = render_template(
+            "narrative_investigation.html",
+            investigation=investigation,
+        )
+
+        self.assertIn(
+            "No relevant catalyst lifecycle context is available for this narrative in the selected run.",
+            html,
+        )
+        self.assertNotIn("failed", html.lower())
+
+    def test_standard_investigation_template_does_not_show_admin_content(self):
+        investigation = build_narrative_investigation(
+            sample_run(),
+            "group",
+            "AI / Tech Growth",
+        )
+        html = render_template(
+            "narrative_investigation.html",
+            investigation=investigation,
+            is_admin=False,
+        )
+
+        self.assertNotIn("Open admin diagnostics", html)
+        self.assertNotIn("Platform Observability", html)
+        self.assertNotIn("POL", html)
+
+    def test_admin_investigation_template_shows_admin_reference(self):
+        investigation = build_narrative_investigation(
+            sample_run(),
+            "group",
+            "AI / Tech Growth",
+            admin=True,
+        )
+        html = render_template(
+            "narrative_investigation.html",
+            investigation=investigation,
+            is_admin=True,
+        )
+
+        self.assertIn("Open admin diagnostics", html)
+        self.assertIn("run-123", html)
+
+    def test_dashboard_investigate_link_wording_and_route_remain(self):
+        dashboard_template = (TEMPLATE_DIR / "dashboard.html").read_text()
+
+        self.assertIn("Investigate narrative", dashboard_template)
+        self.assertIn("url_for('narrative_investigation'", dashboard_template)
 
     def test_events_can_use_existing_definition_lookup_by_event_id(self):
         run = sample_run()

@@ -37,52 +37,60 @@
       <section class="research-hero">
         <p class="eyebrow">Narrative Investigation</p>
         <h1>{{ investigation.display_name }}</h1>
-        <p>{{ investigation.narrative_level|title }} from the latest meaningful completed run. Snapshot first, then explanation, then evidence when you ask for it.</p>
+        <p>{{ investigation.narrative_level|title }} investigation from the selected run. Start with the current signal, then move through explanation, evidence, and next research paths.</p>
       </section>
 
-      <section class="content-section investigation-section">
-        <div class="section-heading">
-          <p class="eyebrow">Narrative Overview</p>
-          <h2>Current State</h2>
+      <section class="content-section investigation-zone investigation-zone-snapshot">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Zone 1 / Snapshot</p>
+          <h2>What is happening?</h2>
+          <p>Selected run: {{ selected_file or "Unavailable" }}</p>
         </div>
-        <div class="investigation-grid">
-          <article class="card metric-card">
+        <div class="investigation-snapshot-panel">
+          <div class="snapshot-primary">
             <span>Score</span>
             <strong>{{ investigation.overview.score if investigation.overview.score is not none else "Unavailable" }}</strong>
-          </article>
-          <article class="card metric-card">
-            <span>Leadership</span>
-            <strong>{{ investigation.overview.leadership or "Unavailable" }}</strong>
-          </article>
-          <article class="card metric-card">
-            <span>Pulse</span>
-            <strong>{{ investigation.overview.pulse.pulse_state if investigation.overview.pulse else "Unavailable" }}</strong>
-            {% if investigation.overview.pulse and investigation.overview.pulse.confidence %}
-              <small>{{ investigation.overview.pulse.confidence }} confidence</small>
-            {% endif %}
-          </article>
-          <article class="card metric-card">
-            <span>Regime Alignment</span>
-            <strong>
-              {% if investigation.overview.regime_alignment and investigation.overview.regime_alignment.score is not none %}
-                {{ investigation.overview.regime_alignment.score }}
-              {% else %}
-                Unavailable
+            <p>{{ investigation.overview.leadership or "Narrative signal present in this run" }}</p>
+          </div>
+          <dl class="snapshot-facts">
+            <div>
+              <dt>Pulse</dt>
+              <dd>{{ investigation.overview.pulse.pulse_state if investigation.overview.pulse else "Unavailable" }}</dd>
+              {% if investigation.overview.pulse and investigation.overview.pulse.confidence %}
+                <small>{{ investigation.overview.pulse.confidence }} confidence</small>
               {% endif %}
-            </strong>
-            {% if investigation.overview.regime_alignment and investigation.overview.regime_alignment.state %}
-              <small>{{ investigation.overview.regime_alignment.state }}</small>
-            {% endif %}
-          </article>
+            </div>
+            <div>
+              <dt>Regime Alignment</dt>
+              <dd>
+                {% if investigation.overview.regime_alignment and investigation.overview.regime_alignment.score is not none %}
+                  {{ investigation.overview.regime_alignment.score }}
+                {% else %}
+                  Unavailable
+                {% endif %}
+              </dd>
+              {% if investigation.overview.regime_alignment and investigation.overview.regime_alignment.state %}
+                <small>{{ investigation.overview.regime_alignment.state }}</small>
+              {% endif %}
+            </div>
+            <div>
+              <dt>Evidence Breadth</dt>
+              <dd>{{ investigation.coverage.coverage_state if investigation.coverage else "Unavailable" }}</dd>
+              {% if investigation.coverage_explanation %}
+                <small>{{ investigation.coverage_explanation }}</small>
+              {% endif %}
+            </div>
+          </dl>
         </div>
       </section>
 
-      <section class="content-section investigation-section">
-        <div class="section-heading">
-          <p class="eyebrow">Narrative Brief</p>
+      <section class="content-section investigation-zone investigation-zone-explanation">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Zone 2 / Explanation</p>
           <h2>{{ investigation.brief.headline if investigation.brief and investigation.brief.headline else "Brief Context" }}</h2>
+          <p>Why is it happening?</p>
         </div>
-        <article class="card research-card">
+        <article class="investigation-brief">
           {% if investigation.brief %}
             {% if investigation.brief.confidence %}
               <p class="research-meta">Data Completeness: {{ investigation.brief.confidence }}</p>
@@ -98,28 +106,31 @@
         </article>
       </section>
 
-      <details class="content-section evidence-reveal">
-        <summary>
-          <span>
-            <span class="eyebrow">Evidence</span>
-            <strong>See the evidence behind this narrative</strong>
-          </span>
-          <em>Reveal</em>
-        </summary>
+      <section class="content-section investigation-zone investigation-zone-evidence" id="supporting-evidence">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Zone 3 / Evidence</p>
+          <h2>What evidence supports it?</h2>
+          <p>Accepted supporting evidence, breadth context, and contributing sources from the selected run.</p>
+        </div>
 
-        <section class="investigation-section">
-          <div class="section-heading">
-            <p class="eyebrow">Supporting Evidence</p>
-            <h2>Accepted Attributed Evidence</h2>
-          </div>
-          <article class="card research-card">
-            {% if investigation.supporting_evidence %}
+        <div class="investigation-evidence-layout">
+          <article class="evidence-panel">
+            <div class="subsection-heading">
+              <p class="eyebrow">Supporting Evidence</p>
+              <h3>Accepted attributed evidence</h3>
+            </div>
+            {% if investigation.supporting_evidence_display %}
               <ul class="research-evidence-list">
-                {% for evidence in investigation.supporting_evidence %}
+                {% for evidence in investigation.supporting_evidence_display %}
                   <li>
                     <strong>{{ evidence.title }}</strong>
-                    <span>{{ evidence.source_name or evidence.source_id }}</span>
-                    {% if evidence.url %}<a href="{{ evidence.url }}">Source</a>{% endif %}
+                    <span>
+                      {{ evidence.source_name }}
+                      {% if evidence.provider %} &middot; {{ evidence.provider }}{% endif %}
+                      {% if evidence.timestamp %} &middot; {{ evidence.timestamp }}{% endif %}
+                    </span>
+                    <small>Matched narrative: {{ evidence.matched_narrative }}</small>
+                    {% if evidence.url %}<a href="{{ evidence.url }}">Open source</a>{% endif %}
                   </li>
                 {% endfor %}
               </ul>
@@ -127,94 +138,112 @@
               <p class="muted">No accepted evidence with a persisted narrative attribution is available for this narrative.</p>
             {% endif %}
           </article>
-        </section>
 
-        <section class="investigation-section">
-          <div class="section-heading">
-            <p class="eyebrow">Coverage Intelligence</p>
-            <h2>Evidence Breadth</h2>
-          </div>
-          <article class="card research-card">
-            {% if investigation.coverage %}
-              <dl class="research-dl">
-                <div><dt>Evidence Count</dt><dd>{{ investigation.coverage.evidence_count }}</dd></div>
-                <div><dt>Unique Sources</dt><dd>{{ investigation.coverage.unique_source_count }}</dd></div>
-                <div><dt>Unique Providers</dt><dd>{{ investigation.coverage.unique_provider_count }}</dd></div>
-                <div><dt>Concentration Ratio</dt><dd>{{ investigation.coverage.concentration_ratio }}</dd></div>
-                <div><dt>Coverage State</dt><dd>{{ investigation.coverage.coverage_state }}</dd></div>
-              </dl>
-            {% else %}
-              <p class="muted">No Coverage Intelligence record is persisted for this narrative.</p>
-            {% endif %}
-          </article>
-        </section>
+          <aside class="evidence-context-stack">
+            <article class="evidence-context-panel">
+              <div class="subsection-heading">
+                <p class="eyebrow">Coverage</p>
+                <h3>Evidence breadth</h3>
+              </div>
+              {% if investigation.coverage %}
+                <p class="coverage-state">{{ investigation.coverage.coverage_state }}</p>
+                <p class="muted">{{ investigation.coverage_explanation }}</p>
+                <dl class="research-dl">
+                  <div><dt>Evidence</dt><dd>{{ investigation.coverage.evidence_count }}</dd></div>
+                  <div><dt>Sources</dt><dd>{{ investigation.coverage.unique_source_count }}</dd></div>
+                  <div><dt>Providers</dt><dd>{{ investigation.coverage.unique_provider_count }}</dd></div>
+                  <div><dt>Concentration</dt><dd>{{ investigation.coverage.concentration_ratio }}</dd></div>
+                </dl>
+              {% else %}
+                <p class="muted">No Coverage Intelligence record is persisted for this narrative.</p>
+              {% endif %}
+            </article>
 
-        <section class="investigation-section">
-          <div class="section-heading">
-            <p class="eyebrow">Source Summary</p>
-            <h2>Contributing Sources</h2>
-          </div>
-          <article class="card research-card">
-            {% if investigation.source_summary %}
-              <table>
-                <thead>
-                  <tr><th>Source</th><th>Evidence</th><th>Health</th><th>Freshness</th></tr>
-                </thead>
-                <tbody>
-                  {% for source in investigation.source_summary %}
-                    <tr>
-                      <th>{{ source.source_name or source.source_id }}</th>
-                      <td>{{ source.evidence_count }}</td>
-                      <td>{{ source.health.state if source.health else "Unavailable" }}</td>
-                      <td>
-                        {% if source.freshness %}
-                          {{ source.freshness.freshness_state or source.freshness.status or "Unavailable" }}
-                        {% else %}
-                          Unavailable
-                        {% endif %}
-                      </td>
-                    </tr>
+            <article class="evidence-context-panel">
+              <div class="subsection-heading">
+                <p class="eyebrow">Source Summary</p>
+                <h3>Contributing sources</h3>
+              </div>
+              {% if investigation.source_summary_display %}
+                <ul class="source-summary-list">
+                  {% for source in investigation.source_summary_display %}
+                    <li>
+                      <strong>{{ source.source_name }}</strong>
+                      <span>
+                        {{ source.evidence_count }} evidence item{% if source.evidence_count != 1 %}s{% endif %}
+                        {% if source.provider %} &middot; {{ source.provider }}{% endif %}
+                      </span>
+                      <small>Health: {{ source.health_state }} &middot; Freshness: {{ source.freshness_state }}</small>
+                    </li>
                   {% endfor %}
-                </tbody>
-              </table>
-            {% else %}
-              <p class="muted">No contributing source summary is persisted for this narrative.</p>
-            {% endif %}
-          </article>
-        </section>
+                </ul>
+              {% else %}
+                <p class="muted">No contributing source summary is persisted for this narrative.</p>
+              {% endif %}
+            </article>
+          </aside>
+        </div>
+      </section>
 
-      </details>
-
-      <section class="content-section investigation-section">
-        <div class="section-heading">
-          <p class="eyebrow">Research Entry Points</p>
-          <h2>Where to go next</h2>
+      <section class="content-section investigation-zone investigation-zone-next">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Zone 4 / Research Entry Points</p>
+          <h2>Where should I look next?</h2>
+          <p>Move from this investigation into supporting context or future research surfaces.</p>
         </div>
         <div class="research-entry-grid">
-        {% if investigation.events %}
+          <a class="research-list-row" href="#supporting-evidence">
+            <span>
+              <strong>Review supporting evidence</strong>
+              <small>Return to accepted attributed evidence and source breadth.</small>
+            </span>
+            <em>Evidence</em>
+          </a>
+          <a class="research-list-row" href="/#narratives">
+            <span>
+              <strong>Compare with dashboard context</strong>
+              <small>See this narrative against the broader run view.</small>
+            </span>
+            <em>Dashboard</em>
+          </a>
+          {% if is_admin and investigation.platform_observability %}
+            <a class="research-list-row admin-entry" href="/admin">
+              <span>
+                <strong>Open admin diagnostics</strong>
+                <small>{{ investigation.platform_observability.run_id or "Run reference unavailable" }}</small>
+              </span>
+              <em>{{ investigation.platform_observability.run_duration_ms if investigation.platform_observability.run_duration_ms is not none else "Unavailable" }} ms</em>
+            </a>
+          {% endif %}
+          <article class="research-list-row future-entry" aria-disabled="true">
+            <span>
+              <strong>Historical replay</strong>
+              <small>Future doorway for reviewing how this narrative developed.</small>
+            </span>
+            <em>Future</em>
+          </article>
+          <article class="research-list-row future-entry" aria-disabled="true">
+            <span>
+              <strong>Narrative memory</strong>
+              <small>Future doorway for accumulated narrative context.</small>
+            </span>
+            <em>Future</em>
+          </article>
+          {% if investigation.events %}
             {% for event in investigation.events %}
               <a class="research-list-row" href="/#catalysts">
                 <span>
                   <strong>{{ event.event_name }}</strong>
-                  <small>{{ event.event_id }}</small>
+                  <small>Relevant catalyst lifecycle context</small>
                 </span>
                 <em>{{ event.lifecycle_state or "Unavailable" }}</em>
               </a>
             {% endfor %}
-        {% else %}
-          <article class="card research-card">
-            <p class="muted">No relevant catalyst lifecycle context is available for this narrative in the selected run.</p>
-          </article>
-        {% endif %}
-        {% if is_admin and investigation.platform_observability %}
-          <a class="research-list-row admin-entry" href="/admin">
-            <span>
-              <strong>Platform Observability</strong>
-              <small>{{ investigation.platform_observability.run_id or "Run reference unavailable" }}</small>
-            </span>
-            <em>{{ investigation.platform_observability.run_duration_ms if investigation.platform_observability.run_duration_ms is not none else "Unavailable" }} ms</em>
-          </a>
-        {% endif %}
+          {% else %}
+            <article class="event-empty-state">
+              <p>No relevant catalyst lifecycle context is available for this narrative in the selected run.</p>
+            </article>
+          {% endif %}
         </div>
       </section>
     {% endif %}

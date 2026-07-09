@@ -289,7 +289,7 @@
                 {% else %}
                   <p class="leadership-note">{{ item.leader_gap }} mentions behind the leader</p>
                 {% endif %}
-                <a class="investigate-link" href="{{ url_for('narrative_investigation', key=item.investigation_key) }}">Investigate</a>
+                <a class="investigate-link" href="{{ url_for('narrative_investigation', key=item.investigation_key) }}">Investigate narrative</a>
               </article>
             {% endfor %}
           </div>

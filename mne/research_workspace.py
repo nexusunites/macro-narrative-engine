@@ -97,6 +97,8 @@ def build_narrative_selector(run):
                     "narrative_level": "group",
                     "narrative_id": narrative_id,
                     "display_name": narrative_id,
+                    "type_label": "Group narrative",
+                    "context": "Investigation candidate from the selected run.",
                     "score": score,
                     "key": narrative_key("group", narrative_id),
                 }
@@ -113,6 +115,8 @@ def build_narrative_selector(run):
                     "narrative_level": "theme",
                     "narrative_id": narrative_id,
                     "display_name": narrative_id.replace("_", " ").title(),
+                    "type_label": "Theme signal",
+                    "context": "Theme-level evidence trail from the selected run.",
                     "score": score,
                     "key": narrative_key("theme", narrative_id),
                 }
@@ -133,19 +137,28 @@ def build_narrative_investigation(
         run.get("source_intelligence") if isinstance(run.get("source_intelligence"), dict) else {}
     )
     coverage_record = _coverage_record(source_intelligence, narrative_level, narrative_id)
+    supporting_evidence = _supporting_evidence(
+        source_intelligence,
+        narrative_level,
+        narrative_id,
+    )
+    source_summary = _source_summary(source_intelligence, coverage_record)
     return {
         "narrative_level": narrative_level,
         "narrative_id": narrative_id,
         "display_name": _display_name(narrative_level, narrative_id),
         "overview": _overview(run, narrative_level, narrative_id),
         "brief": _brief(run, narrative_level, narrative_id),
-        "supporting_evidence": _supporting_evidence(
-            source_intelligence,
+        "supporting_evidence": supporting_evidence,
+        "supporting_evidence_display": _supporting_evidence_display(
+            supporting_evidence,
             narrative_level,
             narrative_id,
         ),
         "coverage": coverage_record,
-        "source_summary": _source_summary(source_intelligence, coverage_record),
+        "coverage_explanation": _coverage_explanation(coverage_record),
+        "source_summary": source_summary,
+        "source_summary_display": _source_summary_display(source_summary),
         "events": _events(
             run.get("event_lifecycle"),
             narrative_level,
@@ -255,6 +268,24 @@ def _supporting_evidence(source_intelligence, narrative_level, narrative_id):
     ]
 
 
+def _supporting_evidence_display(evidence_rows, narrative_level, narrative_id):
+    rows = []
+    for evidence in evidence_rows:
+        if not isinstance(evidence, dict):
+            continue
+        rows.append(
+            {
+                "title": evidence.get("title") or "Untitled evidence",
+                "source_name": evidence.get("source_name") or "Unknown source",
+                "provider": evidence.get("provider"),
+                "timestamp": evidence.get("timestamp") or evidence.get("published_at"),
+                "url": evidence.get("url") or evidence.get("link"),
+                "matched_narrative": _display_name(narrative_level, narrative_id),
+            }
+        )
+    return rows
+
+
 def _coverage_record(source_intelligence, narrative_level, narrative_id):
     coverage = source_intelligence.get("coverage_intelligence")
     per_narrative = coverage.get("per_narrative") if isinstance(coverage, dict) else None
@@ -269,6 +300,17 @@ def _coverage_record(source_intelligence, narrative_level, narrative_id):
         ):
             return record
     return None
+
+
+def _coverage_explanation(coverage_record):
+    if not isinstance(coverage_record, dict):
+        return None
+    state = coverage_record.get("coverage_state") or "UNKNOWN"
+    state_text = str(state).replace("_", " ").title()
+    return (
+        f"{state_text} evidence breadth describes how broad the supporting evidence is "
+        "for this narrative in the selected run. It is not a judgment of narrative quality."
+    )
 
 
 def _source_summary(source_intelligence, coverage_record):
@@ -294,9 +336,33 @@ def _source_summary(source_intelligence, coverage_record):
             {
                 "source_id": source_id,
                 "source_name": contribution.get("source_name"),
+                "provider": contribution.get("provider"),
                 "evidence_count": contribution.get("evidence_count"),
                 "health": health_by_source.get(source_id),
                 "freshness": freshness_by_source.get(source_id),
+            }
+        )
+    return rows
+
+
+def _source_summary_display(source_summary):
+    rows = []
+    for source in source_summary:
+        if not isinstance(source, dict):
+            continue
+        freshness = source.get("freshness") if isinstance(source.get("freshness"), dict) else {}
+        health = source.get("health") if isinstance(source.get("health"), dict) else {}
+        rows.append(
+            {
+                "source_name": source.get("source_name") or "Unknown source",
+                "provider": source.get("provider"),
+                "evidence_count": source.get("evidence_count"),
+                "health_state": health.get("state") or "Unavailable",
+                "freshness_state": (
+                    freshness.get("freshness_state")
+                    or freshness.get("status")
+                    or "Unavailable"
+                ),
             }
         )
     return rows
