@@ -101,7 +101,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         save_run_json.assert_called_once()
         persisted_run = save_run_json.call_args.args[0]
         source_intelligence = persisted_run["source_intelligence"]
-        self.assertEqual(source_intelligence["registry_version"], "1.2.0")
+        self.assertEqual(source_intelligence["registry_version"], "1.3.0")
         self.assertEqual(source_intelligence["evidence_count"], 0)
         self.assertEqual(source_intelligence["accepted_count"], 0)
         self.assertEqual(source_intelligence["rejected_count"], 0)
@@ -126,6 +126,11 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         self.assertEqual(
             source_intelligence["network_health"]["concentration"]["total_accepted_evidence"],
             0,
+        )
+        self.assertIn("source_confidence", source_intelligence)
+        self.assertEqual(
+            source_intelligence["source_confidence"]["confidence_state"],
+            "LOW",
         )
         self.assertEqual(
             persisted_run["narrative_run_status"],
@@ -253,7 +258,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         save_run_json.assert_called_once()
         persisted_run = save_run_json.call_args.args[0]
         source_intelligence = persisted_run["source_intelligence"]
-        self.assertEqual(source_intelligence["registry_version"], "1.2.0")
+        self.assertEqual(source_intelligence["registry_version"], "1.3.0")
         self.assertEqual(source_intelligence["evidence_count"], 1)
         self.assertEqual(source_intelligence["accepted_count"], 1)
         self.assertEqual(source_intelligence["rejected_count"], 0)
@@ -270,6 +275,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         self.assertEqual(source_intelligence["evidence_freshness"]["fresh_count"], 1)
         self.assertEqual(source_intelligence["rejected_evidence_preview"], [])
         self.assertIn("network_health", source_intelligence)
+        self.assertIn("source_confidence", source_intelligence)
         write_daily_snapshot.assert_called_once()
         save_report.assert_called_once()
         print_momentum.assert_called_once()

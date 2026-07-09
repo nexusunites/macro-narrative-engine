@@ -108,6 +108,7 @@
 
       {% set source_intelligence = view.source_intelligence | default({}) %}
       {% set network_health = source_intelligence.get("network_health", {}) %}
+      {% set source_confidence = source_intelligence.get("source_confidence", {}) %}
       {% set zero_match_warning = source_intelligence.get("zero_match_warning") %}
       {% if zero_match_warning %}
         <section class="content-section">
@@ -290,8 +291,47 @@
         <div class="section-heading">
           <p class="eyebrow">Source Intelligence</p>
           <h2>Evidence Network</h2>
-          <p class="leadership-read">Provider, category, and concentration rollups for accepted evidence in this run.</p>
+          <p class="leadership-read">Source Confidence describes data collection quality; Evidence Network describes provider and category structure.</p>
         </div>
+        {% if source_confidence %}
+          <article class="card">
+            <h3>Source Confidence (data collection quality)</h3>
+            <p class="admin-value">{{ source_confidence.get("confidence_state", "Unavailable") }}</p>
+            <p class="muted">{{ source_confidence.get("reason", "No source confidence reason persisted for this run.") }}</p>
+            <table>
+              <tbody>
+                <tr><th>Recommended Action</th><td>{{ source_confidence.get("recommended_action", "Unavailable") }}</td></tr>
+                <tr><th>Confidence Level</th><td>{{ source_confidence.get("confidence_level") if source_confidence.get("confidence_level") is not none else "Not implemented" }}</td></tr>
+              </tbody>
+            </table>
+            {% if source_confidence.get("contributing_factors") %}
+              <h4>Contributing Factors</h4>
+              <ul class="admin-evidence-list">
+                {% for factor in source_confidence.get("contributing_factors", []) %}
+                  <li>{{ factor }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            {% set source_confidence_thresholds = source_confidence.get("thresholds_used", {}) %}
+            {% if source_confidence_thresholds %}
+              <table>
+                <tbody>
+                  <tr><th>Accepted Evidence Floor</th><td>{{ source_confidence_thresholds.get("accepted_evidence_floor", "Unavailable") }}</td></tr>
+                  <tr><th>Low Fetch Ratio</th><td>{{ source_confidence_thresholds.get("low_fetch_ratio", "Unavailable") }}</td></tr>
+                  <tr><th>Low Contribution Ratio</th><td>{{ source_confidence_thresholds.get("low_contribution_ratio", "Unavailable") }}</td></tr>
+                  <tr><th>High Fetch Ratio</th><td>{{ source_confidence_thresholds.get("high_fetch_ratio", "Unavailable") }}</td></tr>
+                  <tr><th>High Freshness Ratio</th><td>{{ source_confidence_thresholds.get("high_freshness_ratio", "Unavailable") }}</td></tr>
+                  <tr><th>High Contribution Ratio</th><td>{{ source_confidence_thresholds.get("high_contribution_ratio", "Unavailable") }}</td></tr>
+                </tbody>
+              </table>
+            {% endif %}
+          </article>
+        {% else %}
+          <article class="card">
+            <h3>Source Confidence (data collection quality)</h3>
+            <p class="muted">No Source Confidence block was persisted for this run.</p>
+          </article>
+        {% endif %}
         {% if network_health %}
           <article class="card">
             <h3>Overall Network Status</h3>

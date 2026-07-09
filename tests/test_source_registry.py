@@ -20,6 +20,14 @@ def valid_registry_data():
             "concentration_threshold": 0.40,
             "evidence_floor": 5,
         },
+        "source_confidence_thresholds": {
+            "accepted_evidence_floor": 10,
+            "low_fetch_ratio": 0.50,
+            "low_contribution_ratio": 0.40,
+            "high_fetch_ratio": 0.85,
+            "high_freshness_ratio": 0.80,
+            "high_contribution_ratio": 0.70,
+        },
         "coverage_thresholds": {
             "LIMITED": {
                 "min_evidence_count": 2,
@@ -86,6 +94,17 @@ class SourceRegistryTests(unittest.TestCase):
             registry.network_thresholds,
             {"concentration_threshold": 0.40, "evidence_floor": 5},
         )
+        self.assertEqual(
+            registry.source_confidence_thresholds,
+            {
+                "accepted_evidence_floor": 10,
+                "low_fetch_ratio": 0.50,
+                "low_contribution_ratio": 0.40,
+                "high_fetch_ratio": 0.85,
+                "high_freshness_ratio": 0.80,
+                "high_contribution_ratio": 0.70,
+            },
+        )
         self.assertEqual(registry.active_rss_urls, [REUTERS_URL])
         self.assertEqual(
             registry.source_by_url(REUTERS_URL)["display_name"],
@@ -118,6 +137,16 @@ class SourceRegistryTests(unittest.TestCase):
         data["network_thresholds"]["concentration_threshold"] = 1.5
 
         with self.assertRaisesRegex(SourceRegistryError, "concentration_threshold"):
+            load_source_registry(self.write_registry(data))
+
+    def test_invalid_source_confidence_thresholds_fail_loudly(self):
+        data = valid_registry_data()
+        data["source_confidence_thresholds"]["high_fetch_ratio"] = 1.5
+
+        with self.assertRaisesRegex(
+            SourceRegistryError,
+            "source_confidence_thresholds.high_fetch_ratio",
+        ):
             load_source_registry(self.write_registry(data))
 
     def test_only_active_sources_are_sent_to_fetch(self):
@@ -170,6 +199,7 @@ class SourceRegistryTests(unittest.TestCase):
         source_intelligence = persisted_run["source_intelligence"]
         self.assertEqual(len(source_intelligence["source_health"]), 1)
         self.assertIn("network_health", source_intelligence)
+        self.assertIn("source_confidence", source_intelligence)
         self.assertEqual(
             source_intelligence["network_health"]["thresholds_used"],
             {"concentration_threshold": 0.40, "evidence_floor": 5},

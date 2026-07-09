@@ -16,6 +16,7 @@ REQUIRED_TOP_LEVEL_KEYS = {
     "priority_tiers",
     "coverage_thresholds",
     "network_thresholds",
+    "source_confidence_thresholds",
 }
 REQUIRED_SOURCE_FIELDS = {
     "source_id",
@@ -66,6 +67,14 @@ DEFAULT_NETWORK_THRESHOLDS = {
     "concentration_threshold": 0.40,
     "evidence_floor": 5,
 }
+DEFAULT_SOURCE_CONFIDENCE_THRESHOLDS = {
+    "accepted_evidence_floor": 10,
+    "low_fetch_ratio": 0.50,
+    "low_contribution_ratio": 0.40,
+    "high_fetch_ratio": 0.85,
+    "high_freshness_ratio": 0.80,
+    "high_contribution_ratio": 0.70,
+}
 
 
 class SourceRegistryError(ValueError):
@@ -84,6 +93,9 @@ class SourceRegistry:
     )
     network_thresholds: dict[str, Any] = field(
         default_factory=lambda: copy.deepcopy(DEFAULT_NETWORK_THRESHOLDS)
+    )
+    source_confidence_thresholds: dict[str, Any] = field(
+        default_factory=lambda: copy.deepcopy(DEFAULT_SOURCE_CONFIDENCE_THRESHOLDS)
     )
 
     @property
@@ -163,6 +175,7 @@ def load_source_registry(path: Path | str = REGISTRY_PATH):
         priority_tiers=tuple(data["priority_tiers"]),
         coverage_thresholds=dict(data["coverage_thresholds"]),
         network_thresholds=dict(data["network_thresholds"]),
+        source_confidence_thresholds=dict(data["source_confidence_thresholds"]),
     )
 
 
@@ -186,6 +199,7 @@ def validate_source_registry(data):
             raise SourceRegistryError(f"Source registry field {key!r} must be an array.")
     _validate_coverage_thresholds(data["coverage_thresholds"])
     _validate_network_thresholds(data["network_thresholds"])
+    _validate_source_confidence_thresholds(data["source_confidence_thresholds"])
 
     source_ids = set()
     urls = set()
@@ -337,3 +351,38 @@ def _validate_network_thresholds(thresholds):
         raise SourceRegistryError(
             "Source registry network_thresholds.evidence_floor must be a non-negative integer."
         )
+
+
+def _validate_source_confidence_thresholds(thresholds):
+    if not isinstance(thresholds, dict):
+        raise SourceRegistryError(
+            "Source registry field 'source_confidence_thresholds' must be an object."
+        )
+
+    required_fields = set(DEFAULT_SOURCE_CONFIDENCE_THRESHOLDS)
+    missing_fields = required_fields - set(thresholds)
+    if missing_fields:
+        missing = ", ".join(sorted(missing_fields))
+        raise SourceRegistryError(
+            f"Source registry source_confidence_thresholds missing fields: {missing}"
+        )
+
+    floor = thresholds.get("accepted_evidence_floor")
+    if not isinstance(floor, int) or isinstance(floor, bool) or floor < 0:
+        raise SourceRegistryError(
+            "Source registry source_confidence_thresholds.accepted_evidence_floor "
+            "must be a non-negative integer."
+        )
+
+    for field in required_fields - {"accepted_evidence_floor"}:
+        value = thresholds.get(field)
+        if (
+            not isinstance(value, (int, float))
+            or isinstance(value, bool)
+            or value < 0
+            or value > 1
+        ):
+            raise SourceRegistryError(
+                f"Source registry source_confidence_thresholds.{field} "
+                "must be a number between 0 and 1."
+            )

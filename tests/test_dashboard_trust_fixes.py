@@ -84,6 +84,24 @@ class DashboardTrustFixTests(unittest.TestCase):
         run = {
             "timestamp": "2026-07-08_120000",
             "source_intelligence": {
+                "source_confidence": {
+                    "confidence_state": "LOW",
+                    "confidence_level": None,
+                    "reason": "Only 6 of 16 active sources contributed accepted evidence.",
+                    "contributing_factors": [
+                        "Contribution ratio: 6/16 = 0.38",
+                        "cnbc-top-news: BLOCKED",
+                    ],
+                    "recommended_action": "Review active sources that did not contribute accepted evidence.",
+                    "thresholds_used": {
+                        "accepted_evidence_floor": 10,
+                        "low_fetch_ratio": 0.50,
+                        "low_contribution_ratio": 0.40,
+                        "high_fetch_ratio": 0.85,
+                        "high_freshness_ratio": 0.80,
+                        "high_contribution_ratio": 0.70,
+                    },
+                },
                 "network_health": {
                     "network_status": "NETWORK_PARTIAL",
                     "providers": [
@@ -168,11 +186,53 @@ class DashboardTrustFixTests(unittest.TestCase):
                     dashboard.templates.env.globals["url_for"] = original_url_for
 
         self.assertIn("Evidence Network", html)
+        self.assertIn("Source Confidence (data collection quality)", html)
+        self.assertIn("Only 6 of 16 active sources contributed accepted evidence.", html)
+        self.assertIn("Review active sources that did not contribute accepted evidence.", html)
         self.assertIn("NETWORK_PARTIAL", html)
         self.assertIn("Federal Reserve contributed", html)
         self.assertIn("UNCOVERED", html)
         self.assertNotIn("klaxon", html.lower())
         self.assertNotIn("alarm", html.lower())
+
+    def test_user_dashboard_does_not_render_source_confidence_admin_section(self):
+        run = {
+            "timestamp": "2026-07-08_120000",
+            "source_intelligence": {
+                "source_confidence": {
+                    "confidence_state": "LOW",
+                    "reason": "Admin-only diagnostic.",
+                }
+            },
+        }
+        with (
+            patch.object(dashboard, "build_configuration_report"),
+            patch.object(dashboard, "build_source_registry_diagnostics", return_value={}),
+        ):
+            dashboard.build_configuration_report.return_value.to_dict.return_value = {}
+            view = dashboard.build_view_model(run, Path("/tmp/2026-07-08_120000.json"))
+
+        original_url_for = dashboard.templates.env.globals.get("url_for")
+        dashboard.templates.env.globals["url_for"] = lambda *args, **kwargs: "/static/styles.css"
+        try:
+            html = dashboard.templates.env.get_template("dashboard.html").render(
+                request=object(),
+                message=None,
+                notice=None,
+                view=view,
+                recent_runs=[],
+                selected_file=None,
+                regime_history={},
+                narrative_leadership_history={},
+            )
+        finally:
+            if original_url_for is None:
+                dashboard.templates.env.globals.pop("url_for", None)
+            else:
+                dashboard.templates.env.globals["url_for"] = original_url_for
+
+        self.assertNotIn("Source Confidence (data collection quality)", html)
+        self.assertNotIn("Admin-only diagnostic.", html)
 
 
 if __name__ == "__main__":

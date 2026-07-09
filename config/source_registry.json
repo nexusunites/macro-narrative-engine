@@ -1,8 +1,16 @@
 {
-  "registry_version": "1.2.0",
+  "registry_version": "1.3.0",
   "network_thresholds": {
     "concentration_threshold": 0.40,
     "evidence_floor": 5
+  },
+  "source_confidence_thresholds": {
+    "accepted_evidence_floor": 10,
+    "low_fetch_ratio": 0.50,
+    "low_contribution_ratio": 0.40,
+    "high_fetch_ratio": 0.85,
+    "high_freshness_ratio": 0.80,
+    "high_contribution_ratio": 0.70
   },
   "coverage_thresholds": {
     "LIMITED": {

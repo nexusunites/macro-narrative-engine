@@ -83,6 +83,7 @@ from mne.reporting import (
     print_top_theme_examples,
 )
 from mne.rss_fetch import fetch_headlines_from_rss
+from mne.source_confidence import build_source_confidence
 from mne.source_registry import load_source_registry
 from mne.storage import (
     build_daily_snapshot_preview,
@@ -267,6 +268,10 @@ def main(args=None):
             source_intelligence.get("source_freshness", []),
             source_intelligence.get("accepted_evidence", []),
         )
+        source_intelligence["source_confidence"] = build_source_confidence(
+            source_registry,
+            source_intelligence,
+        )
         failed_run = {
             "timestamp": stamp,
             "rss_urls": rss_urls,
@@ -340,6 +345,10 @@ def main(args=None):
             source_intelligence.get("source_health", []),
             source_intelligence.get("source_freshness", []),
             source_intelligence.get("accepted_evidence", []),
+        )
+        source_intelligence["source_confidence"] = build_source_confidence(
+            source_registry,
+            source_intelligence,
         )
         stage.set_result(
             status=SUCCESS,
