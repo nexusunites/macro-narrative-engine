@@ -14,6 +14,7 @@ from config import RESULTS_DIR, ensure_data_dir
 from mne.config_diagnostics import build_configuration_report, format_startup_report
 from mne.event_lifecycle import load_event_definitions
 from mne.narrative_signals import compute_group_scores
+from mne.operations_center import build_operations_center
 from mne.platform_observability import stage_by_name
 from mne.research_workspace import (
     build_narrative_investigation,
@@ -988,6 +989,16 @@ def build_view_model(run, current_file):
             item["rotation_streak"] = None
             item["rotation_reason"] = None
 
+    configuration_report = build_configuration_report().to_dict()
+    source_registry = build_source_registry_diagnostics()
+    operations_center = build_operations_center(
+        run,
+        {
+            "configuration_report": configuration_report,
+            "source_registry": source_registry,
+        },
+    )
+
     return {
         "run": run,
         "current_file": current_file.name,
@@ -1045,8 +1056,9 @@ def build_view_model(run, current_file):
         "platform_observability": build_platform_observability_diagnostics(
             run.get("platform_observability") or {}
         ),
-        "configuration_report": build_configuration_report().to_dict(),
-        "source_registry": build_source_registry_diagnostics(),
+        "configuration_report": configuration_report,
+        "source_registry": source_registry,
+        "operations_center": operations_center,
         "theme_match_audit": run.get("theme_match_audit"),
         "diagnostics": {
             key: value
