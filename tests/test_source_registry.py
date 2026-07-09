@@ -28,6 +28,12 @@ def valid_registry_data():
             "high_freshness_ratio": 0.80,
             "high_contribution_ratio": 0.70,
         },
+        "source_reliability_thresholds": {
+            "source_reliability_window_runs": 5,
+            "minimum_required_runs": 3,
+            "repeated_failure_ratio": 0.50,
+            "quarantine_ratio": 0.80,
+        },
         "coverage_thresholds": {
             "LIMITED": {
                 "min_evidence_count": 2,
@@ -105,6 +111,15 @@ class SourceRegistryTests(unittest.TestCase):
                 "high_contribution_ratio": 0.70,
             },
         )
+        self.assertEqual(
+            registry.source_reliability_thresholds,
+            {
+                "source_reliability_window_runs": 5,
+                "minimum_required_runs": 3,
+                "repeated_failure_ratio": 0.50,
+                "quarantine_ratio": 0.80,
+            },
+        )
         self.assertEqual(registry.active_rss_urls, [REUTERS_URL])
         self.assertEqual(
             registry.source_by_url(REUTERS_URL)["display_name"],
@@ -146,6 +161,16 @@ class SourceRegistryTests(unittest.TestCase):
         with self.assertRaisesRegex(
             SourceRegistryError,
             "source_confidence_thresholds.high_fetch_ratio",
+        ):
+            load_source_registry(self.write_registry(data))
+
+    def test_invalid_source_reliability_thresholds_fail_loudly(self):
+        data = valid_registry_data()
+        data["source_reliability_thresholds"]["quarantine_ratio"] = 1.5
+
+        with self.assertRaisesRegex(
+            SourceRegistryError,
+            "source_reliability_thresholds.quarantine_ratio",
         ):
             load_source_registry(self.write_registry(data))
 

@@ -84,6 +84,7 @@ from mne.reporting import (
 )
 from mne.rss_fetch import fetch_headlines_from_rss
 from mne.source_confidence import build_source_confidence
+from mne.source_reliability import build_source_reliability
 from mne.source_registry import load_source_registry
 from mne.storage import (
     build_daily_snapshot_preview,
@@ -283,6 +284,11 @@ def main(args=None):
             "narrative_run_status": "skipped_failed_headline_collection",
             "headline_collection_failure_reason": failure_reason,
         }
+        source_intelligence["source_reliability"] = build_source_reliability(
+            source_registry,
+            failed_run,
+            RESULTS_DIR,
+        )
         telemetry.skip("NARRATIVE_INTELLIGENCE", "Skipped because headline collection failed.")
         telemetry.skip("EVIDENCE_QUALITY", "Skipped because narrative intelligence did not run.")
         telemetry.skip("NARRATIVE_BRIEF", "Skipped because narrative intelligence did not run.")
@@ -472,6 +478,11 @@ def main(args=None):
         "regime_alignment": regime_alignment,
         "examples": {k: v for k, v in examples.items() if k in dict(nonzero[:3])},
     }
+    source_intelligence["source_reliability"] = build_source_reliability(
+        source_registry,
+        run,
+        RESULTS_DIR,
+    )
 
     narrative_dynamics = calculate_narrative_dynamics(
         results_dir=RESULTS_DIR,

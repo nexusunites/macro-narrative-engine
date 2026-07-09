@@ -102,6 +102,69 @@ class DashboardTrustFixTests(unittest.TestCase):
                         "high_contribution_ratio": 0.70,
                     },
                 },
+                "source_reliability": {
+                    "evaluation_window": {
+                        "window_runs_configured": 5,
+                        "runs_evaluated": 5,
+                        "oldest_run_timestamp": "2026-07-04_120000",
+                        "newest_run_timestamp": "2026-07-08_120000",
+                    },
+                    "thresholds_used": {
+                        "source_reliability_window_runs": 5,
+                        "minimum_required_runs": 3,
+                        "repeated_failure_ratio": 0.50,
+                        "quarantine_ratio": 0.80,
+                    },
+                    "summary": {
+                        "stable_count": 1,
+                        "watch_count": 1,
+                        "repeated_failure_count": 0,
+                        "quarantine_recommended_count": 1,
+                        "unknown_count": 0,
+                    },
+                    "sources": [
+                        {
+                            "source_id": "wsj-markets",
+                            "source_name": "WSJ Markets",
+                            "provider": "Wall Street Journal",
+                            "category": "Market Structure",
+                            "registry_status": "DISABLED",
+                            "runs_observed": 5,
+                            "healthy_runs": 1,
+                            "stale_runs": 4,
+                            "blocked_runs": 0,
+                            "empty_runs": 0,
+                            "malformed_runs": 0,
+                            "error_runs": 0,
+                            "contributing_runs": 1,
+                            "non_contributing_runs": 4,
+                            "latest_state": "HEALTHY",
+                            "reliability_state": "QUARANTINE_RECOMMENDED",
+                            "reason": "Stale in 4 of 5 observed runs; 4 weak run(s) total.",
+                            "recommended_action": "Review for disabling or replacement; source appears persistently stale.",
+                        },
+                        {
+                            "source_id": "cnbc-top-news",
+                            "source_name": "CNBC Top News",
+                            "provider": "CNBC",
+                            "category": "General Business",
+                            "registry_status": "ACTIVE",
+                            "runs_observed": 5,
+                            "healthy_runs": 4,
+                            "stale_runs": 0,
+                            "blocked_runs": 1,
+                            "empty_runs": 0,
+                            "malformed_runs": 0,
+                            "error_runs": 0,
+                            "contributing_runs": 4,
+                            "non_contributing_runs": 1,
+                            "latest_state": "HEALTHY",
+                            "reliability_state": "WATCH",
+                            "reason": "Blocked in 1 of 5 observed runs; 1 weak run(s) total.",
+                            "recommended_action": "Monitor access restrictions in upcoming runs.",
+                        },
+                    ],
+                },
                 "network_health": {
                     "network_status": "NETWORK_PARTIAL",
                     "providers": [
@@ -187,11 +250,16 @@ class DashboardTrustFixTests(unittest.TestCase):
 
         self.assertIn("Evidence Network", html)
         self.assertIn("Source Confidence (data collection quality)", html)
+        self.assertIn("Source Reliability / Quarantine Tracking", html)
+        self.assertIn("Quarantine Recommended", html)
+        self.assertIn("Recommended Action", html)
+        self.assertIn("Review for disabling or replacement; source appears persistently stale.", html)
         self.assertIn("Only 6 of 16 active sources contributed accepted evidence.", html)
         self.assertIn("Review active sources that did not contribute accepted evidence.", html)
         self.assertIn("NETWORK_PARTIAL", html)
         self.assertIn("Federal Reserve contributed", html)
         self.assertIn("UNCOVERED", html)
+        self.assertNotIn("Quarantined", html)
         self.assertNotIn("klaxon", html.lower())
         self.assertNotIn("alarm", html.lower())
 

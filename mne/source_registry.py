@@ -17,6 +17,7 @@ REQUIRED_TOP_LEVEL_KEYS = {
     "coverage_thresholds",
     "network_thresholds",
     "source_confidence_thresholds",
+    "source_reliability_thresholds",
 }
 REQUIRED_SOURCE_FIELDS = {
     "source_id",
@@ -75,6 +76,12 @@ DEFAULT_SOURCE_CONFIDENCE_THRESHOLDS = {
     "high_freshness_ratio": 0.80,
     "high_contribution_ratio": 0.70,
 }
+DEFAULT_SOURCE_RELIABILITY_THRESHOLDS = {
+    "source_reliability_window_runs": 5,
+    "minimum_required_runs": 3,
+    "repeated_failure_ratio": 0.50,
+    "quarantine_ratio": 0.80,
+}
 
 
 class SourceRegistryError(ValueError):
@@ -96,6 +103,9 @@ class SourceRegistry:
     )
     source_confidence_thresholds: dict[str, Any] = field(
         default_factory=lambda: copy.deepcopy(DEFAULT_SOURCE_CONFIDENCE_THRESHOLDS)
+    )
+    source_reliability_thresholds: dict[str, Any] = field(
+        default_factory=lambda: copy.deepcopy(DEFAULT_SOURCE_RELIABILITY_THRESHOLDS)
     )
 
     @property
@@ -176,6 +186,7 @@ def load_source_registry(path: Path | str = REGISTRY_PATH):
         coverage_thresholds=dict(data["coverage_thresholds"]),
         network_thresholds=dict(data["network_thresholds"]),
         source_confidence_thresholds=dict(data["source_confidence_thresholds"]),
+        source_reliability_thresholds=dict(data["source_reliability_thresholds"]),
     )
 
 
@@ -200,6 +211,7 @@ def validate_source_registry(data):
     _validate_coverage_thresholds(data["coverage_thresholds"])
     _validate_network_thresholds(data["network_thresholds"])
     _validate_source_confidence_thresholds(data["source_confidence_thresholds"])
+    _validate_source_reliability_thresholds(data["source_reliability_thresholds"])
 
     source_ids = set()
     urls = set()
@@ -386,3 +398,53 @@ def _validate_source_confidence_thresholds(thresholds):
                 f"Source registry source_confidence_thresholds.{field} "
                 "must be a number between 0 and 1."
             )
+
+
+def _validate_source_reliability_thresholds(thresholds):
+    if not isinstance(thresholds, dict):
+        raise SourceRegistryError(
+            "Source registry field 'source_reliability_thresholds' must be an object."
+        )
+
+    required_fields = set(DEFAULT_SOURCE_RELIABILITY_THRESHOLDS)
+    missing_fields = required_fields - set(thresholds)
+    if missing_fields:
+        missing = ", ".join(sorted(missing_fields))
+        raise SourceRegistryError(
+            f"Source registry source_reliability_thresholds missing fields: {missing}"
+        )
+
+    for field in ("source_reliability_window_runs", "minimum_required_runs"):
+        value = thresholds.get(field)
+        if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+            raise SourceRegistryError(
+                f"Source registry source_reliability_thresholds.{field} "
+                "must be a positive integer."
+            )
+
+    window = thresholds.get("source_reliability_window_runs")
+    minimum = thresholds.get("minimum_required_runs")
+    if minimum > window:
+        raise SourceRegistryError(
+            "Source registry source_reliability_thresholds.minimum_required_runs "
+            "must be less than or equal to source_reliability_window_runs."
+        )
+
+    for field in ("repeated_failure_ratio", "quarantine_ratio"):
+        value = thresholds.get(field)
+        if (
+            not isinstance(value, (int, float))
+            or isinstance(value, bool)
+            or value < 0
+            or value > 1
+        ):
+            raise SourceRegistryError(
+                f"Source registry source_reliability_thresholds.{field} "
+                "must be a number between 0 and 1."
+            )
+
+    if thresholds["repeated_failure_ratio"] > thresholds["quarantine_ratio"]:
+        raise SourceRegistryError(
+            "Source registry source_reliability_thresholds.repeated_failure_ratio "
+            "must be less than or equal to quarantine_ratio."
+        )

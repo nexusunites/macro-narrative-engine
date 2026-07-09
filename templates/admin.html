@@ -109,6 +109,7 @@
       {% set source_intelligence = view.source_intelligence | default({}) %}
       {% set network_health = source_intelligence.get("network_health", {}) %}
       {% set source_confidence = source_intelligence.get("source_confidence", {}) %}
+      {% set source_reliability = source_intelligence.get("source_reliability", {}) %}
       {% set zero_match_warning = source_intelligence.get("zero_match_warning") %}
       {% if zero_match_warning %}
         <section class="content-section">
@@ -330,6 +331,60 @@
           <article class="card">
             <h3>Source Confidence (data collection quality)</h3>
             <p class="muted">No Source Confidence block was persisted for this run.</p>
+          </article>
+        {% endif %}
+        {% if source_reliability %}
+          <article class="card">
+            <h3>Source Reliability / Quarantine Tracking</h3>
+            {% set reliability_summary = source_reliability.get("summary", {}) %}
+            {% set reliability_window = source_reliability.get("evaluation_window", {}) %}
+            <table>
+              <tbody>
+                <tr><th>Stable</th><td>{{ reliability_summary.get("stable_count", "Unavailable") }}</td></tr>
+                <tr><th>Watch</th><td>{{ reliability_summary.get("watch_count", "Unavailable") }}</td></tr>
+                <tr><th>Repeated Failure</th><td>{{ reliability_summary.get("repeated_failure_count", "Unavailable") }}</td></tr>
+                <tr><th>Quarantine Recommended</th><td>{{ reliability_summary.get("quarantine_recommended_count", "Unavailable") }}</td></tr>
+                <tr><th>Unknown</th><td>{{ reliability_summary.get("unknown_count", "Unavailable") }}</td></tr>
+                <tr><th>Runs Evaluated</th><td>{{ reliability_window.get("runs_evaluated", "Unavailable") }} / {{ reliability_window.get("window_runs_configured", "Unavailable") }}</td></tr>
+              </tbody>
+            </table>
+            {% for state in ["QUARANTINE_RECOMMENDED", "REPEATED_FAILURE", "WATCH", "STABLE", "UNKNOWN"] %}
+              {% set state_sources = source_reliability.get("sources", []) | selectattr("reliability_state", "equalto", state) | list %}
+              {% if state_sources %}
+                <h4>{{ state.replace("_", " ") }}</h4>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Source</th>
+                      <th>Status</th>
+                      <th>Latest</th>
+                      <th>Observed</th>
+                      <th>Contributing</th>
+                      <th>Reason</th>
+                      <th>Recommended Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for source in state_sources %}
+                      <tr>
+                        <td>{{ source.source_name }}</td>
+                        <td>{{ source.registry_status }}</td>
+                        <td>{{ source.latest_state or "Unavailable" }}</td>
+                        <td>{{ source.runs_observed }}</td>
+                        <td>{{ source.contributing_runs }}</td>
+                        <td>{{ source.reason }}</td>
+                        <td>{{ source.recommended_action }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              {% endif %}
+            {% endfor %}
+          </article>
+        {% else %}
+          <article class="card">
+            <h3>Source Reliability / Quarantine Tracking</h3>
+            <p class="muted">No Source Reliability block was persisted for this run.</p>
           </article>
         {% endif %}
         {% if network_health %}

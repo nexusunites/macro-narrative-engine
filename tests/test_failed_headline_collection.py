@@ -101,7 +101,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         save_run_json.assert_called_once()
         persisted_run = save_run_json.call_args.args[0]
         source_intelligence = persisted_run["source_intelligence"]
-        self.assertEqual(source_intelligence["registry_version"], "1.3.0")
+        self.assertEqual(source_intelligence["registry_version"], "1.4.0")
         self.assertEqual(source_intelligence["evidence_count"], 0)
         self.assertEqual(source_intelligence["accepted_count"], 0)
         self.assertEqual(source_intelligence["rejected_count"], 0)
@@ -258,7 +258,7 @@ class FailedHeadlineCollectionTest(unittest.TestCase):
         save_run_json.assert_called_once()
         persisted_run = save_run_json.call_args.args[0]
         source_intelligence = persisted_run["source_intelligence"]
-        self.assertEqual(source_intelligence["registry_version"], "1.3.0")
+        self.assertEqual(source_intelligence["registry_version"], "1.4.0")
         self.assertEqual(source_intelligence["evidence_count"], 1)
         self.assertEqual(source_intelligence["accepted_count"], 1)
         self.assertEqual(source_intelligence["rejected_count"], 0)
