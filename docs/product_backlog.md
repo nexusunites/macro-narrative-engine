@@ -26,7 +26,7 @@ The following major platform capabilities are considered complete as part of **P
 - **Evidence Diagnostics** — accepted-evidence persistence (capped at 500 entries with an explicit truncation flag), the evidence funnel summary, the zero-match warning, and the healthy-but-severely-stale source flag.
 - **Operations Center MVP** — render-time, admin-only operational summary using existing persisted signals, with component summaries for Configuration, Pipeline / Platform Observability, Evidence Network, Source Confidence, Source Reliability, Coverage Intelligence, and Freshness / Feed Health.
 - **Dashboard Data Quality Banner / Trust Summary** — compact user-facing evidence-quality summary in the dashboard, built from existing persisted signals only, without exposing admin diagnostics or changing scoring, sources, persistence, or admin behavior.
-- **Research Workspace MVP + UX Polish** — `/research` selector, narrative investigation page, dashboard entry-point wiring, admin-gated observability reference, paced investigation zones, readable evidence display, neutral coverage explanation, calm event lifecycle empty state, and admin boundary are implemented.
+- **Research Workspace MVP + UX Polish + Evidence Reader Panel** — `/research` selector, narrative investigation page, dashboard entry-point wiring, admin-gated observability reference, paced investigation zones, readable evidence display, neutral coverage explanation, calm event lifecycle empty state, selectable Supporting Evidence cards, headline-level Evidence Reader side panel, original article access when available, calm unavailable state for missing URLs, and admin boundary are implemented.
 - **Historical Replay Foundation** — replay request creation, historical evidence selection with publication and knowledge-boundary cutoffs, ineligible evidence exclusion, accepted eligible evidence inclusion, deterministic theme/group replay wrapper, isolated replay persistence under configured replay storage, replay metadata, config portability, no-live-fetch replay behavior, determinism tests, and cross-validation against known live run scores from the same accepted evidence are implemented and verified.
 
 This is a summary for orientation only — each system's canonical reference is its own architecture document in this repository.
@@ -55,7 +55,7 @@ This is a summary for orientation only — each system's canonical reference is 
 
 **Why it matters:** This is currently MNE's single biggest gap between backend capability and user-visible value. SIP, the Evidence Quality Engine, the Event Lifecycle Engine, and the Narrative Brief Engine are all fully operational — but none of that reaches a user beyond the flat dashboard. A working Research Workspace converts already-built intelligence into a usable product for the first time.
 
-**Current status:** **Implemented.** Research Workspace MVP and UX polish are confirmed implemented. The `/research` selector is purpose-led and card-based; the investigation page is organized into four paced zones (Snapshot, Explanation, Evidence, Research Entry Points); Supporting Evidence is more readable; coverage explanation uses neutral breadth-not-quality language; Event Lifecycle empty state is calm; dashboard links use investigation-oriented wording; and admin-only diagnostics remain gated.
+**Current status:** **Implemented.** Research Workspace MVP, UX polish, and Evidence Reader Panel are confirmed implemented. The `/research` selector is purpose-led and card-based; the investigation page is organized into four paced zones (Snapshot, Explanation, Evidence, Research Entry Points); Supporting Evidence is more readable and selectable; selected evidence opens in a side panel with deterministic, field-bound headline-level explanation; original article access remains available when a URL exists; missing URLs show a calm unavailable state; coverage explanation uses neutral breadth-not-quality language; Event Lifecycle empty state is calm; dashboard links use investigation-oriented wording; and admin-only diagnostics remain gated. Full article ingestion and full article summarization are not implemented.
 
 **Dependencies:** None remaining. Every engine this Epic consumes (SIP, Narrative Intelligence, EQE, Event Lifecycle, Narrative Brief) is already implemented and confirmed live.
 
@@ -67,9 +67,11 @@ This is a summary for orientation only — each system's canonical reference is 
 | Dashboard entry-point wiring | **Implemented.** Dashboard narrative links now route users into the investigation experience with investigation-oriented wording. | Makes the MVP reachable at all | Done | Low | Complete |
 | Admin-gated Observability reference | **Implemented.** Admin-only diagnostics and observability references remain gated from the user-facing research experience. | Faster admin diagnosis without leaving the investigation | Done | Low | Complete |
 | Research Workspace UX polish | **Implemented.** Purpose-led card selector, paced investigation zones, readable Supporting Evidence, neutral coverage language, calm Event Lifecycle empty state, and verified admin boundary. | Makes the research experience legible, calm, and trust-preserving | Done | Medium | Complete |
+| Evidence Reader Panel | **Implemented.** Supporting Evidence cards are selectable and open a side panel with deterministic headline-level explanation from persisted evidence fields only; original article links remain available when URLs exist, missing URLs show a calm unavailable state, full article text limitations are stated, and standard user view does not expose raw `evidence_id`, `source_id`, or admin diagnostics. No article fetching, scraping, paywall bypassing, LLM calls, or AI-generated article summaries were added. | Lets users inspect why an evidence item matters without implying full article access or AI summarization | Done | Medium | Complete |
 | Narrative Comparison mode | Side-by-side investigation of two narratives, periods, or regimes | Supports "how does this compare" questions | Narrative Investigation MVP | Medium | Future |
 | Company Analysis mode | Company-centric narrative investigation | Supports "which companies benefit" questions | Company Memory (not built) | High | Future |
 | Catalyst Analysis standalone mode | Dedicated catalyst/event investigation surface | Deeper event-specific research | Narrative Investigation MVP | Medium | Future |
+| Full article ingestion | Future, not implemented. Store and process full article text only if a deliberately scoped ingestion strategy is approved later. | Could support deeper article-level research while preserving source and rights boundaries | SIP non-headline/full-text ingestion design | High | Future |
 | Research Session persistence | Concrete session mechanics (currently only conceptually specified) | Continuity across an investigation, foundation for saved work | Narrative Investigation MVP | Medium | Future |
 | Saved investigations, watchlists, annotations, shared workspaces, trade journals | Reserved-compatibility extensions named in the RWA architecture | Long-term personalization and collaboration | Research Session persistence | High | Future |
 
@@ -134,7 +136,7 @@ This is a summary for orientation only — each system's canonical reference is 
 
 **Why it matters:** This is where MNE starts to feel conversational, but only once there's real, stable deterministic output worth explaining.
 
-**Current status:** Zero implementation. Fully governed by the Intelligence Experience Architecture's AI boundary, already established as permanent doctrine. **Should not begin until the Research Workspace has real, stable, deterministic output for AI to operate on** — this is an explicit sequencing decision already made in the RWA architecture's own build order, not a new constraint introduced here.
+**Current status:** Zero AI implementation. Fully governed by the Intelligence Experience Architecture's AI boundary, already established as permanent doctrine. The implemented Evidence Reader Panel is deterministic/template-based and field-bound; it is not AI-generated and does not provide AI article summaries. **AI Experience should not begin until the Research Workspace has real, stable, deterministic output for AI to operate on** — this is an explicit sequencing decision already made in the RWA architecture's own build order, not a new constraint introduced here.
 
 **Dependencies:** Research Workspace MVP (Epic 1), for something worth explaining; Historical Replay/Memory, for anything beyond current-day explanation.
 
@@ -143,6 +145,7 @@ This is a summary for orientation only — each system's canonical reference is 
 | Item | Description | User value | Dependencies | Complexity | Priority |
 |---|---|---|---|---|---|
 | Explanation/summarization layer | AI restates existing Narrative Brief content in plainer or deeper language | Faster, more natural understanding | Research Workspace MVP | Medium | Future |
+| AI article summaries | Future, not implemented. AI-generated summaries of full articles are outside the current Evidence Reader Panel, which is deterministic/template-based and limited to persisted headline-level evidence fields. | Could make article-level reading easier only if full article ingestion and AI governance are deliberately added later | Full article ingestion, AI governance | High | Future |
 | Comparison assistant | AI helps contrast narratives, dates, or regimes using existing outputs | Easier cross-narrative reasoning | Research Workspace MVP, Historical Replay (for cross-date) | Medium | Future |
 | Conversational Q&A | Answers questions using existing intelligence and memory | Natural-language access to MNE's understanding | Research Workspace MVP | Medium | Future |
 | AI-organized investigation assistant | Suggests next steps through an investigation | Guided research | Research Workspace MVP | High | Future — requires deliberate scrutiny per the risk already flagged in the RWA architecture (organization suggestions can imply conclusions through ordering alone) |
@@ -301,17 +304,18 @@ Following the guiding philosophy — **build the smallest amount of software tha
 3. Epic 6 / Epic 1: historical content migration and future Research Workspace modes only where they are backed by implemented data. Narrative Comparison, Company Analysis, Research Session persistence, saved investigations, watchlists, annotations, and shared workspaces remain future work.
 4. Epic 2 / Epic 7: historical evidence connectors, historical taxonomy replay, versioned replay retention, and supporting replay diagnostics remain future work as the product surface matures.
 5. Epic 7 / Epic 8: remaining source-intelligence and admin controls. Network Confidence Model, Source Quarantine automation, historical/skipped-run browsing, version comparison, and temporal integrity audit tooling remain future work. Source Confidence Model, Source Reliability / Quarantine Tracking, and Operations Center MVP are already complete.
+6. Epic 7 / Epic 4: full article ingestion and AI article summaries remain future work only if deliberately desired later. The implemented Evidence Reader Panel is complete and should not be treated as future near-term work.
 
 **Phase 3 — Mid-term.** Once the Research Workspace has real usage on live data:
-6. Epic 3: Narrative Memory remains future work, beginning with the Memory Object persistence model and Memory Timeline only after Historical Replay is mature enough and/or integrated where needed.
+7. Epic 3: Narrative Memory remains future work, beginning with the Memory Object persistence model and Memory Timeline only after Historical Replay is mature enough and/or integrated where needed.
 
 **Phase 4 — Longer-term.** Only once Historical Replay is more product-integrated and backed by sufficient historical evidence:
-7. Epic 4: AI Experience remains future work, beginning with explanation/summarization only once there is enough stable, real deterministic output and enough real workspace usage for AI to meaningfully assist with.
-8. Epic 7: Network Confidence Model remains future work, sequenced after the current evidence-network health and source-confidence layers have enough operational history to justify the next model.
+8. Epic 4: AI Experience remains future work, beginning with explanation/summarization only once there is enough stable, real deterministic output and enough real workspace usage for AI to meaningfully assist with.
+9. Epic 7: Network Confidence Model remains future work, sequenced after the current evidence-network health and source-confidence layers have enough operational history to justify the next model.
 
 **Phase 5 — Future, as conditions warrant.**
-9. Epic 9: Performance & Scalability work, as accumulated telemetry and growing evidence volume actually call for it.
-10. Epic 10: Future Platform Opportunities, each individually scoped when its Epic-level dependencies (chiefly Narrative Memory) are in place.
+10. Epic 9: Performance & Scalability work, as accumulated telemetry and growing evidence volume actually call for it.
+11. Epic 10: Future Platform Opportunities, each individually scoped when its Epic-level dependencies (chiefly Narrative Memory) are in place.
 
 **Items that must not begin out of order, restated for emphasis:**
 - No item in **Epic 3 (Narrative Memory)** begins until **Epic 2 (Historical Replay)** is mature enough and/or integrated as needed for the specific memory work.
