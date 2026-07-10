@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from mne.evidence_summary import build_evidence_reader_summary
+from mne.evidence_summary import (
+    build_evidence_reader_summary,
+    normalize_evidence_reader_metadata,
+)
 from mne.narrative_signals import NARRATIVE_GROUPS, compute_group_scores
 
 
@@ -279,20 +282,20 @@ def _supporting_evidence_display(evidence_rows, narrative_level, narrative_id):
     for evidence in evidence_rows:
         if not isinstance(evidence, dict):
             continue
-        title = evidence.get("title") or evidence.get("headline") or "Untitled evidence"
-        source_name = evidence.get("source_name") or "Unknown source"
-        timestamp = evidence.get("timestamp") or evidence.get("published_at")
-        url = evidence.get("url") or evidence.get("link")
+        metadata = normalize_evidence_reader_metadata(evidence, selected_narrative)
         summary = build_evidence_reader_summary(evidence, selected_narrative)
         rows.append(
             {
-                "title": title,
-                "source_name": source_name,
-                "provider": evidence.get("provider"),
-                "timestamp": timestamp,
-                "url": url,
+                "title": metadata["title"],
+                "source_name": metadata["source"],
+                "provider": metadata["provider"],
+                "timestamp": metadata["published_at"],
+                "url": metadata["article_url"],
+                "article_link_available": metadata["article_link_available"],
                 "matched_narrative": selected_narrative["display_name"],
-                "evidence_type": summary["evidence_type"],
+                "matched_theme": metadata["theme"],
+                "matched_group": metadata["group"],
+                "evidence_type": metadata["evidence_type"],
                 "reader_summary": summary,
             }
         )

@@ -129,6 +129,7 @@
                       data-evidence-reader-target="evidence-reader-{{ loop.index0 }}"
                       aria-controls="evidence-reader-{{ loop.index0 }}"
                       aria-expanded="false"
+                      aria-label="Read evidence summary for {{ evidence.title }}"
                     >
                       <strong>{{ evidence.title }}</strong>
                       <span>
@@ -138,7 +139,9 @@
                       </span>
                       <small>Matched narrative: {{ evidence.matched_narrative }}</small>
                     </button>
-                    {% if evidence.url %}<a class="evidence-inline-link" href="{{ evidence.url }}">Open source</a>{% endif %}
+                    {% if evidence.url %}
+                      <a class="evidence-inline-link" href="{{ evidence.url }}" target="_blank" rel="noopener noreferrer">Open source</a>
+                    {% endif %}
                   </li>
                 {% endfor %}
               </ul>
@@ -172,6 +175,8 @@
                         {% if evidence.timestamp %} &middot; {{ evidence.timestamp }}{% endif %}
                       </p>
                       <p>Matched narrative: {{ evidence.matched_narrative }}</p>
+                      {% if evidence.matched_theme %}<p>Matched theme: {{ evidence.matched_theme }}</p>{% endif %}
+                      {% if evidence.matched_group %}<p>Matched narrative group: {{ evidence.matched_group }}</p>{% endif %}
                       <p>Evidence type: {{ evidence.evidence_type }}</p>
                     </div>
                     <dl class="evidence-reader-sections">
@@ -189,17 +194,30 @@
                       </div>
                       <div>
                         <dt>What MNE knows</dt>
-                        <dd>{{ evidence.reader_summary.what_mne_knows }}</dd>
+                        <dd>
+                          <ul>
+                            {% for item in evidence.reader_summary.known_information %}
+                              <li>{{ item }}</li>
+                            {% endfor %}
+                          </ul>
+                        </dd>
                       </div>
                       <div>
                         <dt>What MNE does not know</dt>
                         <dd>{{ evidence.reader_summary.what_mne_does_not_know }}</dd>
                       </div>
                     </dl>
-                    <p class="evidence-reader-limitations">{{ evidence.reader_summary.limitations }}</p>
+                    <div class="evidence-reader-limitations">
+                      <strong>Limitations</strong>
+                      <ul>
+                        {% for item in evidence.reader_summary.limitation_items %}
+                          <li>{{ item }}</li>
+                        {% endfor %}
+                      </ul>
+                    </div>
                     <div class="evidence-reader-actions">
                       {% if evidence.url %}
-                        <a href="{{ evidence.url }}">Open full article</a>
+                        <a href="{{ evidence.url }}" target="_blank" rel="noopener noreferrer">Open full article</a>
                       {% else %}
                         <span>Original article link unavailable.</span>
                       {% endif %}
@@ -324,6 +342,7 @@
       var panels = document.querySelectorAll("[data-evidence-reader-panel]");
       var emptyState = document.querySelector("[data-evidence-reader-empty]");
       var closeButtons = document.querySelectorAll("[data-evidence-reader-close]");
+      var activeButton = null;
 
       function closeReader() {
         panels.forEach(function (panel) {
@@ -336,18 +355,28 @@
         if (emptyState) {
           emptyState.hidden = false;
         }
+        if (activeButton) {
+          activeButton.focus();
+          activeButton = null;
+        }
       }
 
       buttons.forEach(function (button) {
         button.addEventListener("click", function () {
           var target = document.getElementById(button.getAttribute("data-evidence-reader-target"));
+          var shouldFocusPanel = button !== activeButton;
           closeReader();
           if (target) {
+            activeButton = button;
             target.hidden = false;
             button.classList.add("is-selected");
             button.setAttribute("aria-expanded", "true");
             if (emptyState) {
               emptyState.hidden = true;
+            }
+            if (shouldFocusPanel) {
+              target.setAttribute("tabindex", "-1");
+              target.focus({ preventScroll: true });
             }
           }
         });
@@ -355,6 +384,12 @@
 
       closeButtons.forEach(function (button) {
         button.addEventListener("click", closeReader);
+      });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && activeButton) {
+          closeReader();
+        }
       });
     })();
   </script>
