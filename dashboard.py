@@ -7,7 +7,7 @@ from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -16,6 +16,13 @@ from mne.config_diagnostics import build_configuration_report, format_startup_re
 from mne.dashboard_trust_summary import build_dashboard_trust_summary
 from mne.event_lifecycle import load_event_definitions
 from mne import historical_replay
+from mne.historical_replay_admin import (
+    build_replay_admin_summary,
+    build_replay_error_context,
+    is_valid_replay_id,
+    list_recent_replay_summaries,
+    load_replay_summary_by_id,
+)
 from mne.narrative_signals import compute_group_scores
 from mne.operations_center import build_operations_center
 from mne.platform_observability import stage_by_name
@@ -277,59 +284,29 @@ def sorted_scores(scores):
 
 
 def build_replay_result_view(output, output_path):
-    metadata = output.get("replay_metadata") if isinstance(output, dict) else {}
-    metadata = metadata if isinstance(metadata, dict) else {}
-    return {
-        "output": output,
-        "output_path": str(output_path),
-        "theme_scores": sorted_scores(output.get("theme_scores") if isinstance(output, dict) else {}),
-        "group_scores": sorted_scores(output.get("group_scores") if isinstance(output, dict) else {}),
-        "warnings": list(metadata.get("warnings") or []),
-    }
+    replay_dir = output_path.parent if isinstance(output_path, Path) else None
+    return build_replay_admin_summary(output, output_path, replay_dir)
 
 
 def list_recent_replay_files(limit=RECENT_REPLAY_LIMIT):
     try:
         replay_dir = historical_replay.ensure_replay_dir()
     except Exception as error:
+        replay_error = build_replay_error_context(error)
         return {
-            "replay_dir": None,
-            "error": str(error),
+            "replay_dir": "replays/",
+            "error": replay_error["message"],
             "files": [],
         }
 
-    rows = []
-    for path in sorted(replay_dir.glob("*.json"), key=lambda item: item.stat().st_mtime, reverse=True)[:limit]:
-        row = {
-            "filename": path.name,
-            "path": str(path),
-            "replay_date": None,
-            "generated_at": None,
-            "evidence_count": None,
-            "unreadable": False,
-            "error": None,
-        }
-        try:
-            with open(path, "r", encoding="utf-8") as fh:
-                data = json.load(fh)
-            if not isinstance(data, dict):
-                raise ValueError("Replay file did not contain a JSON object.")
-            row["replay_date"] = data.get("replay_date")
-            row["generated_at"] = data.get("generated_at")
-            row["evidence_count"] = data.get("evidence_count")
-        except (OSError, json.JSONDecodeError, ValueError) as error:
-            row["unreadable"] = True
-            row["error"] = f"Unreadable replay file: {error}"
-        rows.append(row)
-
     return {
-        "replay_dir": str(replay_dir),
+        "replay_dir": "replays/",
         "error": None,
-        "files": rows,
+        "files": list_recent_replay_summaries(replay_dir, limit=limit),
     }
 
 
-def build_historical_replay_console(result=None, error=None, form=None):
+def build_historical_replay_console(result=None, error=None, form=None, message=None):
     form = form or {}
     return {
         "form": {
@@ -337,6 +314,7 @@ def build_historical_replay_console(result=None, error=None, form=None):
             "mode": form.get("mode", historical_replay.SUPPORTED_MODE),
         },
         "error": error,
+        "message": message,
         "result": result,
         "recent_replays": list_recent_replay_files(),
     }
@@ -349,33 +327,59 @@ def run_admin_historical_replay(replay_date, mode=historical_replay.SUPPORTED_MO
     return build_replay_result_view(output, path)
 
 
-def build_admin_replay_context(request, run, replay_date, mode):
+def build_admin_replay_context(request, run, replay_date=None, mode=historical_replay.SUPPORTED_MODE, replay_id=None):
     form = {
         "replay_date": (replay_date or "").strip(),
         "mode": (mode or historical_replay.SUPPORTED_MODE).strip() or historical_replay.SUPPORTED_MODE,
     }
     replay_result = None
     replay_error = None
-    if not form["replay_date"]:
-        replay_error = "Enter a valid date in YYYY-MM-DD format."
-    else:
+    replay_message = None
+    if replay_id:
         try:
-            replay_result = run_admin_historical_replay(
-                form["replay_date"],
-                mode=form["mode"],
-            )
-        except ValueError:
-            replay_error = "Enter a valid date in YYYY-MM-DD format."
+            replay_dir = historical_replay.ensure_replay_dir()
+            replay_result = load_replay_summary_by_id(replay_dir, replay_id)
+            form["replay_date"] = replay_result.get("replay_date") or form["replay_date"]
+        except (ValueError, FileNotFoundError):
+            replay_error = "The selected replay summary could not be found."
         except Exception as error:
-            replay_error = str(error)
+            replay_error = build_replay_error_context(error)["message"]
 
     context = build_template_context(request, run, meaningful_default=False)
     context["historical_replay_console"] = build_historical_replay_console(
         result=replay_result,
         error=replay_error,
         form=form,
+        message=replay_message,
     )
     return context
+
+
+def execute_admin_replay_form(replay_date, mode):
+    normalized_date = (replay_date or "").strip()
+    normalized_mode = (mode or historical_replay.SUPPORTED_MODE).strip() or historical_replay.SUPPORTED_MODE
+    if not normalized_date:
+        return {"error": "Enter a valid replay date.", "error_code": "invalid_date"}
+    if normalized_mode != historical_replay.SUPPORTED_MODE:
+        return {"error": "The selected replay mode is not supported.", "error_code": "unsupported_mode"}
+
+    try:
+        result = run_admin_historical_replay(normalized_date, mode=normalized_mode)
+    except ValueError:
+        return {
+            "error": "The selected replay date could not be processed.",
+            "error_code": "invalid_date",
+        }
+    except Exception as error:
+        return {"error": build_replay_error_context(error)["message"], "error_code": "failed"}
+
+    replay_id = result.get("replay_id")
+    if not is_valid_replay_id(replay_id):
+        return {
+            "error": "The replay completed, but the result could not be opened safely.",
+            "error_code": "failed",
+        }
+    return {"replay_id": replay_id}
 
 
 def numeric_or_none(value):
@@ -1192,6 +1196,7 @@ def build_template_context(
     request: Request,
     run: Optional[str],
     meaningful_default: bool = True,
+    replay_id: Optional[str] = None,
 ):
     recent_files = list_result_files()
     selected_path = safe_result_path(run) if run else None
@@ -1217,6 +1222,20 @@ def build_template_context(
         "narrative_leadership_history": build_narrative_leadership_history(),
         "historical_replay_console": build_historical_replay_console(),
     }
+    if replay_id:
+        try:
+            replay_dir = historical_replay.ensure_replay_dir()
+            context["historical_replay_console"] = build_historical_replay_console(
+                result=load_replay_summary_by_id(replay_dir, replay_id),
+            )
+        except (ValueError, FileNotFoundError):
+            context["historical_replay_console"] = build_historical_replay_console(
+                error="The selected replay summary could not be found.",
+            )
+        except Exception as error:
+            context["historical_replay_console"] = build_historical_replay_console(
+                error=build_replay_error_context(error)["message"],
+            )
 
     if not current_file:
         context["message"] = "No MNE result files found. Run main.py first."
@@ -1327,19 +1346,54 @@ def narrative_investigation(request: Request, key: str):
 
 
 @app.get("/admin", response_class=HTMLResponse)
-def admin_dashboard(request: Request, run: Optional[str] = Query(default=None)):
-    context = build_template_context(request, run, meaningful_default=False)
+def admin_dashboard(
+    request: Request,
+    run: Optional[str] = Query(default=None),
+    replay: Optional[str] = Query(default=None),
+    replay_error: Optional[str] = Query(default=None),
+):
+    context = build_template_context(
+        request,
+        run,
+        meaningful_default=False,
+        replay_id=replay,
+    )
+    if replay_error:
+        console = context.get("historical_replay_console") or build_historical_replay_console()
+        if replay_error == "invalid_date":
+            console["error"] = "Enter a valid replay date."
+        elif replay_error == "unsupported_mode":
+            console["error"] = "The selected replay mode is not supported."
+        else:
+            console["error"] = "The replay could not be completed. Review the replay diagnostics and try again."
+        context["historical_replay_console"] = console
     return templates.TemplateResponse("admin.html", context)
 
 
-@app.post("/admin/replay", response_class=HTMLResponse)
+@app.post("/admin/historical-replay")
 async def admin_replay(request: Request, run: Optional[str] = Query(default=None)):
     body = (await request.body()).decode("utf-8")
     form_data = parse_qs(body, keep_blank_values=True)
     replay_date = (form_data.get("replay_date") or [""])[0].strip()
     mode = (form_data.get("mode") or [historical_replay.SUPPORTED_MODE])[0].strip()
-    context = build_admin_replay_context(request, run, replay_date, mode)
-    return templates.TemplateResponse("admin.html", context)
+    result = execute_admin_replay_form(replay_date, mode)
+    query = f"?run={Path(run).name}" if run else ""
+    separator = "&" if query else "?"
+    if result.get("replay_id"):
+        return RedirectResponse(
+            url=f"/admin{query}{separator}replay={result['replay_id']}",
+            status_code=303,
+        )
+    error_code = result.get("error_code") or "failed"
+    return RedirectResponse(
+        url=f"/admin{query}{separator}replay_error={error_code}",
+        status_code=303,
+    )
+
+
+@app.post("/admin/replay")
+async def admin_replay_legacy(request: Request, run: Optional[str] = Query(default=None)):
+    return await admin_replay(request, run=run)
 
 
 @app.get("/admin/research/{key:path}", response_class=HTMLResponse)

@@ -137,7 +137,9 @@ class HistoricalReplayAdminTests(unittest.TestCase):
 
         self.assertIn("Admin Replay Console", html)
         self.assertIn('name="replay_date"', html)
-        self.assertIn('action="/admin/replay', html)
+        self.assertIn('action="/admin/historical-replay', html)
+        self.assertIn("Replay uses persisted evidence only.", html)
+        self.assertIn("No live source fetching occurs.", html)
 
     def test_valid_replay_date_invokes_foundation_functions(self):
         request = Mock(name="ReplayRequest")
@@ -149,15 +151,9 @@ class HistoricalReplayAdminTests(unittest.TestCase):
                 patch.object(dashboard.historical_replay, "run_historical_replay", return_value=output) as run,
                 patch.object(dashboard.historical_replay, "persist_historical_replay", return_value=output_path) as persist,
             ):
-                context = dashboard.build_admin_replay_context(
-                    request=object(),
-                    run=None,
-                    replay_date="2026-07-06",
-                    mode="macro",
-                )
-                html = self.render_context(context)
+                result = dashboard.execute_admin_replay_form("2026-07-06", "macro")
 
-        self.assertIn("Historical Replay — 2026-07-06", html)
+        self.assertEqual(result["replay_id"], "replay_2026-07-06_macro")
         build.assert_called_once_with("2026-07-06", mode="macro")
         run.assert_called_once_with(request)
         persist.assert_called_once_with(output)
@@ -166,7 +162,7 @@ class HistoricalReplayAdminTests(unittest.TestCase):
         output = replay_output(
             replay_metadata={"warnings": ["Only 2 evidence objects were available at this cutoff."]}
         )
-        result = dashboard.build_replay_result_view(output, "/tmp/replays/replay_2026-07-06_macro.json")
+        result = dashboard.build_replay_result_view(output, Path("/tmp/replays/replay_2026-07-06_macro.json"))
         html = self.render_admin_template(
             historical_replay_console=dashboard.build_historical_replay_console(result=result)
         )
@@ -176,20 +172,25 @@ class HistoricalReplayAdminTests(unittest.TestCase):
         self.assertIn("2026-07-06T23:59:59.999999Z", html)
         self.assertIn("AI Infrastructure", html)
         self.assertIn("Only 2 evidence objects were available at this cutoff.", html)
-        self.assertIn("/tmp/replays/replay_2026-07-06_macro.json", html)
+        self.assertIn("replays/replay_2026-07-06_macro.json", html)
+        self.assertNotIn("/tmp/replays/replay_2026-07-06_macro.json", html)
 
     def test_invalid_date_is_calm_and_does_not_attempt_replay(self):
         with temporary_mne_data_dir():
             with patch.object(dashboard.historical_replay, "run_historical_replay") as run:
-                context = dashboard.build_admin_replay_context(
-                    request=object(),
-                    run=None,
-                    replay_date="July 6",
-                    mode="macro",
-                )
-                html = self.render_context(context)
+                result = dashboard.execute_admin_replay_form("July 6", "macro")
 
-        self.assertIn("Enter a valid date in YYYY-MM-DD format.", html)
+        self.assertEqual(result["error"], "The selected replay date could not be processed.")
+        self.assertEqual(result["error_code"], "invalid_date")
+        run.assert_not_called()
+
+    def test_missing_date_is_calm_and_does_not_attempt_replay(self):
+        with temporary_mne_data_dir():
+            with patch.object(dashboard.historical_replay, "run_historical_replay") as run:
+                result = dashboard.execute_admin_replay_form("", "macro")
+
+        self.assertEqual(result["error"], "Enter a valid replay date.")
+        self.assertEqual(result["error_code"], "invalid_date")
         run.assert_not_called()
 
     def test_no_evidence_replay_shows_warning_result(self):
@@ -204,7 +205,7 @@ class HistoricalReplayAdminTests(unittest.TestCase):
                 "warnings": ["No accepted evidence objects were available at this cutoff."]
             },
         )
-        result = dashboard.build_replay_result_view(output, "/tmp/replays/replay_2026-07-06_macro.json")
+        result = dashboard.build_replay_result_view(output, Path("/tmp/replays/replay_2026-07-06_macro.json"))
         html = self.render_admin_template(
             historical_replay_console=dashboard.build_historical_replay_console(result=result)
         )
@@ -224,11 +225,12 @@ class HistoricalReplayAdminTests(unittest.TestCase):
             )
             before = directory_digest(results_dir)
 
-            context = dashboard.build_admin_replay_context(
+            result = dashboard.execute_admin_replay_form("2026-07-06", "macro")
+            context = dashboard.build_template_context(
                 request=object(),
                 run=None,
-                replay_date="2026-07-06",
-                mode="macro",
+                meaningful_default=False,
+                replay_id=result["replay_id"],
             )
             html = self.render_context(context)
 
@@ -238,7 +240,43 @@ class HistoricalReplayAdminTests(unittest.TestCase):
 
         self.assertEqual(before, after)
         self.assertTrue(replay_exists)
-        self.assertIn(str(replay_path), html)
+        self.assertIn("replays/replay_2026-07-06_macro.json", html)
+        self.assertNotIn(str(replay_path), html)
+
+    def test_get_replay_summary_does_not_rerun_replay_on_refresh(self):
+        with temporary_mne_data_dir() as data_dir:
+            replay_dir = data_dir / "replays"
+            replay_dir.mkdir(parents=True)
+            replay_path = replay_dir / "replay_2026-07-06_macro.json"
+            replay_path.write_text(json.dumps(replay_output()), encoding="utf-8")
+
+            with patch.object(dashboard.historical_replay, "run_historical_replay") as run:
+                context = dashboard.build_template_context(
+                    request=object(),
+                    run=None,
+                    meaningful_default=False,
+                    replay_id="replay_2026-07-06_macro",
+                )
+                html = self.render_context(context)
+
+        self.assertIn("Historical Replay — 2026-07-06", html)
+        run.assert_not_called()
+
+    def test_replay_artifacts_do_not_appear_in_live_result_files(self):
+        with temporary_mne_data_dir() as data_dir:
+            results_dir = data_dir / "results"
+            replay_dir = data_dir / "replays"
+            results_dir.mkdir(parents=True)
+            replay_dir.mkdir(parents=True)
+            live_path = write_run(results_dir, "2026-07-06_100000", [])
+            (replay_dir / "replay_2026-07-06_macro.json").write_text(
+                json.dumps(replay_output()),
+                encoding="utf-8",
+            )
+
+            files = dashboard.list_result_files()
+
+        self.assertEqual(files, [live_path])
 
     def test_user_dashboard_does_not_show_replay_controls(self):
         html = self.render_template(
@@ -282,11 +320,12 @@ class HistoricalReplayAdminTests(unittest.TestCase):
                 "mne.rss_fetch.fetch_headlines_from_rss",
                 side_effect=AssertionError("network fetch called"),
             ):
-                context = dashboard.build_admin_replay_context(
+                result = dashboard.execute_admin_replay_form("2026-07-06", "macro")
+                context = dashboard.build_template_context(
                     request=object(),
                     run=None,
-                    replay_date="2026-07-06",
-                    mode="macro",
+                    meaningful_default=False,
+                    replay_id=result["replay_id"],
                 )
                 html = self.render_context(context)
 
@@ -322,11 +361,12 @@ class HistoricalReplayAdminTests(unittest.TestCase):
                 "run_historical_replay",
                 return_value=expected,
             ):
-                context = dashboard.build_admin_replay_context(
+                result = dashboard.execute_admin_replay_form("2026-07-06", "macro")
+                context = dashboard.build_template_context(
                     request=object(),
                     run=None,
-                    replay_date="2026-07-06",
-                    mode="macro",
+                    meaningful_default=False,
+                    replay_id=result["replay_id"],
                 )
                 html = self.render_context(context)
             persisted = json.loads(
@@ -351,7 +391,34 @@ class HistoricalReplayAdminTests(unittest.TestCase):
 
         self.assertEqual(listing["files"][0]["filename"], "broken.json")
         self.assertTrue(listing["files"][0]["unreadable"])
-        self.assertIn("Unreadable replay file", listing["files"][0]["error"])
+        self.assertIn("could not be read", listing["files"][0]["error"])
+
+    def test_recent_replay_list_is_bounded_and_sorted_newest_first(self):
+        with temporary_mne_data_dir() as data_dir:
+            replay_dir = data_dir / "replays"
+            replay_dir.mkdir(parents=True)
+            for index in range(12):
+                day = f"2026-07-{index + 1:02d}"
+                path = replay_dir / f"replay_{day}_macro.json"
+                path.write_text(json.dumps(replay_output(replay_id=path.stem, replay_date=day)), encoding="utf-8")
+
+            listing = dashboard.list_recent_replay_files(limit=10)
+
+        self.assertEqual(len(listing["files"]), 10)
+        self.assertEqual(listing["files"][0]["replay_date"], "2026-07-12")
+
+    def test_invalid_replay_identifier_is_rejected_calmly(self):
+        with temporary_mne_data_dir():
+            context = dashboard.build_template_context(
+                request=object(),
+                run=None,
+                meaningful_default=False,
+                replay_id="../secrets",
+            )
+            html = self.render_context(context)
+
+        self.assertIn("The selected replay summary could not be found.", html)
+        self.assertNotIn("Traceback", html)
 
 
 if __name__ == "__main__":

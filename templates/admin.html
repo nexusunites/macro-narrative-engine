@@ -49,53 +49,65 @@
       <div class="section-heading">
         <p class="eyebrow">Historical Replay</p>
         <h2>Admin Replay Console</h2>
-        <p class="leadership-read">Admin-only trigger for deterministic historical reconstructions. Replay output is isolated from live results.</p>
+        <p class="leadership-read">Run a deterministic historical replay using only evidence MNE had available at the selected cutoff. No live source fetching occurs, and future evidence is excluded.</p>
       </div>
       <article class="card">
-        <form method="post" action="/admin/replay{% if selected_file %}?run={{ selected_file }}{% endif %}" class="replay-form">
+        <form method="post" action="/admin/historical-replay{% if selected_file %}?run={{ selected_file }}{% endif %}" class="replay-form">
           <div>
             <label for="replay_date">Replay date</label>
             <input id="replay_date" name="replay_date" type="date" value="{{ replay_form.get('replay_date', '') }}" required>
           </div>
           <div>
-            <label for="mode">Mode</label>
-            <select id="mode" name="mode">
-              <option value="macro" {% if replay_form.get('mode', 'macro') == 'macro' %}selected{% endif %}>macro</option>
-            </select>
+            <label>Mode</label>
+            <input type="hidden" name="mode" value="macro">
+            <p class="replay-fixed-mode">macro</p>
           </div>
           <button type="submit">Run replay</button>
         </form>
+        <ul class="replay-notices">
+          <li>Replay uses persisted evidence only.</li>
+          <li>No live source fetching occurs.</li>
+          <li>Evidence published after the replay cutoff is excluded.</li>
+          <li>Replay artifacts are stored separately from live results.</li>
+        </ul>
         {% if replay_console.get("error") %}
           <p class="replay-message">{{ replay_console.get("error") }}</p>
+        {% endif %}
+        {% if replay_console.get("message") %}
+          <p class="replay-message">{{ replay_console.get("message") }}</p>
         {% endif %}
       </article>
 
       {% if replay_result %}
-        {% set output = replay_result.output %}
         <article class="card replay-result">
           <div class="operations-summary-header">
             <div>
               <p class="eyebrow">Historical Replay Result</p>
-              <h3>Historical Replay — {{ output.replay_date }}</h3>
+              <h3>Historical Replay — {{ replay_result.replay_date }}</h3>
             </div>
             <div class="operations-confidence">
               <span>Evidence</span>
-              <strong>{{ output.evidence_count }}</strong>
+              <strong>{{ replay_result.evidence_count }}</strong>
             </div>
           </div>
           <table>
             <tbody>
-              <tr><th>Replay ID</th><td><code>{{ output.replay_id }}</code></td></tr>
-              <tr><th>Replay Date</th><td>{{ output.replay_date }}</td></tr>
-              <tr><th>Evidence Cutoff</th><td>{{ output.evidence_cutoff }}</td></tr>
-              <tr><th>Evidence Count</th><td>{{ output.evidence_count }}</td></tr>
-              <tr><th>Source Count</th><td>{{ output.source_count }}</td></tr>
-              <tr><th>Dominant Theme</th><td>{{ output.dominant_theme or "Unavailable" }}</td></tr>
-              <tr><th>Dominant Group</th><td>{{ output.dominant_group or "Unavailable" }}</td></tr>
-              <tr><th>Output Path</th><td><code>{{ replay_result.output_path }}</code></td></tr>
+              <tr><th>Status</th><td>{{ replay_result.status|title }}</td></tr>
+              <tr><th>Replay ID</th><td><code>{{ replay_result.replay_id }}</code></td></tr>
+              <tr><th>Replay Date</th><td>{{ replay_result.replay_date }}</td></tr>
+              <tr><th>Evidence Cutoff</th><td>{{ replay_result.evidence_cutoff }}</td></tr>
+              <tr><th>Generated At</th><td>{{ replay_result.generated_at }}</td></tr>
+              <tr><th>Mode</th><td>{{ replay_result.mode }}</td></tr>
+              <tr><th>Eligible Evidence Count</th><td>{{ replay_result.evidence_count }}</td></tr>
+              <tr><th>Accepted Evidence Count</th><td>{{ replay_result.accepted_evidence_count if replay_result.accepted_evidence_count is not none else "Unavailable" }}</td></tr>
+              <tr><th>Source Count</th><td>{{ replay_result.source_count }}</td></tr>
+              <tr><th>Dominant Theme</th><td>{{ replay_result.dominant_theme or "Unavailable" }}</td></tr>
+              <tr><th>Dominant Group</th><td>{{ replay_result.dominant_group or "Unavailable" }}</td></tr>
+              <tr><th>Artifact Filename</th><td><code>{{ replay_result.artifact_filename }}</code></td></tr>
+              <tr><th>Stored At</th><td><code>{{ replay_result.artifact_display_path }}</code></td></tr>
             </tbody>
           </table>
-          {% if output.evidence_count == 0 %}
+          {% if replay_result.evidence_count == 0 %}
             <p class="muted">0 evidence objects were available at this cutoff.</p>
           {% endif %}
           {% if replay_result.warnings %}
@@ -142,11 +154,10 @@
       {% endif %}
 
       <article class="card">
-        <h3>Recent Replay Files</h3>
+        <h3>Recent Replays</h3>
         {% if recent_replays.get("error") %}
           <p class="muted">{{ recent_replays.get("error") }}</p>
         {% else %}
-          <p class="muted">Replay directory: {{ recent_replays.get("replay_dir", "Unavailable") }}</p>
           {% if recent_replays.get("files") %}
             <table>
               <thead>
@@ -155,23 +166,35 @@
                   <th>Replay Date</th>
                   <th>Generated At</th>
                   <th>Evidence</th>
+                  <th>Sources</th>
+                  <th>Dominant Theme</th>
+                  <th>Dominant Group</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {% for replay_file in recent_replays.get("files", []) %}
                   <tr>
-                    <th><code>{{ replay_file.filename }}</code></th>
+                    <th>
+                      {% if replay_file.replay_id %}
+                        <a href="/admin{% if selected_file %}?run={{ selected_file }}&{% else %}?{% endif %}replay={{ replay_file.replay_id }}"><code>{{ replay_file.filename }}</code></a>
+                      {% else %}
+                        <code>{{ replay_file.filename }}</code>
+                      {% endif %}
+                    </th>
                     <td>{{ replay_file.replay_date or "Unavailable" }}</td>
                     <td>{{ replay_file.generated_at or "Unavailable" }}</td>
                     <td>{{ replay_file.evidence_count if replay_file.evidence_count is not none else "Unavailable" }}</td>
-                    <td>{% if replay_file.unreadable %}Unreadable — {{ replay_file.error }}{% else %}Readable{% endif %}</td>
+                    <td>{{ replay_file.source_count if replay_file.source_count is not none else "Unavailable" }}</td>
+                    <td>{{ replay_file.dominant_theme or "Unavailable" }}</td>
+                    <td>{{ replay_file.dominant_group or "Unavailable" }}</td>
+                    <td>{% if replay_file.unreadable %}Unavailable{% else %}{{ replay_file.status }}{% endif %}</td>
                   </tr>
                 {% endfor %}
               </tbody>
             </table>
           {% else %}
-            <p class="muted">No replay files found yet.</p>
+            <p class="muted">No historical replay has been run from this console yet.</p>
           {% endif %}
         {% endif %}
       </article>
