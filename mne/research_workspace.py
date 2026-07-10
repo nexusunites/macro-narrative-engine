@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from mne.evidence_summary import build_evidence_reader_summary
 from mne.narrative_signals import NARRATIVE_GROUPS, compute_group_scores
 
 
@@ -270,17 +271,29 @@ def _supporting_evidence(source_intelligence, narrative_level, narrative_id):
 
 def _supporting_evidence_display(evidence_rows, narrative_level, narrative_id):
     rows = []
+    selected_narrative = {
+        "narrative_level": narrative_level,
+        "narrative_id": narrative_id,
+        "display_name": _display_name(narrative_level, narrative_id),
+    }
     for evidence in evidence_rows:
         if not isinstance(evidence, dict):
             continue
+        title = evidence.get("title") or evidence.get("headline") or "Untitled evidence"
+        source_name = evidence.get("source_name") or "Unknown source"
+        timestamp = evidence.get("timestamp") or evidence.get("published_at")
+        url = evidence.get("url") or evidence.get("link")
+        summary = build_evidence_reader_summary(evidence, selected_narrative)
         rows.append(
             {
-                "title": evidence.get("title") or "Untitled evidence",
-                "source_name": evidence.get("source_name") or "Unknown source",
+                "title": title,
+                "source_name": source_name,
                 "provider": evidence.get("provider"),
-                "timestamp": evidence.get("timestamp") or evidence.get("published_at"),
-                "url": evidence.get("url") or evidence.get("link"),
-                "matched_narrative": _display_name(narrative_level, narrative_id),
+                "timestamp": timestamp,
+                "url": url,
+                "matched_narrative": selected_narrative["display_name"],
+                "evidence_type": summary["evidence_type"],
+                "reader_summary": summary,
             }
         )
     return rows

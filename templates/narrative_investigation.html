@@ -122,15 +122,23 @@
             {% if investigation.supporting_evidence_display %}
               <ul class="research-evidence-list">
                 {% for evidence in investigation.supporting_evidence_display %}
-                  <li>
-                    <strong>{{ evidence.title }}</strong>
-                    <span>
-                      {{ evidence.source_name }}
-                      {% if evidence.provider %} &middot; {{ evidence.provider }}{% endif %}
-                      {% if evidence.timestamp %} &middot; {{ evidence.timestamp }}{% endif %}
-                    </span>
-                    <small>Matched narrative: {{ evidence.matched_narrative }}</small>
-                    {% if evidence.url %}<a href="{{ evidence.url }}">Open source</a>{% endif %}
+                  <li class="research-evidence-item">
+                    <button
+                      class="evidence-card-button"
+                      type="button"
+                      data-evidence-reader-target="evidence-reader-{{ loop.index0 }}"
+                      aria-controls="evidence-reader-{{ loop.index0 }}"
+                      aria-expanded="false"
+                    >
+                      <strong>{{ evidence.title }}</strong>
+                      <span>
+                        {{ evidence.source_name }}
+                        {% if evidence.provider %} &middot; {{ evidence.provider }}{% endif %}
+                        {% if evidence.timestamp %} &middot; {{ evidence.timestamp }}{% endif %}
+                      </span>
+                      <small>Matched narrative: {{ evidence.matched_narrative }}</small>
+                    </button>
+                    {% if evidence.url %}<a class="evidence-inline-link" href="{{ evidence.url }}">Open source</a>{% endif %}
                   </li>
                 {% endfor %}
               </ul>
@@ -140,6 +148,68 @@
           </article>
 
           <aside class="evidence-context-stack">
+            <article class="evidence-reader-panel" aria-live="polite">
+              <div class="subsection-heading">
+                <p class="eyebrow">Evidence Reader</p>
+                <h3>Headline-level summary</h3>
+              </div>
+              <div class="evidence-reader-empty" data-evidence-reader-empty>
+                <p>Select an evidence item to read a quick summary.</p>
+              </div>
+              {% if investigation.supporting_evidence_display %}
+                {% for evidence in investigation.supporting_evidence_display %}
+                  <div
+                    class="evidence-reader-detail"
+                    id="evidence-reader-{{ loop.index0 }}"
+                    data-evidence-reader-panel
+                    hidden
+                  >
+                    <div class="evidence-reader-header">
+                      <h4>{{ evidence.title }}</h4>
+                      <p>
+                        {{ evidence.source_name }}
+                        {% if evidence.provider %} &middot; {{ evidence.provider }}{% endif %}
+                        {% if evidence.timestamp %} &middot; {{ evidence.timestamp }}{% endif %}
+                      </p>
+                      <p>Matched narrative: {{ evidence.matched_narrative }}</p>
+                      <p>Evidence type: {{ evidence.evidence_type }}</p>
+                    </div>
+                    <dl class="evidence-reader-sections">
+                      <div>
+                        <dt>Main point</dt>
+                        <dd>{{ evidence.reader_summary.main_point }}</dd>
+                      </div>
+                      <div>
+                        <dt>Why it matters</dt>
+                        <dd>{{ evidence.reader_summary.why_it_matters }}</dd>
+                      </div>
+                      <div>
+                        <dt>Narrative connection</dt>
+                        <dd>{{ evidence.reader_summary.narrative_connection }}</dd>
+                      </div>
+                      <div>
+                        <dt>What MNE knows</dt>
+                        <dd>{{ evidence.reader_summary.what_mne_knows }}</dd>
+                      </div>
+                      <div>
+                        <dt>What MNE does not know</dt>
+                        <dd>{{ evidence.reader_summary.what_mne_does_not_know }}</dd>
+                      </div>
+                    </dl>
+                    <p class="evidence-reader-limitations">{{ evidence.reader_summary.limitations }}</p>
+                    <div class="evidence-reader-actions">
+                      {% if evidence.url %}
+                        <a href="{{ evidence.url }}">Open full article</a>
+                      {% else %}
+                        <span>Original article link unavailable.</span>
+                      {% endif %}
+                      <button type="button" data-evidence-reader-close>Close</button>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            </article>
+
             <article class="evidence-context-panel">
               <div class="subsection-heading">
                 <p class="eyebrow">Coverage</p>
@@ -248,5 +318,45 @@
       </section>
     {% endif %}
   </main>
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-evidence-reader-target]");
+      var panels = document.querySelectorAll("[data-evidence-reader-panel]");
+      var emptyState = document.querySelector("[data-evidence-reader-empty]");
+      var closeButtons = document.querySelectorAll("[data-evidence-reader-close]");
+
+      function closeReader() {
+        panels.forEach(function (panel) {
+          panel.hidden = true;
+        });
+        buttons.forEach(function (button) {
+          button.classList.remove("is-selected");
+          button.setAttribute("aria-expanded", "false");
+        });
+        if (emptyState) {
+          emptyState.hidden = false;
+        }
+      }
+
+      buttons.forEach(function (button) {
+        button.addEventListener("click", function () {
+          var target = document.getElementById(button.getAttribute("data-evidence-reader-target"));
+          closeReader();
+          if (target) {
+            target.hidden = false;
+            button.classList.add("is-selected");
+            button.setAttribute("aria-expanded", "true");
+            if (emptyState) {
+              emptyState.hidden = true;
+            }
+          }
+        });
+      });
+
+      closeButtons.forEach(function (button) {
+        button.addEventListener("click", closeReader);
+      });
+    })();
+  </script>
 </body>
 </html>

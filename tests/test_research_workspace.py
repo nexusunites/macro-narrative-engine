@@ -3,6 +3,11 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from mne.evidence_summary import (
+    LIMITATION_TEXT,
+    build_evidence_reader_summary,
+    summarize_evidence_main_point,
+)
 from mne.research_workspace import (
     build_narrative_investigation,
     build_narrative_selector,
@@ -271,6 +276,30 @@ class ResearchWorkspaceTests(unittest.TestCase):
                     "timestamp": "2026-07-09T10:00:00Z",
                     "url": "https://example.com/ai",
                     "matched_narrative": "AI / Tech Growth",
+                    "evidence_type": "Headline",
+                    "reader_summary": {
+                        "evidence_type": "Headline",
+                        "main_point": 'This evidence references the headline "AI capex expands".',
+                        "why_it_matters": (
+                            "It supports the AI / Tech Growth narrative by adding accepted "
+                            "headline-level evidence to the investigation."
+                        ),
+                        "narrative_connection": (
+                            "This evidence was attributed to AI / Tech Growth in the "
+                            "persisted evidence record."
+                        ),
+                        "matched_terms": [],
+                        "what_mne_knows": (
+                            "MNE has the headline, source, provider, timestamp, and "
+                            "narrative attribution."
+                        ),
+                        "what_mne_does_not_know": (
+                            "MNE does not have the full article body, so this is not a full "
+                            "article summary."
+                        ),
+                        "limitations": LIMITATION_TEXT,
+                        "limited_detail": False,
+                    },
                 }
             ],
         )
@@ -354,9 +383,119 @@ class ResearchWorkspaceTests(unittest.TestCase):
         self.assertIn("Source One", html)
         self.assertIn("Provider One", html)
         self.assertIn("2026-07-09T10:00:00Z", html)
+        self.assertIn("evidence-card-button", html)
+        self.assertIn("data-evidence-reader-target", html)
+        self.assertIn("Evidence Reader", html)
+        self.assertIn("Select an evidence item to read a quick summary.", html)
+        self.assertIn("Headline-level summary", html)
+        self.assertIn('This evidence references the headline &#34;AI capex expands&#34;.', html)
+        self.assertIn("Matched narrative: AI / Tech Growth", html)
+        self.assertIn("Evidence type: Headline", html)
+        self.assertIn("Open full article", html)
+        self.assertIn(LIMITATION_TEXT, html)
         self.assertNotIn("accepted-ai", html)
+        self.assertNotIn("evidence_id", html)
         self.assertNotIn("source_id", html)
         self.assertNotIn("rejected-ai", html)
+
+    def test_evidence_reader_panel_shows_missing_url_state(self):
+        run = sample_run()
+        run["source_intelligence"]["evidence_objects"][0].pop("url")
+        investigation = build_narrative_investigation(
+            run,
+            "group",
+            "AI / Tech Growth",
+        )
+        html = render_template(
+            "narrative_investigation.html",
+            investigation=investigation,
+        )
+
+        self.assertIn("Original article link unavailable.", html)
+        self.assertNotIn("Open full article", html)
+
+    def test_evidence_summary_uses_headline_level_fields_without_article_body(self):
+        evidence = {
+            "title": "AI capex expands",
+            "source_name": "Source One",
+            "provider": "Provider One",
+            "timestamp": "2026-07-09T10:00:00Z",
+            "article_body": "This text must not appear in the reader summary.",
+            "themes": ["ai"],
+        }
+        narrative = {
+            "narrative_level": "theme",
+            "narrative_id": "ai",
+            "display_name": "Ai",
+        }
+
+        summary = build_evidence_reader_summary(evidence, narrative)
+
+        rendered = " ".join(str(value) for value in summary.values())
+        self.assertIn('This evidence references the headline "AI capex expands".', rendered)
+        self.assertIn("persisted matched terms: ai", rendered)
+        self.assertNotIn("This text must not appear", rendered)
+
+    def test_evidence_summary_is_deterministic(self):
+        evidence = {
+            "title": "AI capex expands",
+            "source_name": "Source One",
+            "provider": "Provider One",
+            "timestamp": "2026-07-09T10:00:00Z",
+            "themes": ["ai"],
+        }
+        narrative = {
+            "narrative_level": "theme",
+            "narrative_id": "ai",
+            "display_name": "Ai",
+        }
+
+        self.assertEqual(
+            build_evidence_reader_summary(evidence, narrative),
+            build_evidence_reader_summary(evidence, narrative),
+        )
+
+    def test_minimal_evidence_reader_state_renders_calmly(self):
+        run = sample_run()
+        run["source_intelligence"]["evidence_objects"][0] = {
+            "accepted": True,
+            "themes": ["ai"],
+        }
+        investigation = build_narrative_investigation(
+            run,
+            "group",
+            "AI / Tech Growth",
+        )
+        html = render_template(
+            "narrative_investigation.html",
+            investigation=investigation,
+        )
+
+        self.assertIn("Untitled evidence", html)
+        self.assertIn("Unknown source", html)
+        self.assertIn("MNE has limited headline-level detail for this evidence item.", html)
+        self.assertIn(LIMITATION_TEXT, html)
+
+    def test_main_point_minimal_state_is_honest(self):
+        self.assertEqual(
+            summarize_evidence_main_point({}),
+            "MNE has limited headline-level detail for this evidence item.",
+        )
+
+    def test_research_workspace_logic_regression_surface_stays_unchanged(self):
+        investigation = build_narrative_investigation(
+            sample_run(),
+            "group",
+            "AI / Tech Growth",
+        )
+
+        self.assertEqual(investigation["overview"]["score"], 14)
+        self.assertEqual(investigation["brief"]["headline"], "AI remains the dominant story")
+        self.assertEqual(investigation["coverage"]["coverage_state"], "MINIMAL")
+        self.assertEqual(
+            [row["source_id"] for row in investigation["source_summary"]],
+            ["s1"],
+        )
 
     def test_coverage_explanation_is_neutral_for_minimal_state(self):
         investigation = build_narrative_investigation(
