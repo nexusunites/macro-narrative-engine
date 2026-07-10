@@ -107,6 +107,11 @@
               <tr><th>Stored At</th><td><code>{{ replay_result.artifact_display_path }}</code></td></tr>
             </tbody>
           </table>
+          {% if replay_result.research_url %}
+            <p>
+              <a class="historical-research-link" href="{{ replay_result.research_url }}">Open historical research view</a>
+            </p>
+          {% endif %}
           {% if replay_result.evidence_count == 0 %}
             <p class="muted">0 evidence objects were available at this cutoff.</p>
           {% endif %}
@@ -170,6 +175,7 @@
                   <th>Dominant Theme</th>
                   <th>Dominant Group</th>
                   <th>Status</th>
+                  <th>Research</th>
                 </tr>
               </thead>
               <tbody>
@@ -189,6 +195,13 @@
                     <td>{{ replay_file.dominant_theme or "Unavailable" }}</td>
                     <td>{{ replay_file.dominant_group or "Unavailable" }}</td>
                     <td>{% if replay_file.unreadable %}Unavailable{% else %}{{ replay_file.status }}{% endif %}</td>
+                    <td>
+                      {% if replay_file.research_url and not replay_file.unreadable %}
+                        <a class="historical-research-link compact" href="{{ replay_file.research_url }}">Open historical research view</a>
+                      {% else %}
+                        Unavailable
+                      {% endif %}
+                    </td>
                   </tr>
                 {% endfor %}
               </tbody>

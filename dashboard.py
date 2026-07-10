@@ -16,6 +16,11 @@ from mne.config_diagnostics import build_configuration_report, format_startup_re
 from mne.dashboard_trust_summary import build_dashboard_trust_summary
 from mne.event_lifecycle import load_event_definitions
 from mne import historical_replay
+from mne.historical_research import (
+    HistoricalResearchError,
+    build_historical_research_context,
+    load_replay_for_historical_research,
+)
 from mne.historical_replay_admin import (
     build_replay_admin_summary,
     build_replay_error_context,
@@ -1327,6 +1332,27 @@ def build_investigation_context(request: Request, key: str, admin: bool = False)
     return context
 
 
+def build_historical_research_route_context(request: Request, replay_id: str):
+    context = {
+        "request": request,
+        "message": None,
+        "historical_research": None,
+    }
+    try:
+        artifact, replay_path = load_replay_for_historical_research(replay_id)
+        replay_dir = replay_path.parent.resolve()
+        context["historical_research"] = build_historical_research_context(
+            artifact,
+            replay_path=replay_path,
+            replay_dir=replay_dir,
+        )
+    except HistoricalResearchError as error:
+        context["message"] = error.message
+    except Exception:
+        context["message"] = "The selected replay artifact could not be loaded."
+    return context
+
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, run: Optional[str] = Query(default=None)):
     context = build_template_context(request, run, meaningful_default=True)
@@ -1400,6 +1426,12 @@ async def admin_replay_legacy(request: Request, run: Optional[str] = Query(defau
 def admin_narrative_investigation(request: Request, key: str):
     context = build_investigation_context(request, key, admin=True)
     return templates.TemplateResponse("narrative_investigation.html", context)
+
+
+@app.get("/admin/replay/{replay_id}/research", response_class=HTMLResponse)
+def admin_historical_research(request: Request, replay_id: str):
+    context = build_historical_research_route_context(request, replay_id)
+    return templates.TemplateResponse("historical_research.html", context)
 
 
 if __name__ == "__main__":

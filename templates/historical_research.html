@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MNE Historical Research</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body class="admin-body">
+  <header class="site-header admin-header">
+    <div class="brand-row">
+      <a class="brand" href="/">Macro Narrative Engine</a>
+      <nav class="nav">
+        <a href="/">Overview</a>
+        <a href="/research">Research</a>
+        <a class="active" href="/admin">Admin</a>
+      </nav>
+    </div>
+    <div class="utility-row">
+      <p class="last-updated">Historical Replay &middot; Admin Only &middot; Read Only</p>
+    </div>
+  </header>
+
+  <main class="page-shell admin-shell historical-research-shell">
+    {% if message %}
+      <section class="empty-state historical-empty-state">
+        <p class="eyebrow">Historical Research View</p>
+        <h1>{{ message }}</h1>
+        <p>This admin-only page opens completed replay artifacts from replay storage only.</p>
+        <a class="historical-back-link" href="/admin#historical-replay">Back to Historical Replay Admin Console</a>
+      </section>
+    {% elif historical_research %}
+      {% set replay = historical_research.replay %}
+      {% set snapshot = historical_research.snapshot %}
+      {% set historical_read = historical_research.historical_read %}
+      {% set temporal = historical_research.temporal_integrity %}
+      {% set metadata = historical_research.metadata %}
+
+      <section class="historical-marker">
+        <div>
+          <p class="eyebrow">Historical Replay &middot; Admin Only &middot; Read Only</p>
+          <h1>Historical Research View</h1>
+          <p>This replay reconstructs what MNE could have known using evidence available at the selected cutoff.</p>
+        </div>
+        <a class="historical-back-link" href="/admin#historical-replay">Back to replay console</a>
+      </section>
+
+      <section class="temporal-integrity-notice" aria-label="Temporal integrity">
+        <p>This is a historical replay.</p>
+        <p>The replay uses persisted evidence only.</p>
+        <p>Evidence published after the cutoff is excluded.</p>
+        <p>No live source fetching occurs.</p>
+        <p>Historical coverage may be incomplete if MNE had limited stored evidence for this date.</p>
+      </section>
+
+      <section class="content-section historical-zone">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Zone 1 / Replay Snapshot</p>
+          <h2>Replay Snapshot</h2>
+          <p>This is not current market intelligence.</p>
+        </div>
+        <div class="historical-snapshot-grid">
+          <article class="historical-primary-panel">
+            <span>Dominant Historical Read</span>
+            <strong>{{ historical_read.dominant_narrative or "Unavailable" }}</strong>
+            <p>Historical status: {{ replay.status|title if replay.status else "Unavailable" }}</p>
+          </article>
+          <dl class="historical-facts">
+            <div><dt>Replay Date</dt><dd>{{ replay.replay_date or "Unavailable" }}</dd></div>
+            <div><dt>Evidence Cutoff</dt><dd>{{ replay.evidence_cutoff or "Unavailable" }}</dd></div>
+            <div><dt>Generated At</dt><dd>{{ replay.generated_at or "Unavailable" }}</dd></div>
+            <div><dt>Replay Mode</dt><dd>{{ replay.mode or "Unavailable" }}</dd></div>
+            <div><dt>Dominant Theme</dt><dd>{{ snapshot.dominant_theme or "Unavailable" }}</dd></div>
+            <div><dt>Dominant Group</dt><dd>{{ snapshot.dominant_group or "Unavailable" }}</dd></div>
+            <div><dt>Eligible Evidence</dt><dd>{{ snapshot.evidence_count if snapshot.evidence_count is not none else "Unavailable" }}</dd></div>
+            <div><dt>Source Count</dt><dd>{{ snapshot.source_count if snapshot.source_count is not none else "Unavailable" }}</dd></div>
+          </dl>
+        </div>
+        {% if snapshot.warnings %}
+          <div class="historical-warning">
+            <p class="eyebrow">Replay Warnings and Limitations</p>
+            <ul>
+              {% for warning in snapshot.warnings %}
+                <li>{{ warning }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="content-section historical-zone">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Zone 2 / Historical Read</p>
+          <h2>Historical Read</h2>
+          <p>This is a reconstruction of MNE's narrative read at the selected cutoff. It is not current market intelligence.</p>
+        </div>
+        <div class="two-column replay-score-grid">
+          <div>
+            <h3>Theme Scores</h3>
+            {% if historical_read.theme_scores %}
+              <table>
+                <tbody>
+                  {% for theme, score in historical_read.theme_scores %}
+                    <tr><th>{{ theme }}</th><td>{{ score }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="muted">No theme scores were stored in this replay artifact.</p>
+            {% endif %}
+          </div>
+          <div>
+            <h3>Group Scores</h3>
+            {% if historical_read.group_scores %}
+              <table>
+                <tbody>
+                  {% for group, score in historical_read.group_scores %}
+                    <tr><th>{{ group }}</th><td>{{ score }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="muted">No group scores were stored in this replay artifact.</p>
+            {% endif %}
+          </div>
+        </div>
+        <div class="historical-narrative-selector">
+          <h3>Replay Narratives</h3>
+          {% if historical_research.narratives %}
+            <ul>
+              {% for narrative in historical_research.narratives %}
+                <li>
+                  <strong>{{ narrative.label }}</strong>
+                  <span>{{ narrative.level|title }} &middot; Score {{ narrative.score }}</span>
+                  {% if narrative.evidence_count %}<small>{{ narrative.evidence_count }} evidence item{% if narrative.evidence_count != 1 %}s{% endif %}</small>{% endif %}
+                  {% if narrative.dominant %}<em>Dominant</em>{% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="muted">No nonzero replay narratives were stored in this artifact.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="content-section historical-zone">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Zone 3 / Historical Evidence</p>
+          <h2>Historical Evidence</h2>
+          <p>Historical evidence available at the replay cutoff. Full article text is not implied unless stored in the replay artifact.</p>
+        </div>
+        {% if historical_research.evidence %}
+          <div class="historical-evidence-layout">
+            <ul class="research-evidence-list">
+              {% for evidence in historical_research.evidence %}
+                <li class="research-evidence-item historical-evidence-item">
+                  <button
+                    class="evidence-card-button"
+                    type="button"
+                    data-evidence-reader-target="historical-reader-{{ loop.index0 }}"
+                    aria-controls="historical-reader-{{ loop.index0 }}"
+                    aria-expanded="false"
+                    aria-label="Read historical evidence summary for {{ evidence.title }}"
+                  >
+                    <strong>{{ evidence.title }}</strong>
+                    <span>
+                      {{ evidence.source_name }}
+                      {% if evidence.provider %} &middot; {{ evidence.provider }}{% endif %}
+                      {% if evidence.published_at %} &middot; {{ evidence.published_at }}{% endif %}
+                    </span>
+                    <small>
+                      Evidence type: {{ evidence.evidence_type }}
+                      {% if evidence.matched_theme %} &middot; Theme: {{ evidence.matched_theme }}{% endif %}
+                      {% if evidence.matched_group %} &middot; Group: {{ evidence.matched_group }}{% endif %}
+                    </small>
+                  </button>
+                  {% if evidence.url %}
+                    <a class="evidence-inline-link" href="{{ evidence.url }}" target="_blank" rel="noopener noreferrer">Open source</a>
+                  {% else %}
+                    <span class="historical-missing-link">Original article link unavailable.</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+            <aside class="evidence-reader-panel historical-reader-panel" aria-live="polite">
+              <div class="subsection-heading">
+                <p class="eyebrow">Historical Evidence Reader</p>
+                <h3>Headline-level summary</h3>
+              </div>
+              <div class="evidence-reader-empty" data-evidence-reader-empty>
+                <p>Select an evidence item to read a deterministic summary.</p>
+              </div>
+              {% for evidence in historical_research.evidence %}
+                <div
+                  class="evidence-reader-detail"
+                  id="historical-reader-{{ loop.index0 }}"
+                  data-evidence-reader-panel
+                  hidden
+                >
+                  <div class="evidence-reader-header">
+                    <h4>{{ evidence.title }}</h4>
+                    <p>
+                      {{ evidence.source_name }}
+                      {% if evidence.provider %} &middot; {{ evidence.provider }}{% endif %}
+                      {% if evidence.published_at %} &middot; {{ evidence.published_at }}{% endif %}
+                    </p>
+                    {% if evidence.matched_theme %}<p>Matched theme: {{ evidence.matched_theme }}</p>{% endif %}
+                    {% if evidence.matched_group %}<p>Matched narrative group: {{ evidence.matched_group }}</p>{% endif %}
+                    <p>Evidence type: {{ evidence.evidence_type }}</p>
+                    <p>Historical evidence available at the replay cutoff.</p>
+                  </div>
+                  <dl class="evidence-reader-sections">
+                    <div><dt>Main point</dt><dd>{{ evidence.reader_summary.main_point }}</dd></div>
+                    <div><dt>Why it matters</dt><dd>{{ evidence.reader_summary.why_it_matters }}</dd></div>
+                    <div><dt>Narrative connection</dt><dd>{{ evidence.reader_summary.narrative_connection }}</dd></div>
+                    <div>
+                      <dt>What MNE knows</dt>
+                      <dd>
+                        <ul>
+                          {% for item in evidence.reader_summary.known_information %}
+                            <li>{{ item }}</li>
+                          {% endfor %}
+                        </ul>
+                      </dd>
+                    </div>
+                    <div><dt>What MNE does not know</dt><dd>{{ evidence.reader_summary.what_mne_does_not_know }}</dd></div>
+                  </dl>
+                  <div class="evidence-reader-limitations">
+                    <strong>Limitations</strong>
+                    <ul>
+                      {% for item in evidence.reader_summary.limitation_items %}
+                        <li>{{ item }}</li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                  <div class="evidence-reader-actions">
+                    {% if evidence.url %}
+                      <a href="{{ evidence.url }}" target="_blank" rel="noopener noreferrer">Open source</a>
+                    {% else %}
+                      <span>Original article link unavailable.</span>
+                    {% endif %}
+                    <button type="button" data-evidence-reader-close>Close</button>
+                  </div>
+                </div>
+              {% endfor %}
+            </aside>
+          </div>
+        {% else %}
+          <article class="empty-state historical-empty-state">
+            <p class="eyebrow">Historical Evidence</p>
+            <h3>This replay artifact does not contain displayable historical evidence.</h3>
+            <p>The replay scores are available, but individual historical evidence records were not stored in this artifact.</p>
+          </article>
+        {% endif %}
+      </section>
+
+      <section class="content-section historical-zone">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Zone 4 / Replay Metadata</p>
+          <h2>Replay Metadata</h2>
+          <p>Selected admin metadata proving replay scope and temporal integrity.</p>
+        </div>
+        <div class="historical-metadata-grid">
+          <table>
+            <tbody>
+              <tr><th>Replay ID</th><td><code>{{ replay.replay_id or "Unavailable" }}</code></td></tr>
+              <tr><th>Replay Date</th><td>{{ replay.replay_date or "Unavailable" }}</td></tr>
+              <tr><th>Evidence Cutoff</th><td>{{ replay.evidence_cutoff or "Unavailable" }}</td></tr>
+              <tr><th>Generated At</th><td>{{ replay.generated_at or "Unavailable" }}</td></tr>
+              <tr><th>Replay Mode</th><td>{{ replay.mode or "Unavailable" }}</td></tr>
+              <tr><th>Taxonomy Version</th><td>{{ metadata.taxonomy_version or "Unavailable" }}</td></tr>
+              <tr><th>Registry Version</th><td>{{ metadata.registry_version or "Unavailable" }}</td></tr>
+              <tr><th>Replay Engine Version</th><td>{{ metadata.replay_engine_version or "Unavailable" }}</td></tr>
+              <tr><th>future_evidence_excluded</th><td>{{ temporal.future_evidence_excluded if temporal.future_evidence_excluded is not none else "Unavailable" }}</td></tr>
+              <tr><th>live_run_source</th><td>{{ metadata.live_run_source if metadata.live_run_source is not none else "Unavailable" }}</td></tr>
+              <tr><th>Persisted Evidence Only</th><td>{{ temporal.persisted_evidence_only }}</td></tr>
+              <tr><th>No Live Fetching</th><td>{{ not temporal.live_fetch_performed }}</td></tr>
+              <tr><th>Artifact Filename</th><td><code>{{ replay.artifact_filename or "Unavailable" }}</code></td></tr>
+              <tr><th>Stored At</th><td><code>{{ replay.artifact_display_path or "Unavailable" }}</code></td></tr>
+            </tbody>
+          </table>
+          <article class="historical-rule-panel">
+            <h3>Selection Rule</h3>
+            <p>{{ temporal.selection_rule or "Unavailable" }}</p>
+            <h3>Temporal Integrity</h3>
+            <p>{{ temporal.message }}</p>
+          </article>
+        </div>
+      </section>
+    {% endif %}
+  </main>
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-evidence-reader-target]");
+      var panels = document.querySelectorAll("[data-evidence-reader-panel]");
+      var emptyState = document.querySelector("[data-evidence-reader-empty]");
+      var closeButtons = document.querySelectorAll("[data-evidence-reader-close]");
+      var activeButton = null;
+
+      function closeReader() {
+        panels.forEach(function (panel) {
+          panel.hidden = true;
+        });
+        buttons.forEach(function (button) {
+          button.classList.remove("is-selected");
+          button.setAttribute("aria-expanded", "false");
+        });
+        if (emptyState) {
+          emptyState.hidden = false;
+        }
+        if (activeButton) {
+          activeButton.focus();
+          activeButton = null;
+        }
+      }
+
+      buttons.forEach(function (button) {
+        button.addEventListener("click", function () {
+          var target = document.getElementById(button.getAttribute("data-evidence-reader-target"));
+          var shouldFocusPanel = button !== activeButton;
+          closeReader();
+          if (target) {
+            activeButton = button;
+            target.hidden = false;
+            button.classList.add("is-selected");
+            button.setAttribute("aria-expanded", "true");
+            if (emptyState) {
+              emptyState.hidden = true;
+            }
+            if (shouldFocusPanel) {
+              target.setAttribute("tabindex", "-1");
+              target.focus({ preventScroll: true });
+            }
+          }
+        });
+      });
+
+      closeButtons.forEach(function (button) {
+        button.addEventListener("click", closeReader);
+      });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && activeButton) {
+          closeReader();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

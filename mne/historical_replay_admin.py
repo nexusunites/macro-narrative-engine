@@ -44,6 +44,7 @@ def build_replay_admin_summary(replay_output, replay_path=None, replay_dir=None)
         "artifact_display_path": normalize_replay_display_path(replay_path, replay_dir)
         if replay_path
         else _artifact_display_path(artifact_filename),
+        "research_url": _research_url(output.get("replay_id")),
     }
 
 
@@ -108,6 +109,7 @@ def list_recent_replay_summaries(replay_dir, limit=RECENT_REPLAY_LIMIT):
                     "status": "Completed",
                     "unreadable": False,
                     "error": None,
+                    "research_url": _research_url(data.get("replay_id")),
                 }
             )
         except (OSError, json.JSONDecodeError, ValueError) as error:
@@ -166,6 +168,12 @@ def _artifact_filename(output):
 
 def _artifact_display_path(filename):
     return f"replays/{filename}" if filename else None
+
+
+def _research_url(replay_id):
+    if not is_valid_replay_id(replay_id):
+        return None
+    return f"/admin/replay/{replay_id}/research"
 
 
 def _display_mode(output, metadata):
