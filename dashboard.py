@@ -1,5 +1,6 @@
 import json
 import math
+from urllib.parse import parse_qs
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -14,6 +15,7 @@ from config import RESULTS_DIR, ensure_data_dir
 from mne.config_diagnostics import build_configuration_report, format_startup_report
 from mne.dashboard_trust_summary import build_dashboard_trust_summary
 from mne.event_lifecycle import load_event_definitions
+from mne import historical_replay
 from mne.narrative_signals import compute_group_scores
 from mne.operations_center import build_operations_center
 from mne.platform_observability import stage_by_name
@@ -32,6 +34,7 @@ BASE_DIR = Path(__file__).resolve().parent
 RECENT_RUN_LIMIT = 20
 REGIME_HISTORY_LIMIT = 30
 LEADERSHIP_HISTORY_LIMIT = 10
+RECENT_REPLAY_LIMIT = 10
 MARKET_SYMBOLS = ("QQQ", "NVDA", "VIX", "DXY")
 SCORE_DELTA_THRESHOLD = 2
 SHARE_DELTA_THRESHOLD = 0.03
@@ -271,6 +274,108 @@ def sorted_scores(scores):
     if not isinstance(scores, dict):
         return []
     return sorted(scores.items(), key=lambda item: score_sort_value(item[1]), reverse=True)
+
+
+def build_replay_result_view(output, output_path):
+    metadata = output.get("replay_metadata") if isinstance(output, dict) else {}
+    metadata = metadata if isinstance(metadata, dict) else {}
+    return {
+        "output": output,
+        "output_path": str(output_path),
+        "theme_scores": sorted_scores(output.get("theme_scores") if isinstance(output, dict) else {}),
+        "group_scores": sorted_scores(output.get("group_scores") if isinstance(output, dict) else {}),
+        "warnings": list(metadata.get("warnings") or []),
+    }
+
+
+def list_recent_replay_files(limit=RECENT_REPLAY_LIMIT):
+    try:
+        replay_dir = historical_replay.ensure_replay_dir()
+    except Exception as error:
+        return {
+            "replay_dir": None,
+            "error": str(error),
+            "files": [],
+        }
+
+    rows = []
+    for path in sorted(replay_dir.glob("*.json"), key=lambda item: item.stat().st_mtime, reverse=True)[:limit]:
+        row = {
+            "filename": path.name,
+            "path": str(path),
+            "replay_date": None,
+            "generated_at": None,
+            "evidence_count": None,
+            "unreadable": False,
+            "error": None,
+        }
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            if not isinstance(data, dict):
+                raise ValueError("Replay file did not contain a JSON object.")
+            row["replay_date"] = data.get("replay_date")
+            row["generated_at"] = data.get("generated_at")
+            row["evidence_count"] = data.get("evidence_count")
+        except (OSError, json.JSONDecodeError, ValueError) as error:
+            row["unreadable"] = True
+            row["error"] = f"Unreadable replay file: {error}"
+        rows.append(row)
+
+    return {
+        "replay_dir": str(replay_dir),
+        "error": None,
+        "files": rows,
+    }
+
+
+def build_historical_replay_console(result=None, error=None, form=None):
+    form = form or {}
+    return {
+        "form": {
+            "replay_date": form.get("replay_date", ""),
+            "mode": form.get("mode", historical_replay.SUPPORTED_MODE),
+        },
+        "error": error,
+        "result": result,
+        "recent_replays": list_recent_replay_files(),
+    }
+
+
+def run_admin_historical_replay(replay_date, mode=historical_replay.SUPPORTED_MODE):
+    request = historical_replay.build_replay_request(replay_date, mode=mode)
+    output = historical_replay.run_historical_replay(request)
+    path = historical_replay.persist_historical_replay(output)
+    return build_replay_result_view(output, path)
+
+
+def build_admin_replay_context(request, run, replay_date, mode):
+    form = {
+        "replay_date": (replay_date or "").strip(),
+        "mode": (mode or historical_replay.SUPPORTED_MODE).strip() or historical_replay.SUPPORTED_MODE,
+    }
+    replay_result = None
+    replay_error = None
+    if not form["replay_date"]:
+        replay_error = "Enter a valid date in YYYY-MM-DD format."
+    else:
+        try:
+            replay_result = run_admin_historical_replay(
+                form["replay_date"],
+                mode=form["mode"],
+            )
+        except ValueError:
+            replay_error = "Enter a valid date in YYYY-MM-DD format."
+        except Exception as error:
+            replay_error = str(error)
+
+    context = build_template_context(request, run, meaningful_default=False)
+    context["historical_replay_console"] = build_historical_replay_console(
+        result=replay_result,
+        error=replay_error,
+        form=form,
+    )
+    return context
 
 
 def numeric_or_none(value):
@@ -1110,6 +1215,7 @@ def build_template_context(
         "view": None,
         "regime_history": build_regime_history(),
         "narrative_leadership_history": build_narrative_leadership_history(),
+        "historical_replay_console": build_historical_replay_console(),
     }
 
     if not current_file:
@@ -1223,6 +1329,16 @@ def narrative_investigation(request: Request, key: str):
 @app.get("/admin", response_class=HTMLResponse)
 def admin_dashboard(request: Request, run: Optional[str] = Query(default=None)):
     context = build_template_context(request, run, meaningful_default=False)
+    return templates.TemplateResponse("admin.html", context)
+
+
+@app.post("/admin/replay", response_class=HTMLResponse)
+async def admin_replay(request: Request, run: Optional[str] = Query(default=None)):
+    body = (await request.body()).decode("utf-8")
+    form_data = parse_qs(body, keep_blank_values=True)
+    replay_date = (form_data.get("replay_date") or [""])[0].strip()
+    mode = (form_data.get("mode") or [historical_replay.SUPPORTED_MODE])[0].strip()
+    context = build_admin_replay_context(request, run, replay_date, mode)
     return templates.TemplateResponse("admin.html", context)
 
 

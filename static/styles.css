@@ -138,6 +138,28 @@ select {
   font-weight: 600;
 }
 
+input,
+button {
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.07);
+}
+
 .page-shell {
   width: min(1180px, calc(100% - 36px));
   margin: 0 auto;
@@ -533,6 +555,53 @@ select {
 .operations-component-card {
   display: grid;
   gap: 10px;
+}
+
+.replay-console {
+  display: grid;
+  gap: 14px;
+}
+
+.replay-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.replay-form div {
+  display: grid;
+  gap: 6px;
+}
+
+.replay-form label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.replay-message,
+.replay-warning {
+  margin-top: 14px;
+  border: 1px solid rgba(215, 179, 106, 0.34);
+  border-radius: 8px;
+  background: rgba(215, 179, 106, 0.08);
+  color: var(--muted-strong);
+  padding: 12px 14px;
+}
+
+.replay-message {
+  margin-bottom: 0;
+}
+
+.replay-result {
+  display: grid;
+  gap: 16px;
+  border-color: rgba(104, 211, 145, 0.22);
+}
+
+.replay-score-grid {
+  margin-top: 4px;
 }
 
 .operations-component-topline a {

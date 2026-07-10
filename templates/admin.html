@@ -41,6 +41,142 @@
       </section>
     {% endif %}
 
+    {% set replay_console = historical_replay_console | default({}) %}
+    {% set replay_form = replay_console.get("form", {}) %}
+    {% set replay_result = replay_console.get("result") %}
+    {% set recent_replays = replay_console.get("recent_replays", {}) %}
+    <section class="content-section replay-console" id="historical-replay">
+      <div class="section-heading">
+        <p class="eyebrow">Historical Replay</p>
+        <h2>Admin Replay Console</h2>
+        <p class="leadership-read">Admin-only trigger for deterministic historical reconstructions. Replay output is isolated from live results.</p>
+      </div>
+      <article class="card">
+        <form method="post" action="/admin/replay{% if selected_file %}?run={{ selected_file }}{% endif %}" class="replay-form">
+          <div>
+            <label for="replay_date">Replay date</label>
+            <input id="replay_date" name="replay_date" type="date" value="{{ replay_form.get('replay_date', '') }}" required>
+          </div>
+          <div>
+            <label for="mode">Mode</label>
+            <select id="mode" name="mode">
+              <option value="macro" {% if replay_form.get('mode', 'macro') == 'macro' %}selected{% endif %}>macro</option>
+            </select>
+          </div>
+          <button type="submit">Run replay</button>
+        </form>
+        {% if replay_console.get("error") %}
+          <p class="replay-message">{{ replay_console.get("error") }}</p>
+        {% endif %}
+      </article>
+
+      {% if replay_result %}
+        {% set output = replay_result.output %}
+        <article class="card replay-result">
+          <div class="operations-summary-header">
+            <div>
+              <p class="eyebrow">Historical Replay Result</p>
+              <h3>Historical Replay — {{ output.replay_date }}</h3>
+            </div>
+            <div class="operations-confidence">
+              <span>Evidence</span>
+              <strong>{{ output.evidence_count }}</strong>
+            </div>
+          </div>
+          <table>
+            <tbody>
+              <tr><th>Replay ID</th><td><code>{{ output.replay_id }}</code></td></tr>
+              <tr><th>Replay Date</th><td>{{ output.replay_date }}</td></tr>
+              <tr><th>Evidence Cutoff</th><td>{{ output.evidence_cutoff }}</td></tr>
+              <tr><th>Evidence Count</th><td>{{ output.evidence_count }}</td></tr>
+              <tr><th>Source Count</th><td>{{ output.source_count }}</td></tr>
+              <tr><th>Dominant Theme</th><td>{{ output.dominant_theme or "Unavailable" }}</td></tr>
+              <tr><th>Dominant Group</th><td>{{ output.dominant_group or "Unavailable" }}</td></tr>
+              <tr><th>Output Path</th><td><code>{{ replay_result.output_path }}</code></td></tr>
+            </tbody>
+          </table>
+          {% if output.evidence_count == 0 %}
+            <p class="muted">0 evidence objects were available at this cutoff.</p>
+          {% endif %}
+          {% if replay_result.warnings %}
+            <div class="replay-warning">
+              <p class="eyebrow">Replay Warnings</p>
+              <ul class="admin-evidence-list">
+                {% for warning in replay_result.warnings %}
+                  <li>{{ warning }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+          <div class="two-column replay-score-grid">
+            <div>
+              <h3>Theme Scores</h3>
+              {% if replay_result.theme_scores %}
+                <table>
+                  <tbody>
+                    {% for theme, score in replay_result.theme_scores %}
+                      <tr><th>{{ theme }}</th><td>{{ score }}</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              {% else %}
+                <p class="muted">No nonzero theme scores.</p>
+              {% endif %}
+            </div>
+            <div>
+              <h3>Group Scores</h3>
+              {% if replay_result.group_scores %}
+                <table>
+                  <tbody>
+                    {% for group, score in replay_result.group_scores %}
+                      <tr><th>{{ group }}</th><td>{{ score }}</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              {% else %}
+                <p class="muted">No group scores.</p>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      {% endif %}
+
+      <article class="card">
+        <h3>Recent Replay Files</h3>
+        {% if recent_replays.get("error") %}
+          <p class="muted">{{ recent_replays.get("error") }}</p>
+        {% else %}
+          <p class="muted">Replay directory: {{ recent_replays.get("replay_dir", "Unavailable") }}</p>
+          {% if recent_replays.get("files") %}
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Replay Date</th>
+                  <th>Generated At</th>
+                  <th>Evidence</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for replay_file in recent_replays.get("files", []) %}
+                  <tr>
+                    <th><code>{{ replay_file.filename }}</code></th>
+                    <td>{{ replay_file.replay_date or "Unavailable" }}</td>
+                    <td>{{ replay_file.generated_at or "Unavailable" }}</td>
+                    <td>{{ replay_file.evidence_count if replay_file.evidence_count is not none else "Unavailable" }}</td>
+                    <td>{% if replay_file.unreadable %}Unreadable — {{ replay_file.error }}{% else %}Readable{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="muted">No replay files found yet.</p>
+          {% endif %}
+        {% endif %}
+      </article>
+    </section>
+
     {% if view %}
       <section class="admin-title">
         <p class="eyebrow">Admin / Research</p>
