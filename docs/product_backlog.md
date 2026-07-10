@@ -27,6 +27,7 @@ The following major platform capabilities are considered complete as part of **P
 - **Operations Center MVP** — render-time, admin-only operational summary using existing persisted signals, with component summaries for Configuration, Pipeline / Platform Observability, Evidence Network, Source Confidence, Source Reliability, Coverage Intelligence, and Freshness / Feed Health.
 - **Dashboard Data Quality Banner / Trust Summary** — compact user-facing evidence-quality summary in the dashboard, built from existing persisted signals only, without exposing admin diagnostics or changing scoring, sources, persistence, or admin behavior.
 - **Research Workspace MVP + UX Polish** — `/research` selector, narrative investigation page, dashboard entry-point wiring, admin-gated observability reference, paced investigation zones, readable evidence display, neutral coverage explanation, calm event lifecycle empty state, and admin boundary are implemented.
+- **Historical Replay Foundation** — replay request model, historical evidence selection with publication and ingestion/knowledge cutoffs, deterministic theme/group replay wrapper, isolated replay persistence under configured `data_dir / replays`, CLI entry point, and determinism tests are implemented.
 
 This is a summary for orientation only — each system's canonical reference is its own architecture document in this repository.
 
@@ -80,7 +81,7 @@ This is a summary for orientation only — each system's canonical reference is 
 
 **Why it matters:** This is the foundation everything in Narrative Memory depends on, and it's what eventually lets the Research Workspace answer "how did we get here," not just "what's happening now."
 
-**Current status:** Architecture (HRE) is complete and detailed, including determinism, temporal-integrity, and persistence-isolation rules. Zero implementation has begun.
+**Current status:** **Foundation implemented.** The core replay request model, CLI/helper replay path, temporal-integrity foundation, historical evidence selection with publication and ingestion/knowledge cutoffs, isolated replay persistence under configured `data_dir / replays`, and determinism verification are implemented. Replay currently wraps the existing deterministic theme/group analysis. Full Historical Replay UI, Research Workspace historical integration, historical evidence connectors, historical taxonomy replay, versioned replay retention, and admin replay console remain future work.
 
 **Dependencies:** The Evidence Object schema and deterministic `evidence_id` scheme (SIP, done) are the direct technical foundation. Historical evidence connectors (archival ingestion) are a separate, not-yet-built SIP-adjacent capability this Epic depends on for anything beyond the current live data window.
 
@@ -88,13 +89,18 @@ This is a summary for orientation only — each system's canonical reference is 
 
 | Item | Description | User value | Dependencies | Complexity | Priority |
 |---|---|---|---|---|---|
-| Historical Evidence Pipeline | Knowledge-boundary filtering enforcing "no future evidence" | The core integrity guarantee everything else depends on | SIP evidence model (done) | High | High |
-| Replay Engine orchestration | Re-runs existing Narrative Intelligence pipeline against bounded historical evidence | Produces trustworthy historical reconstructions | Historical Evidence Pipeline | High | High |
-| Historical Run Object persistence | Namespaced, versioned storage isolated from live runs | Auditable, reproducible historical records | Replay Engine orchestration | Medium | High |
-| Replay determinism verification suite | Automated proof that identical requests produce identical results | Trust in reconstructed history | Historical Run Object persistence | Medium | High |
-| Historical/evidence confidence split | `source_confidence` vs. `evidence_confidence` per historical run | Honest signal about reconstruction completeness | Replay Engine orchestration | Medium | Medium |
-| Admin replay console | Manual trigger/inspection tooling for a given date | Debugging and backfill support | Replay Engine orchestration | Medium | Medium |
-| Historical Context integration into Research Workspace | Date selection and reconstructed views inside the workspace | Turns replay into something users actually touch | Research Workspace MVP (Epic 1), Historical Run Object persistence | Medium | Medium |
+| Replay request model / core foundation | **Implemented.** `mne/historical_replay.py` provides the replay request model and CLI/helper entry point (`python -m mne.historical_replay --date YYYY-MM-DD`). | Establishes the callable foundation for date-bound replay | Done | Medium | Complete |
+| Historical Evidence Pipeline | **Foundation implemented.** Historical evidence selection enforces publication cutoff plus ingestion/knowledge cutoff for replay requests. Historical web fetching and archival evidence connectors are not implemented. | The core integrity guarantee everything else depends on | SIP evidence model (done) | High | Complete |
+| Replay Engine orchestration | **Foundation implemented.** Replay wraps the existing deterministic theme/group analysis against bounded historical evidence. Full historical taxonomy replay remains future. | Produces trustworthy historical reconstructions | Historical Evidence Pipeline | High | Complete |
+| Historical Run Object persistence | **Foundation implemented.** Replay output persists under configured `data_dir / replays`, isolated from live results. Versioned replay retention remains future. | Auditable, reproducible historical records | Replay Engine orchestration | Medium | Complete |
+| Replay determinism verification suite | **Implemented.** Determinism tests are covered in `tests/test_historical_replay.py`. | Trust in reconstructed history | Historical Run Object persistence | Medium | Complete |
+| Historical/evidence confidence split | Future, not implemented. `source_confidence` vs. `evidence_confidence` per historical run | Honest signal about reconstruction completeness | Replay Engine orchestration | Medium | Future |
+| Admin replay console | Future, not implemented. Manual trigger/inspection tooling for a given date | Debugging and backfill support | Replay Engine orchestration | Medium | Future |
+| Historical Replay UI | Future, not implemented. Full user-facing replay UI and date picker | Makes replay accessible outside CLI/helper paths | Historical Replay foundation (done) | Medium | Future |
+| Historical Context integration into Research Workspace | Future, not implemented. Date selection and reconstructed views inside the workspace | Turns replay into something users actually touch | Research Workspace MVP (Epic 1), Historical Run Object persistence | Medium | Future |
+| Historical evidence connectors | Future, not implemented. Archival ingestion and historical web/data fetching needed for dates before the available evidence window | Extends replay beyond locally available persisted evidence | Historical Replay foundation (done), SIP connector expansion | High | Future |
+| Historical taxonomy replay | Future, not implemented. Reconstruct analysis using taxonomy definitions appropriate to the replay date/version | Improves fidelity for older replays as taxonomy evolves | Taxonomy versioning/expansion tooling | Medium | Future |
+| Versioned replay retention | Future, not implemented. Retention/versioning policy for replay outputs across engine and taxonomy versions | Supports long-run auditability and comparison | Historical Run Object persistence foundation (done) | Medium | Future |
 | Historical Research Interface | Open-ended querying across accumulated historical runs | Deep, self-directed historical research | Narrative Memory (Epic 3) | High | Future |
 
 ---
@@ -105,9 +111,9 @@ This is a summary for orientation only — each system's canonical reference is 
 
 **Why it matters:** Without this, MNE's intelligence resets every day. This is what turns individual runs into an actual accumulated history.
 
-**Current status:** Vision and architecture (NMS) complete. Zero implementation. **This Epic must not begin until Historical Replay's core pipeline (Epic 2, items 1–4) is implemented and verified** — Memory preserves Intelligence outputs across time, and Historical Replay is what makes those outputs for past dates trustworthy in the first place.
+**Current status:** Vision and architecture (NMS) complete. Zero implementation. **This Epic should not begin until Historical Replay is more mature and/or integrated as needed** — Memory preserves Intelligence outputs across time, and the implemented Historical Replay foundation is only the first step toward trustworthy, product-integrated historical reconstruction.
 
-**Dependencies:** Historical Replay Engine (hard blocker, per above).
+**Dependencies:** Historical Replay maturity and/or Research Workspace historical integration, as needed for the specific memory work.
 
 **Epic priority:** **Deferred — hard-blocked** (correctly blocked by Epic 2, not a scoping choice)
 
@@ -289,25 +295,25 @@ Following the guiding philosophy — **build the smallest amount of software tha
 
 **Phase 1 — Immediate.** The highest-leverage work available right now, sequenced by the size of the user-visible value each unlocks:
 1. Epic 6: remaining dashboard trust fixes — hero sentence bug, human-readable run selector, and trend-label verification (all Low complexity, immediate trust wins). The Dashboard Data Quality Banner / Trust Summary is already complete.
-2. Epic 2: Historical Replay Engine prep — finalize the implementation-ready shape for historical evidence filtering, replay orchestration, persistence isolation, and determinism verification.
 
 **Phase 2 — Near-term.** Once the dashboard's remaining quick fixes are in:
-3. Epic 2: Historical Replay Engine core (Historical Evidence Pipeline through determinism verification).
-4. Epic 6 / Epic 1: historical content migration and future Research Workspace modes only where they are backed by implemented data. Narrative Comparison, Company Analysis, Historical Context integration, Research Session persistence, saved investigations, watchlists, annotations, and shared workspaces remain future work.
+2. Epic 2 / Epic 1: Historical Replay UI and Research Workspace historical integration remain future work, to be built only where backed by the implemented replay foundation and available historical evidence.
+3. Epic 6 / Epic 1: historical content migration and future Research Workspace modes only where they are backed by implemented data. Narrative Comparison, Company Analysis, Research Session persistence, saved investigations, watchlists, annotations, and shared workspaces remain future work.
+4. Epic 2 / Epic 7: historical evidence connectors, historical taxonomy replay, versioned replay retention, and supporting replay diagnostics remain future work as the product surface matures.
 5. Epic 7 / Epic 8: remaining source-intelligence and admin controls. Network Confidence Model, Source Quarantine automation, historical/skipped-run browsing, version comparison, and temporal integrity audit tooling remain future work. Source Confidence Model, Source Reliability / Quarantine Tracking, and Operations Center MVP are already complete.
 
 **Phase 3 — Mid-term.** Once the Research Workspace has real usage on live data:
-6. Epic 1 / Epic 2: Historical Context integration into the Research Workspace, after Historical Replay core exists.
+6. Epic 3: Narrative Memory remains future work, beginning with the Memory Object persistence model and Memory Timeline only after Historical Replay is mature enough and/or integrated where needed.
 
 **Phase 4 — Longer-term.** Only once Historical Replay is stable and verified:
-7. Epic 3: Narrative Memory, beginning with the Memory Object persistence model and Memory Timeline.
-8. Epic 4: AI Experience, beginning with explanation/summarization — only once there is enough stable, real deterministic output and enough real workspace usage for AI to meaningfully assist with.
+7. Epic 4: AI Experience remains future work, beginning with explanation/summarization only once there is enough stable, real deterministic output and enough real workspace usage for AI to meaningfully assist with.
+8. Epic 7: Network Confidence Model remains future work, sequenced after the current evidence-network health and source-confidence layers have enough operational history to justify the next model.
 
 **Phase 5 — Future, as conditions warrant.**
 9. Epic 9: Performance & Scalability work, as accumulated telemetry and growing evidence volume actually call for it.
 10. Epic 10: Future Platform Opportunities, each individually scoped when its Epic-level dependencies (chiefly Narrative Memory) are in place.
 
 **Items that must not begin out of order, restated for emphasis:**
-- No item in **Epic 3 (Narrative Memory)** begins before **Epic 2 (Historical Replay)**'s core pipeline is implemented and verified.
+- No item in **Epic 3 (Narrative Memory)** begins until **Epic 2 (Historical Replay)** is mature enough and/or integrated as needed for the specific memory work.
 - No item in **Epic 4 (AI Experience)** begins before **Epic 1 (Research Workspace)**'s MVP is live with real, stable deterministic output.
 - **Epic 7's non-headline connectors** do not begin before the current, headline-only Evidence Object architecture has been proven stable in production for a meaningful period — consistent with SIP's own original phased build discipline.
