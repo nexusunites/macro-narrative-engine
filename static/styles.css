@@ -14,6 +14,59 @@
   --warn: #d7b36a;
   --shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
   --shadow-soft: 0 12px 34px rgba(0, 0, 0, 0.18);
+
+  /* Text tokens (fix: alias the undefined --color-text-* properties onto real values) */
+  --text-primary: var(--text);
+  --text-secondary: var(--muted-strong);
+  --text-tertiary: var(--muted);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+
+  /* Surface tokens (aliases onto existing values - no visual change) */
+  --surface-0: var(--bg);
+  --surface-1: var(--panel);
+  --surface-2: var(--panel-soft);
+  --surface-3: #1d2430;
+
+  /* Brand token (alias - no visual change) */
+  --brand-accent: var(--accent);
+
+  /* Status scale - decoupled from --brand-accent, no red/green pair */
+  --status-neutral: #b4b2a9;
+  --status-info: #85b7eb;
+  --status-attention: var(--warn);
+  --status-notable: #9c8fd9;
+  --status-lead: #5aa9c7;
+  --status-recede: #a98f97;
+  --status-complete: #9fb9a0;
+
+  /* Tier-identity tokens (defined for later phases; not applied to any element in this phase) */
+  --tier-live: transparent;
+  --tier-research: rgba(125, 180, 255, 0.03);
+  --tier-admin: rgba(200, 190, 175, 0.03);
+  --tier-historical: rgba(180, 180, 180, 0.04);
+
+  /* Typography scale (defined for later phases; do not re-point existing font-size rules) */
+  --text-size-micro: 11px;
+  --text-size-label: 12px;
+  --text-size-body-sm: 13px;
+  --text-size-body: 15px;
+  --text-size-body-lg: 17px;
+  --text-size-h3: 21px;
+  --text-size-h2: 28px;
+  --text-size-display: clamp(2.5rem, 5vw, 4rem);
+
+  /* Spacing scale (defined for later phases; do not re-point existing spacing values) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
 }
 
 * {
@@ -2332,18 +2385,18 @@ pre {
   border-radius: 20px;
 }
 
-.rotation-holding     { background: rgba(56, 138, 221, 0.15); color: #85B7EB; }
-.rotation-dominant    { background: rgba(29, 158, 117, 0.15); color: #5DCAA5; }
-.rotation-challenged  { background: rgba(186, 117, 23, 0.15); color: #EF9F27; }
-.rotation-challenging { background: rgba(99, 153, 34, 0.15);  color: #97C459; }
-.rotation-emerging    { background: rgba(99, 153, 34, 0.15); color: #97C459; }
-.rotation-losing      { background: rgba(153, 60, 29, 0.15);  color: #F0997B; }
-.rotation-stable      { background: rgba(136, 135, 128, 0.15);color: #B4B2A9; }
+.rotation-holding     { background: rgba(133, 183, 235, 0.15); color: var(--status-info); }
+.rotation-dominant    { background: rgba(90, 169, 199, 0.15);  color: var(--status-lead); }
+.rotation-challenged  { background: rgba(215, 179, 106, 0.15); color: var(--status-attention); }
+.rotation-challenging { background: rgba(156, 143, 217, 0.15); color: var(--status-notable); }
+.rotation-emerging    { background: rgba(156, 143, 217, 0.15); color: var(--status-notable); }
+.rotation-losing      { background: rgba(169, 143, 151, 0.15); color: var(--status-recede); }
+.rotation-stable      { background: rgba(180, 178, 169, 0.15); color: var(--status-neutral); }
 
 .rotation-delta { font-size: 11px; font-weight: 500; }
-.delta-up   { color: #97C459; }
-.delta-down { color: #F0997B; }
-.delta-flat { color: #888780; }
+.delta-up   { color: var(--status-lead); }
+.delta-down { color: var(--status-recede); }
+.delta-flat { color: var(--status-neutral); }
 
 .rotation-streak { font-size: 11px; color: #5F5E5A; }
 
@@ -2391,18 +2444,18 @@ pre {
   margin-top: 7px;
 }
 
-.state-upcoming { background: rgba(95, 94, 90, 0.16); color: #B4B2A9; }
-.state-pre-positioning { background: rgba(56, 138, 221, 0.16); color: #85B7EB; }
-.state-immediate-pre-event { background: rgba(186, 117, 23, 0.18); color: #EF9F27; }
-.state-active-release { background: rgba(184, 53, 79, 0.18); color: #F28BA1; }
-.state-initial-digestion { background: rgba(29, 158, 117, 0.16); color: #5DCAA5; }
-.state-narrative-repricing { background: rgba(118, 89, 191, 0.18); color: #B9A4F2; }
-.state-complete { background: rgba(70, 128, 82, 0.16); color: #8FCA99; }
+.state-upcoming             { background: rgba(180, 178, 169, 0.16); color: var(--status-neutral); }
+.state-pre-positioning      { background: rgba(133, 183, 235, 0.16); color: var(--status-info); }
+.state-immediate-pre-event  { background: rgba(215, 179, 106, 0.18); color: var(--status-attention); }
+.state-active-release       { background: rgba(169, 143, 151, 0.18); color: var(--status-recede); }
+.state-initial-digestion    { background: rgba(90, 169, 199, 0.16);  color: var(--status-lead); }
+.state-narrative-repricing  { background: rgba(156, 143, 217, 0.18); color: var(--status-notable); }
+.state-complete             { background: rgba(159, 185, 160, 0.16); color: var(--status-complete); }
 
 .catalyst-calendar-warning {
   margin-top: 8px;
   padding: 8px 12px;
-  border-left: 2px solid rgba(186, 117, 23, 0.6);
+  border-left: 2px solid rgba(215, 179, 106, 0.6);
   border-radius: 0;
 }
 
@@ -2411,7 +2464,7 @@ pre {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #EF9F27;
+  color: var(--status-attention);
   margin: 0 0 4px;
 }
 
