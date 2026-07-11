@@ -1,0 +1,27 @@
+<nav class="app-rail" aria-label="Primary">
+  <a class="app-rail-brand" href="/">MNE</a>
+  <ul class="app-rail-list">
+    <li>
+      <a class="app-rail-item{% if active_tier == 'live' %} active{% endif %}" href="/">
+        <span class="app-rail-label">Overview</span>
+      </a>
+    </li>
+    <li>
+      <a class="app-rail-item{% if active_tier == 'research' %} active{% endif %}" href="/research">
+        <span class="app-rail-label">Research</span>
+      </a>
+    </li>
+    <li>
+      <a class="app-rail-item{% if active_tier == 'admin' %} active{% endif %}" href="/admin">
+        <span class="app-rail-label">Admin</span>
+      </a>
+    </li>
+  </ul>
+  <p class="app-rail-tier app-rail-tier-{{ active_tier }}">
+    {% if active_tier == 'live' %}Live
+    {% elif active_tier == 'research' %}Research
+    {% elif active_tier == 'admin' %}Admin
+    {% elif active_tier == 'historical' %}Historical Archive
+    {% endif %}
+  </p>
+</nav>

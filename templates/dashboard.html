@@ -7,13 +7,13 @@
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
 </head>
 <body>
+  {% set active_tier = "live" %}
+  {% include "_partials/app_rail.html" %}
   <header class="site-header">
     <div class="brand-row">
       <a class="brand" href="/">Macro Narrative Engine</a>
-      <nav class="nav">
-        <a class="active" href="#overview">Overview</a>
+      <nav class="page-subnav">
         <a href="#narratives">Narratives</a>
-        <a href="/research">Research</a>
         <a href="#market">Market</a>
         <a href="#catalysts">Catalysts</a>
         <a href="#trends">Trends</a>

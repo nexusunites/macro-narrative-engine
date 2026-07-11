@@ -7,14 +7,11 @@
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
 </head>
 <body>
+  {% set active_tier = "research" %}
+  {% include "_partials/app_rail.html" %}
   <header class="site-header">
     <div class="brand-row">
       <a class="brand" href="/">Macro Narrative Engine</a>
-      <nav class="nav">
-        <a href="/">Overview</a>
-        <a href="/research">Research</a>
-        <a href="/admin">Admin</a>
-      </nav>
     </div>
     <div class="utility-row">
       <p class="last-updated">Latest meaningful run: {{ selected_file or "Unavailable" }}</p>
