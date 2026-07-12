@@ -39,7 +39,22 @@
     {% set replay_form = replay_console.get("form", {}) %}
     {% set replay_result = replay_console.get("result") %}
     {% set recent_replays = replay_console.get("recent_replays", {}) %}
-    <section class="content-section replay-console" id="historical-replay">
+    <nav class="zone-jump admin-section-nav" aria-label="Admin sections">
+      <a href="#historical-replay">Historical Replay</a>
+      <a href="#operations-center">Operations Center</a>
+      <a href="#configuration-diagnostics">Configuration</a>
+      <a href="#recent-runs">Recent Runs</a>
+      <a href="#source-health">Source Intelligence</a>
+      <a href="#evidence-network">Evidence Network</a>
+      <a href="#accepted-evidence">Accepted Evidence</a>
+      <a href="#pipeline-telemetry">Pipeline Telemetry</a>
+      <a href="#evidence-quality-coverage">Coverage Intelligence</a>
+      <a href="#narrative-brief-diagnostics">Narrative Brief Diagnostics</a>
+      <a href="#catalysts">Catalysts</a>
+      <a href="#raw-diagnostics">Raw Diagnostics</a>
+    </nav>
+
+    <section class="content-section replay-console historical-replay-console historical-bridge" id="historical-replay">
       <div class="section-heading">
         <p class="eyebrow">Historical Replay</p>
         <h2>Admin Replay Console</h2>
@@ -332,7 +347,7 @@
         </article>
       </section>
 
-      <section class="content-section">
+      <section class="content-section" id="recent-runs">
         <div class="section-heading">
           <p class="eyebrow">Recent Runs</p>
           <h2>Available Result Files</h2>
@@ -437,36 +452,38 @@
           <h3>Source Health</h3>
           {% set source_health = source_intelligence.get("source_health", []) %}
           {% if source_health %}
-            <table>
-              <thead>
-                <tr>
-                  <th>Source</th>
-                  <th>Status</th>
-                  <th>Health</th>
-                  <th>Severity</th>
-                  <th>Seen</th>
-                  <th>Parsed</th>
-                  <th>Severe Stale</th>
-                  <th>Ratio</th>
-                  <th>Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for source in source_health %}
+            <div class="table-scroll table-scroll-wide">
+              <table>
+                <thead>
                   <tr>
-                    <td>{{ source.source_name }}</td>
-                    <td>ACTIVE</td>
-                    <td>{{ source.state }}</td>
-                    <td>{{ source.severity }}</td>
-                    <td>{{ source.entries_seen }}</td>
-                    <td>{{ source.entries_parsed }}</td>
-                    <td>{{ "Yes" if source.healthy_but_severely_stale else "No" }}</td>
-                    <td>{{ source.staleness_ratio if source.staleness_ratio is not none else "Unavailable" }}</td>
-                    <td>{{ source.reason }}</td>
+                    <th>Source</th>
+                    <th>Status</th>
+                    <th>Health</th>
+                    <th>Severity</th>
+                    <th>Seen</th>
+                    <th>Parsed</th>
+                    <th>Severe Stale</th>
+                    <th>Ratio</th>
+                    <th>Reason</th>
                   </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {% for source in source_health %}
+                    <tr>
+                      <td>{{ source.source_name }}</td>
+                      <td>ACTIVE</td>
+                      <td>{{ source.state }}</td>
+                      <td>{{ source.severity }}</td>
+                      <td>{{ source.entries_seen }}</td>
+                      <td>{{ source.entries_parsed }}</td>
+                      <td>{{ "Yes" if source.healthy_but_severely_stale else "No" }}</td>
+                      <td>{{ source.staleness_ratio if source.staleness_ratio is not none else "Unavailable" }}</td>
+                      <td>{{ source.reason }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           {% else %}
             <p class="muted">No source health diagnostics persisted for this run.</p>
           {% endif %}
@@ -483,28 +500,30 @@
           </table>
           {% set source_freshness = source_intelligence.get("source_freshness", []) %}
           {% if source_freshness %}
-            <table>
-              <thead>
-                <tr>
-                  <th>Source</th>
-                  <th>Status</th>
-                  <th>Newest Timestamp</th>
-                  <th>Newest Age</th>
-                  <th>Threshold</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for source in source_freshness %}
+            <div class="table-scroll">
+              <table>
+                <thead>
                   <tr>
-                    <td>{{ source.source_name }}</td>
-                    <td>{{ source.status }}</td>
-                    <td>{{ source.newest_evidence_timestamp or "Unavailable" }}</td>
-                    <td>{{ source.newest_evidence_age_minutes if source.newest_evidence_age_minutes is not none else "Unavailable" }}</td>
-                    <td>{{ source.freshness_threshold_minutes }}</td>
+                    <th>Source</th>
+                    <th>Status</th>
+                    <th>Newest Timestamp</th>
+                    <th>Newest Age</th>
+                    <th>Threshold</th>
                   </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {% for source in source_freshness %}
+                    <tr>
+                      <td>{{ source.source_name }}</td>
+                      <td>{{ source.status }}</td>
+                      <td>{{ source.newest_evidence_timestamp or "Unavailable" }}</td>
+                      <td>{{ source.newest_evidence_age_minutes if source.newest_evidence_age_minutes is not none else "Unavailable" }}</td>
+                      <td>{{ source.freshness_threshold_minutes }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           {% else %}
             <p class="muted">No source freshness diagnostics persisted for this run.</p>
           {% endif %}
@@ -641,26 +660,28 @@
           <article class="card">
             <h3>Providers</h3>
             {% if network_health.get("providers") %}
-              <table>
-                <thead>
-                  <tr>
-                    <th>Provider</th>
-                    <th>State</th>
-                    <th>Sources Healthy / Total</th>
-                    <th>Evidence</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for provider in network_health.get("providers", []) %}
+              <div class="table-scroll">
+                <table>
+                  <thead>
                     <tr>
-                      <td>{{ provider.provider }}</td>
-                      <td>{{ provider.provider_state }}</td>
-                      <td>{{ provider.sources_healthy }} / {{ provider.sources_total }}</td>
-                      <td>{{ provider.evidence_contributed }}</td>
+                      <th>Provider</th>
+                      <th>State</th>
+                      <th>Sources Healthy / Total</th>
+                      <th>Evidence</th>
                     </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {% for provider in network_health.get("providers", []) %}
+                      <tr>
+                        <td>{{ provider.provider }}</td>
+                        <td>{{ provider.provider_state }}</td>
+                        <td>{{ provider.sources_healthy }} / {{ provider.sources_total }}</td>
+                        <td>{{ provider.evidence_contributed }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
             {% else %}
               <p class="muted">No provider rollups were persisted for this run.</p>
             {% endif %}
@@ -669,38 +690,40 @@
           <article class="card">
             <h3>Categories</h3>
             {% if network_health.get("categories") %}
-              <table>
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th>State</th>
-                    <th>Providers Healthy / Total</th>
-                    <th>Sources Healthy / Total</th>
-                    <th>Evidence</th>
-                    <th>Dependency</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for category in network_health.get("categories", []) %}
+              <div class="table-scroll table-scroll-wide">
+                <table>
+                  <thead>
                     <tr>
-                      <td>{{ category.category }}</td>
-                      <td>{{ category.category_state }}</td>
-                      <td>{{ category.providers_healthy }} / {{ category.providers_total }}</td>
-                      <td>{{ category.sources_healthy }} / {{ category.sources_total }}</td>
-                      <td>{{ category.evidence_contributed }}</td>
-                      <td>
-                        {% if category.category_state == "UNCOVERED" %}
-                          UNCOVERED
-                        {% elif category.single_provider_dependency %}
-                          Single provider
-                        {% else %}
-                          None
-                        {% endif %}
-                      </td>
+                      <th>Category</th>
+                      <th>State</th>
+                      <th>Providers Healthy / Total</th>
+                      <th>Sources Healthy / Total</th>
+                      <th>Evidence</th>
+                      <th>Dependency</th>
                     </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {% for category in network_health.get("categories", []) %}
+                      <tr>
+                        <td>{{ category.category }}</td>
+                        <td>{{ category.category_state }}</td>
+                        <td>{{ category.providers_healthy }} / {{ category.providers_total }}</td>
+                        <td>{{ category.sources_healthy }} / {{ category.sources_total }}</td>
+                        <td>{{ category.evidence_contributed }}</td>
+                        <td>
+                          {% if category.category_state == "UNCOVERED" %}
+                            UNCOVERED
+                          {% elif category.single_provider_dependency %}
+                            Single provider
+                          {% else %}
+                            None
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
             {% else %}
               <p class="muted">No category rollups were persisted for this run.</p>
             {% endif %}
@@ -748,7 +771,7 @@
       <section class="content-section" id="platform-observability">
         <div class="section-heading">
           <p class="eyebrow">Source Intelligence</p>
-          <h2>Accepted Evidence</h2>
+          <h2 id="accepted-evidence">Accepted Evidence</h2>
           <p class="leadership-read">Accepted, deduplicated evidence that reached narrative scoring for this run.</p>
         </div>
         <article class="card">
@@ -788,7 +811,7 @@
       <section class="content-section" id="coverage-intelligence">
         <div class="section-heading">
           <p class="eyebrow">Platform Observability</p>
-          <h2>Pipeline Telemetry</h2>
+          <h2 id="pipeline-telemetry">Pipeline Telemetry</h2>
           <p class="leadership-read">Read-only execution telemetry for this run. Engine code versions are separate from the Source Registry configuration version.</p>
         </div>
         {% if run_metadata %}
@@ -885,7 +908,7 @@
       {% set evidence_quality = view.evidence_quality | default({}) %}
       {% set coverage = evidence_quality.get("coverage", {}) %}
       {% set overall = coverage.get("overall", {}) %}
-      <section class="content-section">
+      <section class="content-section" id="evidence-quality-coverage">
         <div class="section-heading">
           <p class="eyebrow">Evidence Quality</p>
           <h2>Coverage Intelligence</h2>
@@ -922,32 +945,34 @@
           <article class="card">
             <h3>Per-Narrative Coverage</h3>
             {% if evidence_quality.get("per_narrative") %}
-              <table>
-                <thead>
-                  <tr>
-                    <th>Narrative</th>
-                    <th>Level</th>
-                    <th>Evidence</th>
-                    <th>Sources</th>
-                    <th>Providers</th>
-                    <th>Concentration</th>
-                    <th>State</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for record in evidence_quality.get("per_narrative", []) %}
+              <div class="table-scroll table-scroll-wide">
+                <table>
+                  <thead>
                     <tr>
-                      <td>{{ record.narrative_id }}</td>
-                      <td>{{ record.narrative_level }}</td>
-                      <td>{{ record.evidence_count }}</td>
-                      <td>{{ record.unique_source_count }}</td>
-                      <td>{{ record.unique_provider_count }}</td>
-                      <td>{{ record.concentration_ratio }}</td>
-                      <td>{{ record.coverage_state }}</td>
+                      <th>Narrative</th>
+                      <th>Level</th>
+                      <th>Evidence</th>
+                      <th>Sources</th>
+                      <th>Providers</th>
+                      <th>Concentration</th>
+                      <th>State</th>
                     </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {% for record in evidence_quality.get("per_narrative", []) %}
+                      <tr>
+                        <td>{{ record.narrative_id }}</td>
+                        <td>{{ record.narrative_level }}</td>
+                        <td>{{ record.evidence_count }}</td>
+                        <td>{{ record.unique_source_count }}</td>
+                        <td>{{ record.unique_provider_count }}</td>
+                        <td>{{ record.concentration_ratio }}</td>
+                        <td>{{ record.coverage_state }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
             {% else %}
               <p class="muted">No attributed coverage records were persisted for this run.</p>
             {% endif %}
@@ -1000,7 +1025,7 @@
         {% endif %}
       </section>
 
-      <section class="content-section">
+      <section class="content-section" id="narrative-brief-diagnostics">
         <div class="section-heading">
           <p class="eyebrow">Narrative Brief Engine</p>
           <h2>Sentence Evidence</h2>
@@ -1051,23 +1076,35 @@
             </table>
 
             <h3>Template Trigger Diagnostics</h3>
-            <pre>{{ view.narrative_brief.diagnostics.template_evaluations | tojson(indent=2) }}</pre>
+            <details class="diagnostic-details">
+              <summary>Template evaluations</summary>
+              <pre>{{ view.narrative_brief.diagnostics.template_evaluations | tojson(indent=2) }}</pre>
+            </details>
             <h3>Mutually Exclusive Conflict Log</h3>
-            <pre>{{ view.narrative_brief.diagnostics.conflict_log | tojson(indent=2) }}</pre>
+            <details class="diagnostic-details">
+              <summary>Narrative conflict log</summary>
+              <pre>{{ view.narrative_brief.diagnostics.conflict_log | tojson(indent=2) }}</pre>
+            </details>
             <h3>Raw Evidence Registry</h3>
-            <pre>{{ view.narrative_brief.evidence_registry | tojson(indent=2) }}</pre>
+            <details class="diagnostic-details">
+              <summary>Raw evidence registry</summary>
+              <pre>{{ view.narrative_brief.evidence_registry | tojson(indent=2) }}</pre>
+            </details>
           </article>
         {% elif view.narrative_brief_error %}
           <article class="card">
             <p class="muted">Narrative brief generation failed for this run.</p>
-            <pre>{{ view.narrative_brief_error | tojson(indent=2) }}</pre>
+            <details class="diagnostic-details">
+              <summary>Narrative brief error JSON</summary>
+              <pre>{{ view.narrative_brief_error | tojson(indent=2) }}</pre>
+            </details>
           </article>
         {% else %}
           <article class="card"><p class="muted">No narrative brief found in this run.</p></article>
         {% endif %}
       </section>
 
-      <section class="content-section two-column">
+      <section class="content-section two-column" id="catalysts">
         <div>
           <div class="section-heading">
             <p class="eyebrow">Catalysts</p>
@@ -1126,19 +1163,34 @@
         <div>
           <div class="section-heading">
             <p class="eyebrow">Environment Objects</p>
-            <h2>Raw Environment Detail</h2>
+            <h2 id="raw-diagnostics">Raw Environment Detail</h2>
           </div>
           <article class="card">
             <h3>Market Environment</h3>
-            <pre>{{ view.environment["Market Environment"] | tojson(indent=2) }}</pre>
+            <details class="diagnostic-details">
+              <summary>Market environment JSON</summary>
+              <pre>{{ view.environment["Market Environment"] | tojson(indent=2) }}</pre>
+            </details>
             <h3>Catalyst Environment</h3>
-            <pre>{{ view.catalyst | tojson(indent=2) }}</pre>
+            <details class="diagnostic-details">
+              <summary>Catalyst environment JSON</summary>
+              <pre>{{ view.catalyst | tojson(indent=2) }}</pre>
+            </details>
             <h3>Positioning Environment</h3>
-            <pre>{{ view.environment["Positioning Environment"] | tojson(indent=2) }}</pre>
+            <details class="diagnostic-details">
+              <summary>Positioning environment JSON</summary>
+              <pre>{{ view.environment["Positioning Environment"] | tojson(indent=2) }}</pre>
+            </details>
             <h3>Regime Alignment</h3>
-            <pre>{{ view.regime | tojson(indent=2) }}</pre>
+            <details class="diagnostic-details">
+              <summary>Regime JSON</summary>
+              <pre>{{ view.regime | tojson(indent=2) }}</pre>
+            </details>
             <h3>Mode Context</h3>
-            <pre>{{ view.mode_context | tojson(indent=2) }}</pre>
+            <details class="diagnostic-details">
+              <summary>Operating mode JSON</summary>
+              <pre>{{ view.mode_context | tojson(indent=2) }}</pre>
+            </details>
           </article>
         </div>
       </section>
@@ -1218,7 +1270,10 @@
         </div>
         <article class="card">
           {% if view.theme_match_audit %}
-            <pre>{{ view.theme_match_audit | tojson(indent=2) }}</pre>
+            <details class="diagnostic-details">
+              <summary>Theme match audit</summary>
+              <pre>{{ view.theme_match_audit | tojson(indent=2) }}</pre>
+            </details>
           {% else %}
             <p class="muted">No theme match audit field found in this run.</p>
           {% endif %}
@@ -1231,7 +1286,10 @@
           <h2>Full Result JSON</h2>
         </div>
         <article class="card">
-          <pre>{{ view.run | tojson(indent=2) }}</pre>
+          <details class="diagnostic-details">
+            <summary>Full result JSON</summary>
+            <pre>{{ view.run | tojson(indent=2) }}</pre>
+          </details>
         </article>
       </section>
     {% endif %}

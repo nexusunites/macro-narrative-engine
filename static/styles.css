@@ -698,6 +698,13 @@ button:hover {
   margin-top: 4px;
 }
 
+.historical-bridge {
+  border-left: 3px solid var(--status-neutral);
+  background:
+    linear-gradient(90deg, var(--tier-historical), transparent 34%),
+    var(--panel);
+}
+
 .historical-research-link,
 .historical-back-link {
   display: inline-flex;
@@ -754,6 +761,21 @@ button:hover {
 
 .historical-marker p {
   margin: 0;
+}
+
+.historical-tier-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin: 10px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--tier-historical);
+  color: var(--status-neutral);
+  font-size: var(--text-size-label);
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .temporal-integrity-notice {
@@ -2140,6 +2162,23 @@ table {
   font-size: 13px;
 }
 
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll table {
+  min-width: 640px;
+}
+
+.table-scroll.table-scroll-wide table {
+  min-width: 820px;
+}
+
+.table-scroll tbody tr:nth-child(even) {
+  background: var(--surface-1);
+}
+
 th,
 td {
   padding: 11px 0;
@@ -2257,6 +2296,35 @@ pre {
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.diagnostic-details {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-1);
+}
+
+.diagnostic-details + .diagnostic-details {
+  margin-top: var(--space-3);
+}
+
+.diagnostic-details summary {
+  cursor: pointer;
+  padding: var(--space-4);
+  color: var(--text-secondary);
+  font-size: var(--text-size-body-sm);
+  font-weight: 700;
+}
+
+.diagnostic-details[open] summary {
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.diagnostic-details > pre {
+  margin: 0;
+  border: 0;
+  border-radius: 0 0 10px 10px;
 }
 
 @media (max-width: 1080px) {
