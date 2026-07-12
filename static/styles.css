@@ -1122,6 +1122,29 @@ button:hover {
   font-size: 16px;
 }
 
+.zone-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-5);
+}
+
+.zone-jump a {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 12px;
+  color: var(--text-secondary);
+  font-size: var(--text-size-label);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.zone-jump a:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
 .research-list {
   display: grid;
   gap: 10px;
@@ -1245,6 +1268,11 @@ button:hover {
   font-size: clamp(26px, 3vw, 38px);
 }
 
+.investigation-zone-explanation .investigation-zone-heading h2 {
+  font-family: var(--font-serif);
+  font-weight: 650;
+}
+
 .investigation-zone-heading p:last-child {
   max-width: 720px;
   margin: 0;
@@ -1322,6 +1350,11 @@ button:hover {
   margin: 0;
   color: var(--muted-strong);
   font-size: 16px;
+}
+
+.investigation-brief p:not(.research-meta):not(.muted) {
+  font-family: var(--font-serif);
+  line-height: 1.6;
 }
 
 .investigation-evidence-layout {

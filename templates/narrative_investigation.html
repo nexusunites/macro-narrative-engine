@@ -1,3 +1,4 @@
+{% from "_partials/evidence_macros.html" import evidence_list, evidence_reader -%}
 <!doctype html>
 <html lang="en">
 <head>
@@ -37,7 +38,14 @@
         <p>{{ investigation.narrative_level|title }} investigation from the selected run. Start with the current signal, then move through explanation, evidence, and next research paths.</p>
       </section>
 
-      <section class="content-section investigation-zone investigation-zone-snapshot">
+      <nav class="zone-jump" aria-label="Investigation sections">
+        <a href="#investigation-snapshot">Snapshot</a>
+        <a href="#investigation-explanation">Explanation</a>
+        <a href="#supporting-evidence">Evidence</a>
+        <a href="#investigation-next">Research</a>
+      </nav>
+
+      <section class="content-section investigation-zone investigation-zone-snapshot" id="investigation-snapshot">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 1 / Snapshot</p>
           <h2>What is happening?</h2>
@@ -81,7 +89,7 @@
         </div>
       </section>
 
-      <section class="content-section investigation-zone investigation-zone-explanation">
+      <section class="content-section investigation-zone investigation-zone-explanation" id="investigation-explanation">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 2 / Explanation</p>
           <h2>{{ investigation.brief.headline if investigation.brief and investigation.brief.headline else "Brief Context" }}</h2>
@@ -117,113 +125,14 @@
               <h3>Accepted attributed evidence</h3>
             </div>
             {% if investigation.supporting_evidence_display %}
-              <ul class="research-evidence-list">
-                {% for evidence in investigation.supporting_evidence_display %}
-                  <li class="research-evidence-item">
-                    <button
-                      class="evidence-card-button"
-                      type="button"
-                      data-evidence-reader-target="evidence-reader-{{ loop.index0 }}"
-                      aria-controls="evidence-reader-{{ loop.index0 }}"
-                      aria-expanded="false"
-                      aria-label="Read evidence summary for {{ evidence.title }}"
-                    >
-                      <strong>{{ evidence.title }}</strong>
-                      <span>
-                        {{ evidence.source_name }}
-                        {% if evidence.provider %} &middot; {{ evidence.provider }}{% endif %}
-                        {% if evidence.timestamp %} &middot; {{ evidence.timestamp }}{% endif %}
-                      </span>
-                      <small>Matched narrative: {{ evidence.matched_narrative }}</small>
-                    </button>
-                    {% if evidence.url %}
-                      <a class="evidence-inline-link" href="{{ evidence.url }}" target="_blank" rel="noopener noreferrer">Open source</a>
-                    {% endif %}
-                  </li>
-                {% endfor %}
-              </ul>
+              {{ evidence_list(investigation.supporting_evidence_display) }}
             {% else %}
               <p class="muted">No accepted evidence with a persisted narrative attribution is available for this narrative.</p>
             {% endif %}
           </article>
 
           <aside class="evidence-context-stack">
-            <article class="evidence-reader-panel" aria-live="polite">
-              <div class="subsection-heading">
-                <p class="eyebrow">Evidence Reader</p>
-                <h3>Headline-level summary</h3>
-              </div>
-              <div class="evidence-reader-empty" data-evidence-reader-empty>
-                <p>Select an evidence item to read a quick summary.</p>
-              </div>
-              {% if investigation.supporting_evidence_display %}
-                {% for evidence in investigation.supporting_evidence_display %}
-                  <div
-                    class="evidence-reader-detail"
-                    id="evidence-reader-{{ loop.index0 }}"
-                    data-evidence-reader-panel
-                    hidden
-                  >
-                    <div class="evidence-reader-header">
-                      <h4>{{ evidence.title }}</h4>
-                      <p>
-                        {{ evidence.source_name }}
-                        {% if evidence.provider %} &middot; {{ evidence.provider }}{% endif %}
-                        {% if evidence.timestamp %} &middot; {{ evidence.timestamp }}{% endif %}
-                      </p>
-                      <p>Matched narrative: {{ evidence.matched_narrative }}</p>
-                      {% if evidence.matched_theme %}<p>Matched theme: {{ evidence.matched_theme }}</p>{% endif %}
-                      {% if evidence.matched_group %}<p>Matched narrative group: {{ evidence.matched_group }}</p>{% endif %}
-                      <p>Evidence type: {{ evidence.evidence_type }}</p>
-                    </div>
-                    <dl class="evidence-reader-sections">
-                      <div>
-                        <dt>Main point</dt>
-                        <dd>{{ evidence.reader_summary.main_point }}</dd>
-                      </div>
-                      <div>
-                        <dt>Why it matters</dt>
-                        <dd>{{ evidence.reader_summary.why_it_matters }}</dd>
-                      </div>
-                      <div>
-                        <dt>Narrative connection</dt>
-                        <dd>{{ evidence.reader_summary.narrative_connection }}</dd>
-                      </div>
-                      <div>
-                        <dt>What MNE knows</dt>
-                        <dd>
-                          <ul>
-                            {% for item in evidence.reader_summary.known_information %}
-                              <li>{{ item }}</li>
-                            {% endfor %}
-                          </ul>
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>What MNE does not know</dt>
-                        <dd>{{ evidence.reader_summary.what_mne_does_not_know }}</dd>
-                      </div>
-                    </dl>
-                    <div class="evidence-reader-limitations">
-                      <strong>Limitations</strong>
-                      <ul>
-                        {% for item in evidence.reader_summary.limitation_items %}
-                          <li>{{ item }}</li>
-                        {% endfor %}
-                      </ul>
-                    </div>
-                    <div class="evidence-reader-actions">
-                      {% if evidence.url %}
-                        <a href="{{ evidence.url }}" target="_blank" rel="noopener noreferrer">Open full article</a>
-                      {% else %}
-                        <span>Original article link unavailable.</span>
-                      {% endif %}
-                      <button type="button" data-evidence-reader-close>Close</button>
-                    </div>
-                  </div>
-                {% endfor %}
-              {% endif %}
-            </article>
+            {{ evidence_reader(investigation.supporting_evidence_display) }}
 
             <article class="evidence-context-panel">
               <div class="subsection-heading">
@@ -270,7 +179,7 @@
         </div>
       </section>
 
-      <section class="content-section investigation-zone investigation-zone-next">
+      <section class="content-section investigation-zone investigation-zone-next" id="investigation-next">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 4 / Research Entry Points</p>
           <h2>Where should I look next?</h2>
@@ -333,62 +242,6 @@
       </section>
     {% endif %}
   </main>
-  <script>
-    (function () {
-      var buttons = document.querySelectorAll("[data-evidence-reader-target]");
-      var panels = document.querySelectorAll("[data-evidence-reader-panel]");
-      var emptyState = document.querySelector("[data-evidence-reader-empty]");
-      var closeButtons = document.querySelectorAll("[data-evidence-reader-close]");
-      var activeButton = null;
-
-      function closeReader() {
-        panels.forEach(function (panel) {
-          panel.hidden = true;
-        });
-        buttons.forEach(function (button) {
-          button.classList.remove("is-selected");
-          button.setAttribute("aria-expanded", "false");
-        });
-        if (emptyState) {
-          emptyState.hidden = false;
-        }
-        if (activeButton) {
-          activeButton.focus();
-          activeButton = null;
-        }
-      }
-
-      buttons.forEach(function (button) {
-        button.addEventListener("click", function () {
-          var target = document.getElementById(button.getAttribute("data-evidence-reader-target"));
-          var shouldFocusPanel = button !== activeButton;
-          closeReader();
-          if (target) {
-            activeButton = button;
-            target.hidden = false;
-            button.classList.add("is-selected");
-            button.setAttribute("aria-expanded", "true");
-            if (emptyState) {
-              emptyState.hidden = true;
-            }
-            if (shouldFocusPanel) {
-              target.setAttribute("tabindex", "-1");
-              target.focus({ preventScroll: true });
-            }
-          }
-        });
-      });
-
-      closeButtons.forEach(function (button) {
-        button.addEventListener("click", closeReader);
-      });
-
-      document.addEventListener("keydown", function (event) {
-        if (event.key === "Escape" && activeButton) {
-          closeReader();
-        }
-      });
-    })();
-  </script>
+  {% include "_partials/evidence_reader_script.html" %}
 </body>
 </html>

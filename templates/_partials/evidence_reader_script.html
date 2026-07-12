@@ -1,0 +1,57 @@
+<script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-evidence-reader-target]");
+      var panels = document.querySelectorAll("[data-evidence-reader-panel]");
+      var emptyState = document.querySelector("[data-evidence-reader-empty]");
+      var closeButtons = document.querySelectorAll("[data-evidence-reader-close]");
+      var activeButton = null;
+
+      function closeReader() {
+        panels.forEach(function (panel) {
+          panel.hidden = true;
+        });
+        buttons.forEach(function (button) {
+          button.classList.remove("is-selected");
+          button.setAttribute("aria-expanded", "false");
+        });
+        if (emptyState) {
+          emptyState.hidden = false;
+        }
+        if (activeButton) {
+          activeButton.focus();
+          activeButton = null;
+        }
+      }
+
+      buttons.forEach(function (button) {
+        button.addEventListener("click", function () {
+          var target = document.getElementById(button.getAttribute("data-evidence-reader-target"));
+          var shouldFocusPanel = button !== activeButton;
+          closeReader();
+          if (target) {
+            activeButton = button;
+            target.hidden = false;
+            button.classList.add("is-selected");
+            button.setAttribute("aria-expanded", "true");
+            if (emptyState) {
+              emptyState.hidden = true;
+            }
+            if (shouldFocusPanel) {
+              target.setAttribute("tabindex", "-1");
+              target.focus({ preventScroll: true });
+            }
+          }
+        });
+      });
+
+      closeButtons.forEach(function (button) {
+        button.addEventListener("click", closeReader);
+      });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && activeButton) {
+          closeReader();
+        }
+      });
+    })();
+  </script>
