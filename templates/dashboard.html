@@ -51,41 +51,43 @@
         </section>
       {% endif %}
 
-      {% if view.dashboard_trust_summary %}
-        <section class="dashboard-trust-summary trust-summary-{{ view.dashboard_trust_summary.state|lower|replace(' ', '-') }}">
-          <div class="trust-summary-copy">
-            <p class="eyebrow">Data Quality</p>
-            <div class="trust-summary-heading">
-              <h2>{{ view.dashboard_trust_summary.state }}</h2>
-              <span>Summary confidence: {{ view.dashboard_trust_summary.confidence }}</span>
+      <div class="dashboard-top-band">
+        {% if view.dashboard_trust_summary %}
+          <section class="dashboard-trust-summary trust-summary-{{ view.dashboard_trust_summary.state|lower|replace(' ', '-') }}">
+            <div class="trust-summary-copy">
+              <p class="eyebrow">Data Quality</p>
+              <div class="trust-summary-heading">
+                <h2>{{ view.dashboard_trust_summary.state }}</h2>
+                <span>Summary confidence: {{ view.dashboard_trust_summary.confidence }}</span>
+              </div>
+              <p>{{ view.dashboard_trust_summary.reason }}</p>
             </div>
-            <p>{{ view.dashboard_trust_summary.reason }}</p>
-          </div>
-          {% if view.dashboard_trust_summary.facts %}
-            <ul class="trust-summary-facts">
-              {% for fact in view.dashboard_trust_summary.facts %}
-                <li>{{ fact }}</li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-          {% if view.dashboard_trust_summary.admin_link_visible %}
-            <a class="trust-summary-admin-link" href="/admin{% if selected_file %}?run={{ selected_file }}{% endif %}">View operational details in Admin</a>
-          {% endif %}
-        </section>
-      {% endif %}
+            {% if view.dashboard_trust_summary.facts %}
+              <ul class="trust-summary-facts">
+                {% for fact in view.dashboard_trust_summary.facts %}
+                  <li>{{ fact }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            {% if view.dashboard_trust_summary.admin_link_visible %}
+              <a class="trust-summary-admin-link" href="/admin{% if selected_file %}?run={{ selected_file }}{% endif %}">View operational details in Admin</a>
+            {% endif %}
+          </section>
+        {% endif %}
 
-      <section id="overview" class="hero-section">
-        <div class="hero-copy">
-          <div class="hero-meta">
-            <span>Macro Narrative Engine</span>
-            <span>{{ view.run.operating_mode|title if view.run.operating_mode else "Macro" }} Mode</span>
-            <span>Last Updated: {{ view.last_updated or "Unavailable" }}</span>
+        <section id="overview" class="hero-section">
+          <div class="hero-copy">
+            <div class="hero-meta">
+              <span>Macro Narrative Engine</span>
+              <span>{{ view.run.operating_mode|title if view.run.operating_mode else "Macro" }} Mode</span>
+              <span>Last Updated: {{ view.last_updated or "Unavailable" }}</span>
+            </div>
+            <h1>{{ view.mode_context.state or "Market Context Unavailable" }}</h1>
+            <p class="hero-read">{{ view.mode_context.read or view.regime.reason or "Market narrative context is unavailable for this run." }}</p>
+            <p class="hero-confidence">Confidence: <strong>{{ view.mode_context.confidence or "Unavailable" }}</strong></p>
           </div>
-          <h1>{{ view.mode_context.state or "Market Context Unavailable" }}</h1>
-          <p class="hero-read">{{ view.mode_context.read or view.regime.reason or "Market narrative context is unavailable for this run." }}</p>
-          <p class="hero-confidence">Confidence: <strong>{{ view.mode_context.confidence or "Unavailable" }}</strong></p>
-        </div>
-      </section>
+        </section>
+      </div>
 
       {% if view.narrative_brief %}
         <section class="narrative-brief-section">

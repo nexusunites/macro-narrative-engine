@@ -56,6 +56,7 @@
   --text-size-h3: 21px;
   --text-size-h2: 28px;
   --text-size-display: clamp(2.5rem, 5vw, 4rem);
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif;
 
   /* Spacing scale (defined for later phases; do not re-point existing spacing values) */
   --space-1: 4px;
@@ -240,12 +241,17 @@ button:hover {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px 22px;
   align-items: center;
-  margin-bottom: 18px;
+  margin-bottom: var(--space-4);
   border: 1px solid var(--border);
   border-left: 3px solid rgba(194, 202, 212, 0.75);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.035);
   padding: 16px 18px;
+}
+
+.dashboard-top-band {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-2);
 }
 
 .trust-summary-strong-evidence-base {
@@ -323,8 +329,7 @@ button:hover {
 }
 
 .hero-section {
-  padding: clamp(34px, 6vw, 70px) 0 clamp(26px, 4vw, 46px);
-  border-bottom: 1px solid var(--border);
+  padding: clamp(20px, 3vw, 40px) 0 clamp(20px, 3vw, 36px);
 }
 
 .hero-copy {
@@ -336,7 +341,7 @@ button:hover {
 .hero-copy h1 {
   max-width: 1020px;
   margin-bottom: 0;
-  font-size: clamp(48px, 7.2vw, 92px);
+  font-size: var(--text-size-display);
   font-weight: 780;
   letter-spacing: 0;
 }
@@ -439,8 +444,24 @@ button:hover {
 .brief-header h2 {
   max-width: 920px;
   margin: 0;
-  font-size: clamp(28px, 3.2vw, 42px);
+  font-size: var(--text-size-h2);
   line-height: 1.15;
+}
+
+.brief-header h2 {
+  font-family: var(--font-serif);
+}
+
+.brief-summary p {
+  font-family: var(--font-serif);
+}
+
+.brief-header h2 {
+  font-weight: 650;
+}
+
+.brief-summary p {
+  line-height: 1.6;
 }
 
 .data-completeness {
@@ -1841,20 +1862,20 @@ button:hover {
 }
 
 .leadership-card h3 {
-  margin: 20px 0 16px;
+  margin: var(--space-5) 0 var(--space-4);
   overflow-wrap: anywhere;
   color: var(--text);
-  font-size: clamp(24px, 2.35vw, 36px);
+  font-size: var(--text-size-h2);
   line-height: 1.06;
 }
 
 .leadership-card.rank-2 h3 {
-  font-size: clamp(22px, 2vw, 30px);
+  font-size: var(--text-size-h3);
 }
 
 .leadership-card.rank-3 h3 {
   color: var(--muted-strong);
-  font-size: clamp(20px, 1.8vw, 26px);
+  font-size: var(--text-size-h3);
 }
 
 .pulse-block {
@@ -1922,7 +1943,7 @@ button:hover {
 
 .leadership-score-row strong {
   color: var(--text);
-  font-size: 34px;
+  font-size: var(--text-size-h2);
   line-height: 1;
 }
 
