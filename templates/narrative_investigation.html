@@ -10,7 +10,7 @@
 <body>
   {% set active_tier = "research" %}
   {% include "_partials/app_rail.html" %}
-  <header class="site-header">
+  <header class="site-header investigation-header-static">
     <div class="brand-row">
       <a class="brand" href="/">Macro Narrative Engine</a>
     </div>
@@ -38,7 +38,7 @@
         <p>{{ investigation.narrative_level|title }} investigation from the selected run. Start with the current signal, then move through explanation, evidence, and next research paths.</p>
       </section>
 
-      <nav class="zone-jump" aria-label="Investigation sections">
+      <nav class="zone-jump investigation-nav-sticky" aria-label="Investigation sections">
         <a href="#investigation-snapshot">Snapshot</a>
         <a href="#investigation-explanation">Explanation</a>
         <a href="#supporting-evidence">Evidence</a>
@@ -131,51 +131,51 @@
             {% endif %}
           </article>
 
-          <aside class="evidence-context-stack">
-            {{ evidence_reader(investigation.supporting_evidence_display) }}
+          {{ evidence_reader(investigation.supporting_evidence_display) }}
+        </div>
 
-            <article class="evidence-context-panel">
-              <div class="subsection-heading">
-                <p class="eyebrow">Coverage</p>
-                <h3>Evidence breadth</h3>
-              </div>
-              {% if investigation.coverage %}
-                <p class="coverage-state">{{ investigation.coverage.coverage_state }}</p>
-                <p class="muted">{{ investigation.coverage_explanation }}</p>
-                <dl class="research-dl">
-                  <div><dt>Evidence</dt><dd>{{ investigation.coverage.evidence_count }}</dd></div>
-                  <div><dt>Sources</dt><dd>{{ investigation.coverage.unique_source_count }}</dd></div>
-                  <div><dt>Providers</dt><dd>{{ investigation.coverage.unique_provider_count }}</dd></div>
-                  <div><dt>Concentration</dt><dd>{{ investigation.coverage.concentration_ratio }}</dd></div>
-                </dl>
-              {% else %}
-                <p class="muted">No Coverage Intelligence record is persisted for this narrative.</p>
-              {% endif %}
-            </article>
+        <div class="evidence-context-row">
+          <article class="evidence-context-panel">
+            <div class="subsection-heading">
+              <p class="eyebrow">Coverage</p>
+              <h3>Evidence breadth</h3>
+            </div>
+            {% if investigation.coverage %}
+              <p class="coverage-state">{{ investigation.coverage.coverage_state }}</p>
+              <p class="muted">{{ investigation.coverage_explanation }}</p>
+              <dl class="research-dl">
+                <div><dt>Evidence</dt><dd>{{ investigation.coverage.evidence_count }}</dd></div>
+                <div><dt>Sources</dt><dd>{{ investigation.coverage.unique_source_count }}</dd></div>
+                <div><dt>Providers</dt><dd>{{ investigation.coverage.unique_provider_count }}</dd></div>
+                <div><dt>Concentration</dt><dd>{{ investigation.coverage.concentration_ratio }}</dd></div>
+              </dl>
+            {% else %}
+              <p class="muted">No Coverage Intelligence record is persisted for this narrative.</p>
+            {% endif %}
+          </article>
 
-            <article class="evidence-context-panel">
-              <div class="subsection-heading">
-                <p class="eyebrow">Source Summary</p>
-                <h3>Contributing sources</h3>
-              </div>
-              {% if investigation.source_summary_display %}
-                <ul class="source-summary-list">
-                  {% for source in investigation.source_summary_display %}
-                    <li>
-                      <strong>{{ source.source_name }}</strong>
-                      <span>
-                        {{ source.evidence_count }} evidence item{% if source.evidence_count != 1 %}s{% endif %}
-                        {% if source.provider %} &middot; {{ source.provider }}{% endif %}
-                      </span>
-                      <small>Health: {{ source.health_state }} &middot; Freshness: {{ source.freshness_state }}</small>
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <p class="muted">No contributing source summary is persisted for this narrative.</p>
-              {% endif %}
-            </article>
-          </aside>
+          <article class="evidence-context-panel">
+            <div class="subsection-heading">
+              <p class="eyebrow">Source Summary</p>
+              <h3>Contributing sources</h3>
+            </div>
+            {% if investigation.source_summary_display %}
+              <ul class="source-summary-list">
+                {% for source in investigation.source_summary_display %}
+                  <li>
+                    <strong>{{ source.source_name }}</strong>
+                    <span>
+                      {{ source.evidence_count }} evidence item{% if source.evidence_count != 1 %}s{% endif %}
+                      {% if source.provider %} &middot; {{ source.provider }}{% endif %}
+                    </span>
+                    <small>Health: {{ source.health_state }} &middot; Freshness: {{ source.freshness_state }}</small>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="muted">No contributing source summary is persisted for this narrative.</p>
+            {% endif %}
+          </article>
         </div>
       </section>
 

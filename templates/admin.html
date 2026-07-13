@@ -173,48 +173,50 @@
           <p class="muted">{{ recent_replays.get("error") }}</p>
         {% else %}
           {% if recent_replays.get("files") %}
-            <table>
-              <thead>
-                <tr>
-                  <th>File</th>
-                  <th>Replay Date</th>
-                  <th>Generated At</th>
-                  <th>Evidence</th>
-                  <th>Sources</th>
-                  <th>Dominant Theme</th>
-                  <th>Dominant Group</th>
-                  <th>Status</th>
-                  <th>Research</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for replay_file in recent_replays.get("files", []) %}
+            <div class="table-scroll table-scroll-wide">
+              <table>
+                <thead>
                   <tr>
-                    <th>
-                      {% if replay_file.replay_id %}
-                        <a href="/admin{% if selected_file %}?run={{ selected_file }}&{% else %}?{% endif %}replay={{ replay_file.replay_id }}"><code>{{ replay_file.filename }}</code></a>
-                      {% else %}
-                        <code>{{ replay_file.filename }}</code>
-                      {% endif %}
-                    </th>
-                    <td>{{ replay_file.replay_date or "Unavailable" }}</td>
-                    <td>{{ replay_file.generated_at or "Unavailable" }}</td>
-                    <td>{{ replay_file.evidence_count if replay_file.evidence_count is not none else "Unavailable" }}</td>
-                    <td>{{ replay_file.source_count if replay_file.source_count is not none else "Unavailable" }}</td>
-                    <td>{{ replay_file.dominant_theme or "Unavailable" }}</td>
-                    <td>{{ replay_file.dominant_group or "Unavailable" }}</td>
-                    <td>{% if replay_file.unreadable %}Unavailable{% else %}{{ replay_file.status }}{% endif %}</td>
-                    <td>
-                      {% if replay_file.research_url and not replay_file.unreadable %}
-                        <a class="historical-research-link compact" href="{{ replay_file.research_url }}">Open historical research view</a>
-                      {% else %}
-                        Unavailable
-                      {% endif %}
-                    </td>
+                    <th>File</th>
+                    <th>Replay Date</th>
+                    <th>Generated At</th>
+                    <th>Evidence</th>
+                    <th>Sources</th>
+                    <th>Dominant Theme</th>
+                    <th>Dominant Group</th>
+                    <th>Status</th>
+                    <th>Research</th>
                   </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {% for replay_file in recent_replays.get("files", []) %}
+                    <tr>
+                      <th>
+                        {% if replay_file.replay_id %}
+                          <a href="/admin{% if selected_file %}?run={{ selected_file }}&{% else %}?{% endif %}replay={{ replay_file.replay_id }}"><code>{{ replay_file.filename }}</code></a>
+                        {% else %}
+                          <code>{{ replay_file.filename }}</code>
+                        {% endif %}
+                      </th>
+                      <td>{{ replay_file.replay_date or "Unavailable" }}</td>
+                      <td>{{ replay_file.generated_at or "Unavailable" }}</td>
+                      <td>{{ replay_file.evidence_count if replay_file.evidence_count is not none else "Unavailable" }}</td>
+                      <td>{{ replay_file.source_count if replay_file.source_count is not none else "Unavailable" }}</td>
+                      <td>{{ replay_file.dominant_theme or "Unavailable" }}</td>
+                      <td>{{ replay_file.dominant_group or "Unavailable" }}</td>
+                      <td>{% if replay_file.unreadable %}Unavailable{% else %}{{ replay_file.status }}{% endif %}</td>
+                      <td>
+                        {% if replay_file.research_url and not replay_file.unreadable %}
+                          <a class="historical-research-link compact" href="{{ replay_file.research_url }}">Open historical research view</a>
+                        {% else %}
+                          Unavailable
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           {% else %}
             <p class="muted">No historical replay has been run from this console yet.</p>
           {% endif %}
@@ -609,32 +611,34 @@
               {% set state_sources = source_reliability.get("sources", []) | selectattr("reliability_state", "equalto", state) | list %}
               {% if state_sources %}
                 <h4>{{ state.replace("_", " ") }}</h4>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Source</th>
-                      <th>Status</th>
-                      <th>Latest</th>
-                      <th>Observed</th>
-                      <th>Contributing</th>
-                      <th>Reason</th>
-                      <th>Recommended Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for source in state_sources %}
+                <div class="table-scroll table-scroll-wide">
+                  <table>
+                    <thead>
                       <tr>
-                        <td>{{ source.source_name }}</td>
-                        <td>{{ source.registry_status }}</td>
-                        <td>{{ source.latest_state or "Unavailable" }}</td>
-                        <td>{{ source.runs_observed }}</td>
-                        <td>{{ source.contributing_runs }}</td>
-                        <td>{{ source.reason }}</td>
-                        <td>{{ source.recommended_action }}</td>
+                        <th>Source</th>
+                        <th>Status</th>
+                        <th>Latest</th>
+                        <th>Observed</th>
+                        <th>Contributing</th>
+                        <th>Reason</th>
+                        <th>Recommended Action</th>
                       </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {% for source in state_sources %}
+                        <tr>
+                          <td>{{ source.source_name }}</td>
+                          <td>{{ source.registry_status }}</td>
+                          <td>{{ source.latest_state or "Unavailable" }}</td>
+                          <td>{{ source.runs_observed }}</td>
+                          <td>{{ source.contributing_runs }}</td>
+                          <td>{{ source.reason }}</td>
+                          <td>{{ source.recommended_action }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
               {% endif %}
             {% endfor %}
           </article>
@@ -780,26 +784,28 @@
             {% if source_intelligence.get("accepted_evidence_truncated") %}
               <p class="muted">Accepted evidence was truncated for display and persistence.</p>
             {% endif %}
-            <table>
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Source</th>
-                  <th>Timestamp</th>
-                  <th>Evidence ID</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for evidence in accepted_evidence %}
+            <div class="table-scroll table-scroll-wide">
+              <table>
+                <thead>
                   <tr>
-                    <td>{{ evidence.title }}</td>
-                    <td>{{ evidence.source_id }}</td>
-                    <td>{{ evidence.timestamp or "Unavailable" }}</td>
-                    <td><code>{{ evidence.evidence_id }}</code></td>
+                    <th>Title</th>
+                    <th>Source</th>
+                    <th>Timestamp</th>
+                    <th>Evidence ID</th>
                   </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {% for evidence in accepted_evidence %}
+                    <tr>
+                      <td>{{ evidence.title }}</td>
+                      <td>{{ evidence.source_id }}</td>
+                      <td>{{ evidence.timestamp or "Unavailable" }}</td>
+                      <td><code>{{ evidence.evidence_id }}</code></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           {% else %}
             <p class="muted">No accepted evidence records were persisted for this run.</p>
           {% endif %}
@@ -843,30 +849,32 @@
 
           <article class="card">
             <h3>Pipeline Timeline</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Stage</th>
-                  <th>Status</th>
-                  <th>Start</th>
-                  <th>End</th>
-                  <th>Duration</th>
-                  <th>Diagnostic</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for stage in platform_observability.get("stages", []) %}
+            <div class="table-scroll table-scroll-wide">
+              <table>
+                <thead>
                   <tr>
-                    <td>{{ stage.stage_name }}</td>
-                    <td>{{ stage.status }}</td>
-                    <td>{{ stage.start_time or "Skipped" }}</td>
-                    <td>{{ stage.end_time or "Skipped" }}</td>
-                    <td>{{ stage.duration_ms if stage.duration_ms is not none else "Skipped" }}</td>
-                    <td>{{ stage.diagnostic_message }}</td>
+                    <th>Stage</th>
+                    <th>Status</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Duration</th>
+                    <th>Diagnostic</th>
                   </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {% for stage in platform_observability.get("stages", []) %}
+                    <tr>
+                      <td>{{ stage.stage_name }}</td>
+                      <td>{{ stage.status }}</td>
+                      <td>{{ stage.start_time or "Skipped" }}</td>
+                      <td>{{ stage.end_time or "Skipped" }}</td>
+                      <td>{{ stage.duration_ms if stage.duration_ms is not none else "Skipped" }}</td>
+                      <td>{{ stage.diagnostic_message }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           </article>
 
           <article class="card">
@@ -997,23 +1005,25 @@
           <article class="card">
             <h3>Highest Concentration Narratives</h3>
             {% if evidence_quality.get("highest_concentration_narratives") %}
-              <table>
-                <thead><tr><th>Narrative</th><th>Level</th><th>Concentration</th><th>Largest Sources</th></tr></thead>
-                <tbody>
-                  {% for record in evidence_quality.get("highest_concentration_narratives", []) %}
-                    <tr>
-                      <td>{{ record.narrative_id }}</td>
-                      <td>{{ record.narrative_level }}</td>
-                      <td>{{ record.concentration_ratio }}</td>
-                      <td>
-                        {% for source in record.source_contribution_breakdown[:3] %}
-                          {{ source.source_name }} ({{ source.evidence_count }}){% if not loop.last %}, {% endif %}
-                        {% endfor %}
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Narrative</th><th>Level</th><th>Concentration</th><th>Largest Sources</th></tr></thead>
+                  <tbody>
+                    {% for record in evidence_quality.get("highest_concentration_narratives", []) %}
+                      <tr>
+                        <td>{{ record.narrative_id }}</td>
+                        <td>{{ record.narrative_level }}</td>
+                        <td>{{ record.concentration_ratio }}</td>
+                        <td>
+                          {% for source in record.source_contribution_breakdown[:3] %}
+                            {{ source.source_name }} ({{ source.evidence_count }}){% if not loop.last %}, {% endif %}
+                          {% endfor %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
             {% else %}
               <p class="muted">No concentration records found for this run.</p>
             {% endif %}
@@ -1036,44 +1046,46 @@
               <p><strong>Data Completeness:</strong> {{ view.narrative_brief.confidence }}</p>
               <p><strong>Style Guide:</strong> {{ view.narrative_brief.diagnostics.style_guide }}</p>
             </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Section</th>
-                  <th>Template</th>
-                  <th>Text</th>
-                  <th>Completeness</th>
-                  <th>Fallback</th>
-                  <th>Evidence</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in view.narrative_brief_evidence_rows %}
+            <div class="table-scroll table-scroll-wide">
+              <table>
+                <thead>
                   <tr>
-                    <th>{{ row.section.section }}</th>
-                    <td>{{ row.section.template_id }}</td>
-                    <td>{{ row.section.text or "Empty attention section" }}</td>
-                    <td>{{ row.section.section_confidence }}</td>
-                    <td>{{ row.section.fallback_used }}</td>
-                    <td>
-                      {% if row.evidence %}
-                        <ul class="admin-evidence-list">
-                          {% for evidence in row.evidence %}
-                            <li>
-                              <strong>{{ evidence.source_module }}</strong>
-                              <span>{{ evidence.field_path or "(module)" }}</span>
-                              <code>{{ evidence.value_at_evaluation | tojson }}</code>
-                            </li>
-                          {% endfor %}
-                        </ul>
-                      {% else %}
-                        <span class="muted">None</span>
-                      {% endif %}
-                    </td>
+                    <th>Section</th>
+                    <th>Template</th>
+                    <th>Text</th>
+                    <th>Completeness</th>
+                    <th>Fallback</th>
+                    <th>Evidence</th>
                   </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {% for row in view.narrative_brief_evidence_rows %}
+                    <tr>
+                      <th>{{ row.section.section }}</th>
+                      <td>{{ row.section.template_id }}</td>
+                      <td>{{ row.section.text or "Empty attention section" }}</td>
+                      <td>{{ row.section.section_confidence }}</td>
+                      <td>{{ row.section.fallback_used }}</td>
+                      <td>
+                        {% if row.evidence %}
+                          <ul class="admin-evidence-list">
+                            {% for evidence in row.evidence %}
+                              <li>
+                                <strong>{{ evidence.source_module }}</strong>
+                                <span>{{ evidence.field_path or "(module)" }}</span>
+                                <code>{{ evidence.value_at_evaluation | tojson }}</code>
+                              </li>
+                            {% endfor %}
+                          </ul>
+                        {% else %}
+                          <span class="muted">None</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
 
             <h3>Template Trigger Diagnostics</h3>
             <details class="diagnostic-details">
