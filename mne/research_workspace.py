@@ -163,6 +163,11 @@ def build_narrative_investigation(
         "coverage_explanation": _coverage_explanation(coverage_record),
         "source_summary": source_summary,
         "source_summary_display": _source_summary_display(source_summary),
+        "memory": _narrative_memory_context(
+            run.get("narrative_memory"),
+            narrative_level,
+            narrative_id,
+        ),
         "events": _events(
             run.get("event_lifecycle"),
             narrative_level,
@@ -179,6 +184,85 @@ def _display_name(narrative_level, narrative_id):
     if narrative_level == "theme":
         return str(narrative_id).replace("_", " ").title()
     return narrative_id
+
+
+def _narrative_memory_context(narrative_memory, narrative_level, narrative_id):
+    if not isinstance(narrative_memory, dict):
+        return None
+
+    records_key = "themes" if narrative_level == "theme" else "groups"
+    records = narrative_memory.get(records_key)
+    if not isinstance(records, list):
+        return None
+
+    for record in records:
+        if not (
+            isinstance(record, dict)
+            and record.get("narrative_level") == narrative_level
+            and record.get("name") == narrative_id
+        ):
+            continue
+
+        display_name = _display_name(narrative_level, narrative_id)
+        summary = record.get("plain_language_summary")
+        return {
+            "display_name": display_name,
+            "state": record.get("memory_state") or "Unavailable",
+            "state_class": _memory_state_class(record.get("memory_state")),
+            "summary": _display_memory_summary(summary, narrative_level, narrative_id),
+            "appearances_in_window": record.get("appearances_in_window"),
+            "runs_used": _memory_runs_used(narrative_memory),
+            "dominance_count": record.get("dominance_count"),
+            "streak_length": record.get("streak_length"),
+            "momentum_label": record.get("momentum_label") or "Unavailable",
+            "persistence_label": record.get("persistence_label") or "Unavailable",
+            "score_delta": _format_delta(record.get("score_delta")),
+            "share_delta": _format_delta(record.get("share_delta"), percent=True),
+            "rank_delta": _format_delta(record.get("rank_delta"), invert=True),
+        }
+
+    return None
+
+
+def _memory_runs_used(narrative_memory):
+    window = narrative_memory.get("memory_window")
+    if not isinstance(window, dict):
+        return None
+    return window.get("runs_used")
+
+
+def _display_memory_summary(summary, narrative_level, narrative_id):
+    if not summary:
+        return None
+    summary = str(summary)
+    if narrative_level != "theme":
+        return summary
+
+    display_name = _display_name(narrative_level, narrative_id)
+    return summary.replace(str(narrative_id), display_name, 1)
+
+
+def _memory_state_class(state):
+    if not state:
+        return "memory-state-absent"
+    return f"memory-state-{str(state).lower().replace('_', '-')}"
+
+
+def _format_delta(value, percent=False, invert=False):
+    if not isinstance(value, (int, float)):
+        return "Unavailable"
+    display_value = -value if invert else value
+    if percent:
+        display_value = display_value * 100
+        suffix = " pts"
+    else:
+        suffix = ""
+    sign = "+" if display_value > 0 else ""
+    if percent:
+        return f"{sign}{display_value:.1f}{suffix}"
+    if isinstance(display_value, float) and not display_value.is_integer():
+        return f"{sign}{display_value:.2f}"
+    return f"{sign}{int(display_value)}"
 
 
 def _overview(run, narrative_level, narrative_id):

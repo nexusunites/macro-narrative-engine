@@ -160,6 +160,54 @@ def sample_run():
                 "run_duration_ms": 456,
             }
         },
+        "narrative_memory": {
+            "memory_window": {
+                "configured_runs": 5,
+                "runs_used": 4,
+                "oldest_run": "2026-07-06_120000.json",
+                "newest_run": "2026-07-09_120000.json",
+            },
+            "themes": [
+                {
+                    "narrative_level": "theme",
+                    "name": "ai",
+                    "current_score": 12,
+                    "current_share": 0.48,
+                    "appearances_in_window": 4,
+                    "dominance_count": 3,
+                    "latest_rank": 1,
+                    "previous_rank": 2,
+                    "rank_delta": -1,
+                    "score_delta": 2,
+                    "share_delta": 0.08,
+                    "streak_length": 4,
+                    "persistence_label": "Persistent",
+                    "momentum_label": "Building",
+                    "memory_state": "dominant",
+                    "plain_language_summary": "ai appeared in 4 of 4 recent meaningful runs.",
+                }
+            ],
+            "groups": [
+                {
+                    "narrative_level": "group",
+                    "name": "AI / Tech Growth",
+                    "current_score": 14,
+                    "current_share": 0.56,
+                    "appearances_in_window": 4,
+                    "dominance_count": 2,
+                    "latest_rank": 1,
+                    "previous_rank": 1,
+                    "rank_delta": 0,
+                    "score_delta": -1,
+                    "share_delta": -0.03,
+                    "streak_length": 3,
+                    "persistence_label": "Persistent",
+                    "momentum_label": "Fading",
+                    "memory_state": "fading",
+                    "plain_language_summary": "AI / Tech Growth appeared in 4 of 4 recent meaningful runs.",
+                }
+            ],
+        },
     }
 
 
@@ -420,6 +468,144 @@ class ResearchWorkspaceTests(unittest.TestCase):
         self.assertNotIn("POL", html)
         self.assertNotIn("rejection_reason", html)
         self.assertNotIn("{&#", html)
+
+    def test_investigation_context_includes_group_memory_from_selected_run(self):
+        investigation = build_narrative_investigation(
+            sample_run(),
+            "group",
+            "AI / Tech Growth",
+        )
+
+        self.assertEqual(
+            investigation["memory"],
+            {
+                "display_name": "AI / Tech Growth",
+                "state": "fading",
+                "state_class": "memory-state-fading",
+                "summary": "AI / Tech Growth appeared in 4 of 4 recent meaningful runs.",
+                "appearances_in_window": 4,
+                "runs_used": 4,
+                "dominance_count": 2,
+                "streak_length": 3,
+                "momentum_label": "Fading",
+                "persistence_label": "Persistent",
+                "score_delta": "-1",
+                "share_delta": "-3.0 pts",
+                "rank_delta": "0",
+            },
+        )
+
+    def test_investigation_context_includes_theme_memory_with_display_name_summary(self):
+        investigation = build_narrative_investigation(sample_run(), "theme", "ai")
+
+        self.assertEqual(investigation["memory"]["display_name"], "Ai")
+        self.assertEqual(
+            investigation["memory"]["summary"],
+            "Ai appeared in 4 of 4 recent meaningful runs.",
+        )
+        self.assertEqual(investigation["memory"]["state_class"], "memory-state-dominant")
+        self.assertEqual(investigation["memory"]["share_delta"], "+8.0 pts")
+
+    def test_investigation_context_returns_no_memory_when_block_or_record_missing(self):
+        run_without_memory = sample_run()
+        run_without_memory.pop("narrative_memory")
+        missing_record_run = sample_run()
+        missing_record_run["narrative_memory"]["groups"] = []
+
+        self.assertIsNone(
+            build_narrative_investigation(
+                run_without_memory,
+                "group",
+                "AI / Tech Growth",
+            )["memory"]
+        )
+        self.assertIsNone(
+            build_narrative_investigation(
+                missing_record_run,
+                "group",
+                "AI / Tech Growth",
+            )["memory"]
+        )
+
+    def test_investigation_template_renders_recent_memory_card(self):
+        investigation = build_narrative_investigation(
+            sample_run(),
+            "group",
+            "AI / Tech Growth",
+        )
+        html = render_template(
+            "narrative_investigation.html",
+            investigation=investigation,
+        )
+
+        self.assertIn("Recent Memory", html)
+        self.assertIn("How has this narrative been behaving?", html)
+        self.assertIn("memory-state-fading", html)
+        self.assertIn("AI / Tech Growth appeared in 4 of 4 recent meaningful runs.", html)
+        self.assertIn("<dt>Appearances</dt>", html)
+        self.assertIn("<dd>4 / 4</dd>", html)
+        self.assertIn("<dt>Streak</dt>", html)
+        self.assertIn("<dd>3</dd>", html)
+        self.assertIn("<dt>Momentum</dt>", html)
+        self.assertIn("<dd>Fading</dd>", html)
+        self.assertIn("<dt>Score Delta</dt>", html)
+        self.assertIn("<dd>-1</dd>", html)
+        self.assertIn("<dt>Share Delta</dt>", html)
+        self.assertIn("<dd>-3.0 pts</dd>", html)
+
+    def test_investigation_template_renders_missing_memory_calmly(self):
+        run = sample_run()
+        run.pop("narrative_memory")
+        investigation = build_narrative_investigation(
+            run,
+            "group",
+            "AI / Tech Growth",
+        )
+        html = render_template(
+            "narrative_investigation.html",
+            investigation=investigation,
+        )
+
+        self.assertIn(
+            "Recent memory is unavailable for this narrative in the selected live run.",
+            html,
+        )
+        self.assertNotIn("error", html.lower())
+        self.assertNotIn("failed", html.lower())
+
+    def test_recent_memory_copy_has_no_predictions_or_admin_diagnostics(self):
+        investigation = build_narrative_investigation(
+            sample_run(),
+            "group",
+            "AI / Tech Growth",
+        )
+        html = render_template(
+            "narrative_investigation.html",
+            investigation=investigation,
+        )
+        blocked_terms = [
+            "will continue",
+            "bullish",
+            "bearish",
+            "trade",
+            "forecast",
+            "tojson",
+            "Raw narrative memory data",
+            "run_duration_ms",
+            "telemetry",
+            "/tmp/results",
+        ]
+
+        for term in blocked_terms:
+            self.assertNotIn(term, html)
+
+    def test_research_workspace_memory_integration_has_no_recompute_or_replay_reads(self):
+        source = (Path(__file__).resolve().parents[1] / "mne" / "research_workspace.py").read_text()
+
+        self.assertNotIn("build_narrative_memory", source)
+        self.assertNotIn("load_replay", source)
+        self.assertNotIn("ensure_replay_dir", source)
+        self.assertNotIn("results_dir", source)
 
     def test_evidence_reader_panel_shows_missing_url_state(self):
         run = sample_run()

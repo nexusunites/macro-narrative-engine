@@ -111,6 +111,54 @@
         </article>
       </section>
 
+      <section class="content-section investigation-memory-section" aria-labelledby="recent-memory-heading">
+        <div class="subsection-heading">
+          <p class="eyebrow">Recent Memory</p>
+          <h3 id="recent-memory-heading">How has this narrative been behaving?</h3>
+        </div>
+        <article class="investigation-memory-card">
+          {% if investigation.memory %}
+            <div class="investigation-memory-header">
+              <span class="memory-state-badge {{ investigation.memory.state_class }}">{{ investigation.memory.state }}</span>
+              <strong>{{ investigation.memory.display_name }}</strong>
+            </div>
+            {% if investigation.memory.summary %}
+              <p>{{ investigation.memory.summary }}</p>
+            {% else %}
+              <p class="muted">No plain-language memory summary is persisted for this narrative.</p>
+            {% endif %}
+            <dl class="investigation-memory-grid">
+              <div>
+                <dt>Appearances</dt>
+                <dd>{{ investigation.memory.appearances_in_window if investigation.memory.appearances_in_window is not none else "Unavailable" }}{% if investigation.memory.runs_used is not none %} / {{ investigation.memory.runs_used }}{% endif %}</dd>
+              </div>
+              <div>
+                <dt>Dominance</dt>
+                <dd>{{ investigation.memory.dominance_count if investigation.memory.dominance_count is not none else "Unavailable" }}</dd>
+              </div>
+              <div>
+                <dt>Streak</dt>
+                <dd>{{ investigation.memory.streak_length if investigation.memory.streak_length is not none else "Unavailable" }}</dd>
+              </div>
+              <div>
+                <dt>Momentum</dt>
+                <dd>{{ investigation.memory.momentum_label }}</dd>
+              </div>
+              <div>
+                <dt>Score Delta</dt>
+                <dd>{{ investigation.memory.score_delta }}</dd>
+              </div>
+              <div>
+                <dt>Share Delta</dt>
+                <dd>{{ investigation.memory.share_delta }}</dd>
+              </div>
+            </dl>
+          {% else %}
+            <p class="muted">Recent memory is unavailable for this narrative in the selected live run.</p>
+          {% endif %}
+        </article>
+      </section>
+
       <section class="content-section investigation-zone investigation-zone-evidence" id="supporting-evidence">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 3 / Evidence</p>
