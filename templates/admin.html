@@ -471,6 +471,7 @@
       {% set network_health = source_intelligence.get("network_health", {}) %}
       {% set source_confidence = source_intelligence.get("source_confidence", {}) %}
       {% set source_reliability = source_intelligence.get("source_reliability", {}) %}
+      {% set network_confidence = source_intelligence.get("network_confidence", {}) %}
       {% set zero_match_warning = source_intelligence.get("zero_match_warning") %}
       {% if zero_match_warning %}
         <section class="content-section">
@@ -752,6 +753,52 @@
           <article class="card">
             <h3>Source Reliability / Quarantine Tracking</h3>
             <p class="muted">No Source Reliability block was persisted for this run.</p>
+          </article>
+        {% endif %}
+        {% if network_confidence %}
+          <article class="card network-confidence-card">
+            <h3>Network Confidence</h3>
+            <p class="admin-value">{{ network_confidence.get("network_confidence_state", "Unavailable") }}</p>
+            <p class="muted">{{ network_confidence.get("reason", "No Network Confidence reason persisted for this run.") }}</p>
+            <table>
+              <tbody>
+                <tr><th>Recommended Action</th><td>{{ network_confidence.get("recommended_action", "Unavailable") }}</td></tr>
+                <tr><th>Confidence Level</th><td>{{ network_confidence.get("confidence_level") if network_confidence.get("confidence_level") is not none else "Not implemented" }}</td></tr>
+              </tbody>
+            </table>
+            {% if network_confidence.get("supporting_factors") %}
+              <h4>Supporting Factors</h4>
+              <ul class="admin-evidence-list">
+                {% for factor in network_confidence.get("supporting_factors", []) %}
+                  <li>{{ factor }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            {% if network_confidence.get("limiting_factors") %}
+              <h4>Limiting Factors</h4>
+              <ul class="admin-evidence-list">
+                {% for factor in network_confidence.get("limiting_factors", []) %}
+                  <li>{{ factor }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            {% set network_confidence_thresholds = network_confidence.get("thresholds_used", {}) %}
+            {% if network_confidence_thresholds %}
+              <table>
+                <tbody>
+                  <tr><th>Watch Count Threshold</th><td>{{ network_confidence_thresholds.get("reliability_watch_count_threshold", "Unavailable") }}</td></tr>
+                  <tr><th>Repeated Failure Threshold</th><td>{{ network_confidence_thresholds.get("reliability_repeated_failure_count_threshold", "Unavailable") }}</td></tr>
+                  <tr><th>Quarantine Threshold</th><td>{{ network_confidence_thresholds.get("reliability_quarantine_recommended_count_threshold", "Unavailable") }}</td></tr>
+                  <tr><th>Min Broad Coverage Count</th><td>{{ network_confidence_thresholds.get("min_broad_coverage_count", "Unavailable") }}</td></tr>
+                  <tr><th>Max Minimal Coverage Count</th><td>{{ network_confidence_thresholds.get("max_minimal_coverage_count_for_moderate", "Unavailable") }}</td></tr>
+                </tbody>
+              </table>
+            {% endif %}
+          </article>
+        {% else %}
+          <article class="card network-confidence-card">
+            <h3>Network Confidence</h3>
+            <p class="muted">No Network Confidence block was persisted for this run.</p>
           </article>
         {% endif %}
         {% if network_health %}

@@ -28,6 +28,7 @@ from mne.evidence import (
 )
 from mne.headline_deduplication import dedupe_headlines
 from mne.market_context import get_market_snapshot
+from mne.network_confidence import build_network_confidence
 from mne.network_health import build_network_health
 from mne.narrative_brief import ENGINE_VERSION as NARRATIVE_BRIEF_ENGINE_VERSION
 from mne.narrative_brief import generate_narrative_brief
@@ -290,6 +291,9 @@ def main(args=None):
             failed_run,
             RESULTS_DIR,
         )
+        source_intelligence["network_confidence"] = build_network_confidence(
+            source_intelligence,
+        )
         telemetry.skip("NARRATIVE_INTELLIGENCE", "Skipped because headline collection failed.")
         telemetry.skip("EVIDENCE_QUALITY", "Skipped because narrative intelligence did not run.")
         telemetry.skip("NARRATIVE_BRIEF", "Skipped because narrative intelligence did not run.")
@@ -483,6 +487,9 @@ def main(args=None):
         source_registry,
         run,
         RESULTS_DIR,
+    )
+    source_intelligence["network_confidence"] = build_network_confidence(
+        source_intelligence,
     )
 
     narrative_dynamics = calculate_narrative_dynamics(

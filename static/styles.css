@@ -2425,6 +2425,10 @@ li + li {
   font-weight: 760;
 }
 
+.network-confidence-card {
+  border-color: rgba(96, 165, 250, 0.28);
+}
+
 pre {
   max-height: 520px;
   overflow: auto;
