@@ -22,6 +22,13 @@ REASON_BY_STATE = {
     UNAVAILABLE: "Today's evidence quality could not be verified from the latest run data.",
 }
 
+NETWORK_CONFIDENCE_REASON_BY_STATE = {
+    STRONG: "Today's read is supported by a strong evidence network.",
+    USABLE: "Today's read is usable, though the evidence network has some limitations.",
+    LIMITED: "Today's read is limited because the evidence network has meaningful constraints.",
+    THIN: "Today's read is thin because the evidence network is highly limited.",
+}
+
 FALLBACK_REASON = (
     "The dashboard is showing the latest meaningful run because the latest run did "
     "not produce enough narrative signal."
@@ -29,6 +36,23 @@ FALLBACK_REASON = (
 
 DEFAULT_ACCEPTED_EVIDENCE_FLOOR = 10
 VERY_LOW_ACCEPTED_EVIDENCE = 2
+NETWORK_CONFIDENCE_SOURCE = "network_confidence"
+LEGACY_SOURCE = "legacy"
+
+NETWORK_CONFIDENCE_STATE_TO_DASHBOARD_STATE = {
+    "HIGH": STRONG,
+    "MODERATE": USABLE,
+    "LOW": LIMITED,
+    "VERY_LOW": THIN,
+}
+
+NETWORK_CONFIDENCE_FACT_LABELS = {
+    "HIGH": "Strong",
+    "MODERATE": "Moderate",
+    "LOW": "Limited",
+    "VERY_LOW": "Thin",
+    "UNKNOWN": "Unknown",
+}
 
 NETWORK_LABELS = {
     "NETWORK_HEALTHY": "Healthy",
@@ -62,7 +86,7 @@ def build_dashboard_trust_summary(run_data, latest_meaningful_fallback_active=Fa
         run_data,
         latest_meaningful_fallback_active=latest_meaningful_fallback_active,
     )
-    state, confidence = classify_dashboard_data_quality(
+    state, confidence, classification_source = classify_dashboard_data_quality(
         facts,
         latest_meaningful_fallback_active=latest_meaningful_fallback_active,
     )
@@ -71,6 +95,7 @@ def build_dashboard_trust_summary(run_data, latest_meaningful_fallback_active=Fa
         "confidence": confidence,
         "reason": build_dashboard_trust_reason(
             state,
+            classification_source=classification_source,
             latest_meaningful_fallback_active=latest_meaningful_fallback_active,
         ),
         "facts": _display_facts(facts),
@@ -83,7 +108,7 @@ def classify_dashboard_data_quality(
     latest_meaningful_fallback_active=False,
 ):
     if not facts.get("has_run"):
-        return UNAVAILABLE, LOW
+        return UNAVAILABLE, LOW, LEGACY_SOURCE
 
     has_diagnostics = facts.get("has_source_intelligence") and (
         facts.get("source_confidence_state")
@@ -91,7 +116,7 @@ def classify_dashboard_data_quality(
         or facts.get("accepted_count") is not None
     )
     if not has_diagnostics and not facts.get("has_fallback_facts"):
-        return UNAVAILABLE, LOW
+        return UNAVAILABLE, LOW, LEGACY_SOURCE
 
     accepted_count = facts.get("accepted_count")
     matched_headlines = facts.get("matched_headlines")
@@ -99,26 +124,34 @@ def classify_dashboard_data_quality(
     source_confidence = facts.get("source_confidence_state")
     network_status = facts.get("network_status")
     coverage_strength = facts.get("coverage_strength")
+    network_confidence_state = facts.get("network_confidence_state")
     accepted_floor = facts.get("accepted_evidence_floor") or DEFAULT_ACCEPTED_EVIDENCE_FLOOR
 
     if latest_meaningful_fallback_active:
-        return THIN, LOW
+        return THIN, LOW, LEGACY_SOURCE
 
     if accepted_count is not None and accepted_count <= VERY_LOW_ACCEPTED_EVIDENCE:
-        return THIN, _confidence_for_missing(facts, low_when_missing=True)
+        return THIN, _confidence_for_missing(facts, low_when_missing=True), LEGACY_SOURCE
     if matched_headlines is not None and matched_headlines <= 0 and not has_narratives:
-        return THIN, _confidence_for_missing(facts, low_when_missing=True)
+        return THIN, _confidence_for_missing(facts, low_when_missing=True), LEGACY_SOURCE
+
+    if network_confidence_state and network_confidence_state != "UNKNOWN":
+        network_state = NETWORK_CONFIDENCE_STATE_TO_DASHBOARD_STATE.get(
+            network_confidence_state
+        )
+        if network_state:
+            return network_state, HIGH, NETWORK_CONFIDENCE_SOURCE
 
     if source_confidence == "LOW" or network_status in {"NETWORK_DEGRADED", "NETWORK_CRITICAL"}:
-        return LIMITED, _confidence_for_missing(facts)
+        return LIMITED, _confidence_for_missing(facts), LEGACY_SOURCE
     if (
         accepted_count is not None
         and 0 < accepted_count < accepted_floor
         and has_narratives
     ):
-        return LIMITED, _confidence_for_missing(facts)
+        return LIMITED, _confidence_for_missing(facts), LEGACY_SOURCE
     if coverage_strength in {"MINIMAL", "LIMITED"} and has_narratives:
-        return LIMITED, _confidence_for_missing(facts)
+        return LIMITED, _confidence_for_missing(facts), LEGACY_SOURCE
 
     if (
         source_confidence == "HIGH"
@@ -127,22 +160,31 @@ def classify_dashboard_data_quality(
         and accepted_count >= accepted_floor
         and coverage_strength in {"BROAD", "EXTENSIVE"}
     ):
-        return STRONG, _confidence_for_agreement(facts)
+        return STRONG, _confidence_for_agreement(facts), LEGACY_SOURCE
 
     if (
         source_confidence in {"HIGH", "MODERATE"}
         or network_status in {"NETWORK_HEALTHY", "NETWORK_PARTIAL"}
         or (accepted_count is not None and accepted_count >= accepted_floor)
     ) and has_narratives:
-        return USABLE, _confidence_for_missing(facts)
+        return USABLE, _confidence_for_missing(facts), LEGACY_SOURCE
 
     if has_narratives:
-        return LIMITED, LOW
-    return UNAVAILABLE, LOW
+        return LIMITED, LOW, LEGACY_SOURCE
+    return UNAVAILABLE, LOW, LEGACY_SOURCE
 
 
-def build_dashboard_trust_reason(state, latest_meaningful_fallback_active=False):
-    reason = REASON_BY_STATE.get(state, REASON_BY_STATE[UNAVAILABLE])
+def build_dashboard_trust_reason(
+    state,
+    classification_source=LEGACY_SOURCE,
+    latest_meaningful_fallback_active=False,
+):
+    reason_source = (
+        NETWORK_CONFIDENCE_REASON_BY_STATE
+        if classification_source == NETWORK_CONFIDENCE_SOURCE
+        else REASON_BY_STATE
+    )
+    reason = reason_source.get(state, REASON_BY_STATE[UNAVAILABLE])
     if latest_meaningful_fallback_active:
         return f"{reason} {FALLBACK_REASON}"
     return reason
@@ -159,6 +201,8 @@ def summarize_dashboard_trust_facts(
     source_confidence = source_confidence if isinstance(source_confidence, dict) else {}
     network_health = source_intelligence.get("network_health")
     network_health = network_health if isinstance(network_health, dict) else {}
+    network_confidence = source_intelligence.get("network_confidence")
+    network_confidence = network_confidence if isinstance(network_confidence, dict) else {}
     coverage = source_intelligence.get("coverage_intelligence")
     coverage = coverage if isinstance(coverage, dict) else {}
 
@@ -189,6 +233,10 @@ def summarize_dashboard_trust_facts(
             or source_confidence.get("confidence_level")
         ),
         "network_status": _normalize_key(network_health.get("network_status")),
+        "network_confidence": network_confidence,
+        "network_confidence_state": _normalize_key(
+            network_confidence.get("network_confidence_state")
+        ),
         "coverage_strength": coverage_strength,
         "provider_count": provider_count,
         "source_count": source_count,
@@ -221,9 +269,18 @@ def _display_facts(facts):
         rows.append(f"Accepted evidence: {facts['accepted_count']}")
     if facts.get("provider_count") is not None:
         rows.append(f"Providers: {facts['provider_count']}")
-    network = normalize_user_facing_network_state(facts.get("network_status"))
-    if network:
-        rows.append(f"Network status: {network}")
+    network_confidence_state = facts.get("network_confidence_state")
+    network_confidence = (
+        NETWORK_CONFIDENCE_FACT_LABELS.get(network_confidence_state)
+        if network_confidence_state and network_confidence_state != "UNKNOWN"
+        else None
+    )
+    if network_confidence:
+        rows.append(f"Evidence network: {network_confidence}")
+    else:
+        network = normalize_user_facing_network_state(facts.get("network_status"))
+        if network:
+            rows.append(f"Network status: {network}")
     source_confidence = normalize_user_facing_source_confidence(
         facts.get("source_confidence_state")
     )
