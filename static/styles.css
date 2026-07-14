@@ -2833,6 +2833,100 @@ input:focus-visible,
 .state-narrative-repricing  { background: rgba(156, 143, 217, 0.18); color: var(--status-notable); }
 .state-complete             { background: rgba(159, 185, 160, 0.16); color: var(--status-complete); }
 
+.narrative-memory-card {
+  display: grid;
+  gap: 18px;
+}
+
+.memory-window-grid,
+.memory-summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.memory-window-grid > div,
+.memory-summary-grid > div,
+.memory-dominant {
+  border: 1px solid rgba(136, 135, 128, 0.24);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.memory-window-grid span {
+  color: var(--color-text-tertiary);
+  display: block;
+  font-size: 11px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.memory-window-grid strong,
+.memory-dominant strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.memory-summary-grid h3 {
+  font-size: 12px;
+  margin: 0 0 6px;
+}
+
+.memory-summary-grid p,
+.memory-dominant span:last-child {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  margin: 0;
+}
+
+.memory-warning-list {
+  border-left: 2px solid rgba(215, 179, 106, 0.6);
+  margin: 0;
+  padding-left: 18px;
+}
+
+.memory-state-badge {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 8px;
+}
+
+.memory-state-dominant,
+.memory-state-persistent {
+  background: rgba(90, 169, 199, 0.16);
+  color: var(--status-lead);
+}
+
+.memory-state-building,
+.memory-state-re-accelerating,
+.memory-state-emerging {
+  background: rgba(156, 143, 217, 0.18);
+  color: var(--status-notable);
+}
+
+.memory-state-fading,
+.memory-state-dormant {
+  background: rgba(169, 143, 151, 0.18);
+  color: var(--status-recede);
+}
+
+.memory-state-recurring {
+  background: rgba(133, 183, 235, 0.16);
+  color: var(--status-info);
+}
+
+.memory-state-absent {
+  background: rgba(180, 178, 169, 0.16);
+  color: var(--status-neutral);
+}
+
+.memory-raw-details pre {
+  white-space: pre-wrap;
+}
+
 .catalyst-calendar-warning {
   margin-top: 8px;
   padding: 8px 12px;

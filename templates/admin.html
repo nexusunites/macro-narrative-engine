@@ -44,10 +44,11 @@
       <a href="#operations-center">Operations Center</a>
       <a href="#configuration-diagnostics">Configuration</a>
       <a href="#recent-runs">Recent Runs</a>
+      <a href="#narrative-memory">Narrative Memory</a>
       <a href="#source-health">Source Intelligence</a>
       <a href="#evidence-network">Evidence Network</a>
       <a href="#accepted-evidence">Accepted Evidence</a>
-      <a href="#pipeline-telemetry">Pipeline Telemetry</a>
+      <a href="#pipeline-telemetry">Telemetry</a>
       <a href="#evidence-quality-coverage">Coverage Intelligence</a>
       <a href="#narrative-brief-diagnostics">Narrative Brief Diagnostics</a>
       <a href="#catalysts">Catalysts</a>
@@ -358,6 +359,111 @@
           {% for run in recent_runs %}
             <a href="/admin?run={{ run.filename }}" {% if run.filename == selected_file %}class="active"{% endif %}>{{ run.label }}</a>
           {% endfor %}
+        </article>
+      </section>
+
+      {% set narrative_memory = view.narrative_memory | default({}) %}
+      {% set memory_window = narrative_memory.get("memory_window", {}) %}
+      {% set memory_summary = narrative_memory.get("summary", {}) %}
+      <section class="content-section" id="narrative-memory">
+        <div class="section-heading">
+          <p class="eyebrow">Narrative Memory</p>
+          <h2>Recent Meaningful Live Runs</h2>
+        </div>
+        <article class="card narrative-memory-card">
+          {% if narrative_memory %}
+            <div class="memory-window-grid">
+              <div>
+                <span>Configured</span>
+                <strong>{{ memory_window.get("configured_runs", 0) }}</strong>
+              </div>
+              <div>
+                <span>Used</span>
+                <strong>{{ memory_window.get("runs_used", 0) }}</strong>
+              </div>
+              <div>
+                <span>Oldest</span>
+                <strong>{{ memory_window.get("oldest_run") or "Unavailable" }}</strong>
+              </div>
+              <div>
+                <span>Newest</span>
+                <strong>{{ memory_window.get("newest_run") or "Unavailable" }}</strong>
+              </div>
+            </div>
+
+            {% if narrative_memory.get("warnings") %}
+              <ul class="admin-evidence-list memory-warning-list">
+                {% for warning in narrative_memory.get("warnings") %}
+                  <li>{{ warning }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+
+            {% set dominant_memory = memory_summary.get("dominant_memory") %}
+            {% if dominant_memory %}
+              <div class="memory-dominant">
+                <span class="memory-state-badge memory-state-dominant">DOMINANT</span>
+                <strong>{{ dominant_memory.name }}</strong>
+                <span>{{ dominant_memory.plain_language_summary }}</span>
+              </div>
+            {% endif %}
+
+            <div class="memory-summary-grid">
+              {% for label, key in [
+                ("Persistent", "persistent_narratives"),
+                ("Building", "building_narratives"),
+                ("Fading", "fading_narratives"),
+                ("Recurring", "recurring_narratives"),
+                ("Re-accelerating", "re_accelerating_narratives"),
+                ("Dormant", "dormant_narratives")
+              ] %}
+                <div>
+                  <h3>{{ label }}</h3>
+                  {% if memory_summary.get(key) %}
+                    <p>{{ memory_summary.get(key) | join(", ") }}</p>
+                  {% else %}
+                    <p class="muted">None in this window.</p>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+
+            <div class="table-scroll table-scroll-wide">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Level</th>
+                    <th>Narrative</th>
+                    <th>State</th>
+                    <th>Score</th>
+                    <th>Appearances</th>
+                    <th>Rank</th>
+                    <th>Momentum</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for record in (narrative_memory.get("themes", []) + narrative_memory.get("groups", []))[:12] %}
+                    <tr>
+                      <td>{{ record.narrative_level | title }}</td>
+                      <td>{{ record.name }}</td>
+                      <td><span class="memory-state-badge memory-state-{{ record.memory_state | lower | replace('_', '-') }}">{{ record.memory_state }}</span></td>
+                      <td>{{ record.current_score }}</td>
+                      <td>{{ record.appearances_in_window }} / {{ memory_window.get("runs_used", 0) }}</td>
+                      <td>{{ record.latest_rank or "Absent" }}</td>
+                      <td>{{ record.momentum_label }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <details class="diagnostic-details memory-raw-details">
+              <summary>Raw narrative memory data</summary>
+              <pre>{{ narrative_memory | tojson(indent=2) }}</pre>
+            </details>
+          {% else %}
+            <p class="muted">Narrative memory is unavailable for this run.</p>
+          {% endif %}
         </article>
       </section>
 

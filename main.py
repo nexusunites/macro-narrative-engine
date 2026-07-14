@@ -32,6 +32,7 @@ from mne.network_health import build_network_health
 from mne.narrative_brief import ENGINE_VERSION as NARRATIVE_BRIEF_ENGINE_VERSION
 from mne.narrative_brief import generate_narrative_brief
 from mne.narrative_leadership import build_narrative_leadership
+from mne.narrative_memory import build_narrative_memory
 from mne.narrative_market_map import get_market_expression
 from mne.narrative_pulse import calculate_narrative_pulse
 from mne.narrative_market_relationship import classify_narrative_market_relationship
@@ -640,6 +641,35 @@ def main(args=None):
                 status=FAILED,
                 diagnostic_message=f"{type(error).__name__}: {error}",
                 result_counts=narrative_brief_counts(run["narrative_brief"]),
+            )
+
+    with telemetry.observe("NARRATIVE_MEMORY") as stage:
+        try:
+            run["narrative_memory"] = build_narrative_memory(
+                current_run=run,
+                results_dir=RESULTS_DIR,
+            )
+            window = run["narrative_memory"].get("memory_window", {})
+            stage.set_result(
+                status=SUCCESS,
+                diagnostic_message="Narrative Memory Foundation generated deterministic memory.",
+                result_counts={
+                    "runs_used": window.get("runs_used", 0),
+                    "themes": len(run["narrative_memory"].get("themes", [])),
+                    "groups": len(run["narrative_memory"].get("groups", [])),
+                    "warnings": len(run["narrative_memory"].get("warnings", [])),
+                },
+            )
+        except Exception as error:
+            run["narrative_memory"] = None
+            run["narrative_memory_generation_error"] = {
+                "error_type": type(error).__name__,
+                "message": str(error),
+            }
+            stage.set_result(
+                status=FAILED,
+                diagnostic_message=f"{type(error).__name__}: {error}",
+                result_counts={},
             )
 
     with telemetry.observe("RUN_PERSISTENCE") as stage:

@@ -1066,6 +1066,7 @@ def build_view_model(run, current_file):
     market_expression = run.get("market_expression")
     positioning_environment = run.get("positioning_environment")
     dynamics = run.get("narrative_dynamics") or {}
+    narrative_memory = run.get("narrative_memory") or {}
     crowding = dynamics.get("narrative_crowding") if isinstance(dynamics, dict) else None
     theme_scores = sorted_scores(run.get("theme_scores") or run.get("theme_counts"))
     group_scores = sorted_scores(run.get("group_scores"))
@@ -1150,6 +1151,7 @@ def build_view_model(run, current_file):
         "concentration_gap": run.get("concentration_gap"),
         "market_context": get_market_context(run),
         "narrative_brief": narrative_brief,
+        "narrative_memory": narrative_memory if isinstance(narrative_memory, dict) else {},
         "narrative_brief_evidence_rows": narrative_brief_evidence_rows,
         "narrative_brief_error": run.get("narrative_brief_generation_error"),
         "catalyst": catalyst,

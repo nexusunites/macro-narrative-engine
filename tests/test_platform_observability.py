@@ -163,7 +163,7 @@ class PlatformObservabilityTests(unittest.TestCase):
 
         run = save_run_json.call_args.args[0]
         telemetry = run["platform_observability"]
-        self.assertEqual(len(telemetry["stages"]), 10)
+        self.assertEqual(len(telemetry["stages"]), len(STAGE_NAMES))
         self.assertEqual([stage["stage_name"] for stage in telemetry["stages"]], list(STAGE_NAMES))
         self.assertEqual(set(telemetry["run_metadata"]["engine_versions"]), set(main.engine_versions()))
         self.assertEqual(telemetry["run_metadata"]["execution_mode"], "LIVE")
