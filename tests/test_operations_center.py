@@ -1,10 +1,12 @@
 import copy
+import inspect
 import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 import dashboard
+from mne.dashboard_trust_summary import build_dashboard_trust_summary
 from mne.operations_center import (
     build_operations_center,
     evaluate_component_status,
@@ -36,8 +38,20 @@ def registry_context(error=None):
     }
 
 
-def clean_run():
+def network_confidence_block(state="HIGH"):
     return {
+        "network_confidence_state": state,
+        "confidence_level": None,
+        "reason": "2 source(s) were marked QUARANTINE_RECOMMENDED from persisted NETWORK_CRITICAL.",
+        "recommended_action": "Review WATCH and NETWORK_DEGRADED diagnostics.",
+        "supporting_factors": ["persisted healthy source diagnostics"],
+        "limiting_factors": ["WATCH source concentration"],
+        "thresholds_used": {"watch_count_threshold": 2},
+    }
+
+
+def clean_run(network_confidence_state="HIGH", network_confidence=None):
+    run = {
         "timestamp": "2026-07-09_120000",
         "theme_scores": {"AI": 5},
         "source_intelligence": {
@@ -104,6 +118,13 @@ def clean_run():
             ],
         },
     }
+    if network_confidence is not None:
+        run["source_intelligence"]["network_confidence"] = network_confidence
+    elif network_confidence_state is not None:
+        run["source_intelligence"]["network_confidence"] = network_confidence_block(
+            network_confidence_state
+        )
+    return run
 
 
 class OperationsCenterTests(unittest.TestCase):
@@ -168,6 +189,108 @@ class OperationsCenterTests(unittest.TestCase):
             summary = evaluate_component_status("source_confidence", run, registry_context())
             self.assertEqual(summary["status"], expected_status)
             self.assertEqual(summary["confidence"], expected_confidence)
+
+    def test_network_confidence_mapping(self):
+        for state, expected_status, expected_confidence in (
+            ("HIGH", "EXCELLENT", "HIGH"),
+            ("MODERATE", "LIMITED", "HIGH"),
+            ("LOW", "DEGRADED", "HIGH"),
+            ("VERY_LOW", "CRITICAL", "HIGH"),
+            ("UNKNOWN", "WARNING", "UNKNOWN"),
+        ):
+            run = clean_run(network_confidence_state=state)
+            summary = evaluate_component_status(
+                "network_confidence", run, registry_context()
+            )
+            self.assertEqual(summary["status"], expected_status)
+            self.assertEqual(summary["confidence"], expected_confidence)
+
+    def test_network_confidence_missing_block_maps_to_offline(self):
+        run = clean_run(network_confidence_state=None)
+
+        summary = evaluate_component_status("network_confidence", run, registry_context())
+
+        self.assertEqual(summary["status"], "OFFLINE")
+        self.assertEqual(summary["confidence"], "UNKNOWN")
+        self.assertEqual(
+            summary["reason"],
+            "No Network Confidence block was persisted for this run.",
+        )
+        self.assertEqual(
+            summary["recommendation"],
+            "Investigate missing Network Confidence inputs.",
+        )
+
+    def test_network_confidence_unknown_state_has_distinct_warning_copy(self):
+        run = clean_run(network_confidence_state="UNKNOWN")
+
+        summary = evaluate_component_status("network_confidence", run, registry_context())
+
+        self.assertEqual(summary["status"], "WARNING")
+        self.assertEqual(summary["confidence"], "UNKNOWN")
+        self.assertEqual(
+            summary["reason"],
+            "Network Confidence could not be evaluated from the latest run data.",
+        )
+        self.assertEqual(
+            summary["recommendation"],
+            "Investigate missing Network Confidence inputs.",
+        )
+
+    def test_network_confidence_component_builds_with_expected_metadata(self):
+        context = build_operations_center(clean_run(), registry_context())
+        components = {component["key"]: component for component in context["components"]}
+
+        self.assertIn("network_confidence", components)
+        self.assertEqual(components["network_confidence"]["title"], "Network Confidence")
+        self.assertEqual(
+            components["network_confidence"]["detail_anchor"],
+            "evidence-network",
+        )
+
+    def test_network_confidence_component_copy_does_not_forward_raw_diagnostics(self):
+        run = clean_run(network_confidence_state="LOW")
+        summary = evaluate_component_status("network_confidence", run, registry_context())
+
+        rendered_copy = " ".join([summary["reason"], summary["recommendation"]])
+        for raw_fragment in (
+            "QUARANTINE",
+            "WATCH",
+            "NETWORK_CRITICAL",
+            "NETWORK_DEGRADED",
+            "persisted",
+        ):
+            self.assertNotIn(raw_fragment, rendered_copy)
+        self.assertNotIn("supporting_factors", summary)
+        self.assertNotIn("limiting_factors", summary)
+
+    def test_watch_sources_downgrade_overall_rollup_via_network_confidence(self):
+        run = clean_run(network_confidence_state="MODERATE")
+        run["source_intelligence"]["source_reliability"]["summary"]["watch_count"] = 2
+        run["source_intelligence"]["source_reliability"]["summary"]["stable_count"] = 0
+
+        context = build_operations_center(run, registry_context())
+
+        self.assertEqual(context["overall"]["status"], "LIMITED")
+        self.assertIn("Network Confidence is LIMITED", context["overall"]["reason"])
+
+    def test_minimal_coverage_downgrades_overall_rollup_via_network_confidence(self):
+        run = clean_run(network_confidence_state="LOW")
+        run["source_intelligence"]["coverage_intelligence"]["per_narrative"] = [
+            {"narrative_id": "AI", "coverage_state": "MINIMAL"}
+        ]
+
+        context = build_operations_center(run, registry_context())
+
+        self.assertEqual(context["overall"]["status"], "DEGRADED")
+        self.assertIn("Network Confidence is DEGRADED", context["overall"]["reason"])
+
+    def test_healthy_network_confidence_preserves_healthy_rollup(self):
+        context = build_operations_center(
+            clean_run(network_confidence_state="HIGH"), registry_context()
+        )
+
+        self.assertEqual(context["overall"]["status"], "EXCELLENT")
 
     def test_source_reliability_quarantine_recommended_maps_to_warning(self):
         run = clean_run()
@@ -261,6 +384,7 @@ class OperationsCenterTests(unittest.TestCase):
     def test_missing_data_blocks_do_not_crash(self):
         for key in (
             "source_confidence",
+            "network_confidence",
             "network_health",
             "source_reliability",
             "platform_observability",
@@ -273,7 +397,7 @@ class OperationsCenterTests(unittest.TestCase):
             context = build_operations_center(run, registry_context())
 
             self.assertIn("overall", context)
-            self.assertEqual(len(context["components"]), 7)
+            self.assertEqual(len(context["components"]), 8)
 
     def test_coverage_status_reflects_measurement_not_breadth(self):
         run = clean_run()
@@ -317,11 +441,41 @@ class OperationsCenterTests(unittest.TestCase):
 
         self.assertIn("Operations Center", html)
         self.assertIn("Platform Operations Summary", html)
+        self.assertIn("Network Confidence", html)
+        self.assertIn("The evidence network is strong enough to support today&#39;s read.", html)
         self.assertLess(html.index("Platform Operations Summary"), html.index("Active Data Directory"))
         self.assertLess(html.index("Platform Operations Summary"), html.index("Pipeline Telemetry"))
         self.assertIn("Source Confidence (data collection quality)", html)
         self.assertIn("Coverage Intelligence", html)
+        self.assertIn(
+            "2 source(s) were marked QUARANTINE_RECOMMENDED from persisted NETWORK_CRITICAL.",
+            html,
+        )
+        self.assertIn("Watch Count Threshold", html)
         self.assertNotIn("alarm", html.lower())
+
+    def test_dashboard_trust_summary_is_unchanged_by_operations_center_integration(self):
+        run = clean_run(network_confidence_state="MODERATE")
+
+        summary = build_dashboard_trust_summary(run)
+
+        self.assertEqual(summary["state"], "Usable evidence base")
+        self.assertEqual(summary["confidence"], "High")
+        self.assertIn("Evidence network: Moderate", summary["facts"])
+
+    def test_research_workspace_templates_do_not_reference_operations_center(self):
+        selector = Path("templates/research_selector.html").read_text(encoding="utf-8")
+        investigation = Path("templates/narrative_investigation.html").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertNotIn("operations_center", selector)
+        self.assertNotIn("operations_center", investigation)
+
+    def test_research_workspace_module_does_not_reference_operations_center(self):
+        import mne.research_workspace as research_workspace
+
+        self.assertNotIn("operations_center", inspect.getsource(research_workspace))
 
     def test_user_dashboard_route_context_does_not_include_operations_center_markup(self):
         run = clean_run()

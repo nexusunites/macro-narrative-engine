@@ -20,6 +20,7 @@ COMPONENT_ORDER = (
     "configuration",
     "pipeline",
     "evidence_network",
+    "network_confidence",
     "source_confidence",
     "source_reliability",
     "coverage_intelligence",
@@ -30,6 +31,7 @@ COMPONENT_TITLES = {
     "configuration": "Configuration",
     "pipeline": "Pipeline / Platform Observability",
     "evidence_network": "Evidence Network",
+    "network_confidence": "Network Confidence",
     "source_confidence": "Source Confidence",
     "source_reliability": "Source Reliability",
     "coverage_intelligence": "Coverage Intelligence",
@@ -40,6 +42,7 @@ COMPONENT_DETAIL_ANCHORS = {
     "configuration": "configuration-diagnostics",
     "pipeline": "platform-observability",
     "evidence_network": "evidence-network",
+    "network_confidence": "evidence-network",
     "source_confidence": "evidence-network",
     "source_reliability": "evidence-network",
     "coverage_intelligence": "coverage-intelligence",
@@ -68,6 +71,36 @@ SOURCE_CONFIDENCE_STATUS = {
     "MODERATE": LIMITED,
     "LOW": DEGRADED,
     "UNKNOWN": WARNING,
+}
+
+NETWORK_CONFIDENCE_STATUS = {
+    "HIGH": EXCELLENT,
+    "MODERATE": LIMITED,
+    "LOW": DEGRADED,
+    "VERY_LOW": CRITICAL,
+    "UNKNOWN": WARNING,
+}
+
+NETWORK_CONFIDENCE_COMPONENT_COPY = {
+    "HIGH": (
+        "The evidence network is strong enough to support today's read.",
+        NO_ACTION,
+    ),
+    "MODERATE": (
+        "The evidence network is usable, with some limitations.",
+        "Review Network Confidence and Evidence Network details if today's read looks thin.",
+    ),
+    "LOW": (
+        "The evidence network has meaningful constraints.",
+        (
+            "Review Evidence Network, Source Confidence, and Source Reliability before "
+            "relying heavily on today's read."
+        ),
+    ),
+    "VERY_LOW": (
+        "The evidence network is highly limited.",
+        "Treat today's read as highly limited and review source/evidence diagnostics.",
+    ),
 }
 
 NETWORK_HEALTH_STATUS = {
@@ -125,6 +158,7 @@ def evaluate_component_status(component_key, run_data=None, registry=None):
         "configuration": _evaluate_configuration,
         "pipeline": _evaluate_pipeline,
         "evidence_network": _evaluate_evidence_network,
+        "network_confidence": _evaluate_network_confidence,
         "source_confidence": _evaluate_source_confidence,
         "source_reliability": _evaluate_source_reliability,
         "coverage_intelligence": _evaluate_coverage_intelligence,
@@ -448,6 +482,44 @@ def _evaluate_evidence_network(run_data, _registry):
             "uncovered_categories": uncovered,
             "concentration_flag": concentration_flag,
         },
+    )
+
+
+def _evaluate_network_confidence(run_data, _registry):
+    source_intelligence = (run_data or {}).get("source_intelligence") or {}
+    network_confidence = source_intelligence.get("network_confidence")
+    if not isinstance(network_confidence, dict) or not network_confidence:
+        return _component(
+            "network_confidence",
+            OFFLINE,
+            UNKNOWN,
+            "No Network Confidence block was persisted for this run.",
+            "Investigate missing Network Confidence inputs.",
+        )
+
+    state = network_confidence.get("network_confidence_state") or UNKNOWN
+    status = NETWORK_CONFIDENCE_STATUS.get(state, WARNING)
+    if state == UNKNOWN:
+        reason = "Network Confidence could not be evaluated from the latest run data."
+        recommendation = "Investigate missing Network Confidence inputs."
+        confidence = UNKNOWN
+    else:
+        reason, recommendation = NETWORK_CONFIDENCE_COMPONENT_COPY.get(
+            state,
+            (
+                "Network Confidence persisted an unrecognized state.",
+                "Review Network Confidence and Evidence Network details.",
+            ),
+        )
+        confidence = HIGH
+
+    return _component(
+        "network_confidence",
+        status,
+        confidence,
+        reason,
+        recommendation,
+        {"network_confidence_state": state},
     )
 
 
