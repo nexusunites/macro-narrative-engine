@@ -28,6 +28,10 @@ from mne.evidence import (
 )
 from mne.headline_deduplication import dedupe_headlines
 from mne.market_context import get_market_snapshot
+from mne.macro_calendar_ingestion import (
+    auto_refresh_macro_calendar_enabled,
+    refresh_macro_calendar,
+)
 from mne.network_confidence import build_network_confidence
 from mne.network_health import build_network_health
 from mne.narrative_brief import ENGINE_VERSION as NARRATIVE_BRIEF_ENGINE_VERSION
@@ -407,7 +411,55 @@ def main(args=None):
     breadth_confirmation = None
     regime_alignment = None
     mode_context = None
+    macro_calendar_refresh = {
+        "enabled": auto_refresh_macro_calendar_enabled(),
+        "status": "disabled",
+        "warnings": [],
+    }
+    if macro_calendar_refresh["enabled"]:
+        with telemetry.observe("MACRO_CALENDAR_REFRESH") as stage:
+            try:
+                macro_calendar_refresh = {
+                    "enabled": True,
+                    **refresh_macro_calendar(as_of=now.date()),
+                }
+            except Exception as error:
+                macro_calendar_refresh = {
+                    "enabled": True,
+                    "status": "failed",
+                    "event_count": 0,
+                    "source_results": {},
+                    "used_previous_calendar": False,
+                    "warnings": [str(error)],
+                }
+            refresh_status = macro_calendar_refresh.get("status")
+            stage.set_result(
+                status=SUCCESS if refresh_status == "complete" else PARTIAL,
+                diagnostic_message=(
+                    "Official macro calendar refresh completed."
+                    if refresh_status == "complete"
+                    else "Official macro calendar refresh completed with warnings."
+                ),
+                result_counts={
+                    "events": macro_calendar_refresh.get("event_count", 0),
+                    "failed_sources": len(
+                        [
+                            name
+                            for name, result in macro_calendar_refresh.get(
+                                "source_results", {}
+                            ).items()
+                            if result.get("status") != "success"
+                        ]
+                    ),
+                },
+            )
+    else:
+        telemetry.skip(
+            "MACRO_CALENDAR_REFRESH",
+            "Automatic macro calendar refresh disabled by configuration.",
+        )
     catalyst_environment = classify_catalyst_environment()
+    catalyst_environment["macro_calendar_refresh"] = macro_calendar_refresh
     with telemetry.observe("EVENT_LIFECYCLE") as stage:
         event_lifecycle = evaluate_event_lifecycle_run(now_utc=now_utc)
         event_counts = event_lifecycle_counts(event_lifecycle)

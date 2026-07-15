@@ -9,6 +9,7 @@ from config import DATA_DIR
 logger = logging.getLogger(__name__)
 
 MACRO_CALENDAR_FILE = DATA_DIR / "config" / "macro_calendar.json"
+MACRO_CALENDAR_METADATA_FILE = DATA_DIR / "config" / "macro_calendar_metadata.json"
 AUTO_MACRO_CALENDAR_SOURCE = "auto_macro_calendar"
 AUTO_MACRO_CALENDAR_LOOKAHEAD_DAYS = 7
 
@@ -43,13 +44,25 @@ def get_macro_calendar_status(
     calendar_path: str | Path,
     events: list[dict] | None,
     load_error: str | None = None,
+    metadata: dict | None = None,
 ) -> dict:
     calendar_path = Path(calendar_path)
+    metadata = metadata or {}
     base_status = {
         "macro_calendar_path": str(calendar_path),
+        "macro_calendar_metadata_path": str(MACRO_CALENDAR_METADATA_FILE),
         "macro_calendar_event_count": 0,
         "macro_calendar_latest_event_date": None,
         "macro_calendar_warning": True,
+        "macro_calendar_refresh_status": metadata.get("status"),
+        "macro_calendar_generated_at": metadata.get("generated_at"),
+        "macro_calendar_coverage_start": metadata.get("coverage_start"),
+        "macro_calendar_coverage_end": metadata.get("coverage_end"),
+        "macro_calendar_failed_sources": metadata.get("failed_sources", []),
+        "macro_calendar_partial": bool(metadata.get("partial", False)),
+        "macro_calendar_used_previous_calendar": bool(
+            metadata.get("used_previous_calendar", False)
+        ),
     }
 
     if load_error == "missing_file":
@@ -84,6 +97,30 @@ def get_macro_calendar_status(
             }
 
         latest_event_date = max(event_dates).isoformat()
+        refresh_status = metadata.get("status")
+        if refresh_status == "partial":
+            return {
+                **base_status,
+                "macro_calendar_status": "partial_calendar",
+                "macro_calendar_message": (
+                    "Macro calendar refresh was partial; scheduled catalyst "
+                    "coverage may be incomplete."
+                ),
+                "macro_calendar_event_count": len(events),
+                "macro_calendar_latest_event_date": latest_event_date,
+            }
+
+        if refresh_status == "stale_fallback":
+            return {
+                **base_status,
+                "macro_calendar_status": "stale_fallback",
+                "macro_calendar_message": (
+                    "Macro calendar refresh failed; using previous valid calendar."
+                ),
+                "macro_calendar_event_count": len(events),
+                "macro_calendar_latest_event_date": latest_event_date,
+            }
+
         if all(event_date < date.today() for event_date in event_dates):
             return {
                 **base_status,
@@ -116,11 +153,13 @@ def get_macro_calendar_status(
 
 def _load_macro_calendar(calendar_file, metadata=None):
     calendar_file = Path(calendar_file)
+    calendar_metadata = _load_macro_calendar_metadata(calendar_file)
     if not calendar_file.exists():
         status = get_macro_calendar_status(
             calendar_file,
             events=None,
             load_error="missing_file",
+            metadata=calendar_metadata,
         )
         if metadata is not None:
             metadata["macro_calendar_status"] = status
@@ -135,6 +174,7 @@ def _load_macro_calendar(calendar_file, metadata=None):
             metadata["macro_calendar_status"] = get_macro_calendar_status(
                 calendar_file,
                 events=None,
+                metadata=calendar_metadata,
             )
         return []
 
@@ -145,6 +185,7 @@ def _load_macro_calendar(calendar_file, metadata=None):
             calendar_file,
             events=None,
             load_error="invalid_json",
+            metadata=calendar_metadata,
         )
         if metadata is not None:
             metadata["macro_calendar_status"] = status
@@ -157,6 +198,7 @@ def _load_macro_calendar(calendar_file, metadata=None):
             metadata["macro_calendar_status"] = get_macro_calendar_status(
                 calendar_file,
                 events=None,
+                metadata=calendar_metadata,
             )
         return []
 
@@ -164,8 +206,20 @@ def _load_macro_calendar(calendar_file, metadata=None):
         metadata["macro_calendar_status"] = get_macro_calendar_status(
             calendar_file,
             events=events,
+            metadata=calendar_metadata,
         )
     return events
+
+
+def _load_macro_calendar_metadata(calendar_file):
+    metadata_file = Path(calendar_file).with_name("macro_calendar_metadata.json")
+    if not metadata_file.exists():
+        return {}
+    try:
+        metadata = json.loads(metadata_file.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return {"status": "unknown"}
+    return metadata if isinstance(metadata, dict) else {"status": "unknown"}
 
 
 def _coerce_date(value):

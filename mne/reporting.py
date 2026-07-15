@@ -160,10 +160,19 @@ def print_macro_calendar_status(catalyst_environment):
     )
     macro_calendar_message = catalyst_environment.get("macro_calendar_message", "")
     macro_calendar_warning = catalyst_environment.get("macro_calendar_warning", True)
+    refresh_status = catalyst_environment.get("macro_calendar_refresh_status")
+    coverage_end = catalyst_environment.get("macro_calendar_coverage_end")
+    failed_sources = catalyst_environment.get("macro_calendar_failed_sources") or []
 
     print("Macro Calendar Status:")
     print(f"  Status: {macro_calendar_status}")
     print(f"  Events Loaded: {macro_calendar_event_count}")
+    if refresh_status:
+        print(f"  Refresh Status: {refresh_status}")
+    if coverage_end:
+        print(f"  Coverage End: {coverage_end}")
+    if failed_sources:
+        print(f"  Failed Sources: {', '.join(failed_sources)}")
     print(
         f"  Warning: {macro_calendar_message}"
         if macro_calendar_warning
@@ -180,10 +189,19 @@ def append_macro_calendar_status(report_lines, catalyst_environment):
     )
     macro_calendar_message = catalyst_environment.get("macro_calendar_message", "")
     macro_calendar_warning = catalyst_environment.get("macro_calendar_warning", True)
+    refresh_status = catalyst_environment.get("macro_calendar_refresh_status")
+    coverage_end = catalyst_environment.get("macro_calendar_coverage_end")
+    failed_sources = catalyst_environment.get("macro_calendar_failed_sources") or []
 
     report_lines.append("Macro Calendar Status:")
     report_lines.append(f"  Status: {macro_calendar_status}")
     report_lines.append(f"  Events Loaded: {macro_calendar_event_count}")
+    if refresh_status:
+        report_lines.append(f"  Refresh Status: {refresh_status}")
+    if coverage_end:
+        report_lines.append(f"  Coverage End: {coverage_end}")
+    if failed_sources:
+        report_lines.append(f"  Failed Sources: {', '.join(failed_sources)}")
     report_lines.append(
         f"  Warning: {macro_calendar_message}"
         if macro_calendar_warning

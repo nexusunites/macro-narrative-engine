@@ -1300,6 +1300,19 @@
                     <td>{{ view.catalyst.macro_calendar_message }}</td></tr>
                 <tr><th>Path</th>
                     <td>{{ view.catalyst.macro_calendar_path }}</td></tr>
+                <tr><th>Metadata Path</th>
+                    <td>{{ view.catalyst.macro_calendar_metadata_path or "None" }}</td></tr>
+                <tr><th>Refresh Status</th>
+                    <td>{{ view.catalyst.macro_calendar_refresh_status or "None" }}</td></tr>
+                <tr><th>Generated At</th>
+                    <td>{{ view.catalyst.macro_calendar_generated_at or "None" }}</td></tr>
+                <tr><th>Coverage</th>
+                    <td>{{ view.catalyst.macro_calendar_coverage_start or "None" }}
+                        to {{ view.catalyst.macro_calendar_coverage_end or "None" }}</td></tr>
+                <tr><th>Failed Sources</th>
+                    <td>{{ view.catalyst.macro_calendar_failed_sources or [] }}</td></tr>
+                <tr><th>Previous Calendar Fallback</th>
+                    <td>{{ view.catalyst.macro_calendar_used_previous_calendar }}</td></tr>
                 <tr><th>Events Loaded</th>
                     <td>{{ view.catalyst.macro_calendar_event_count }}</td></tr>
                 <tr><th>Latest Event Date</th>

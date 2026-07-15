@@ -13,6 +13,47 @@ logger = logging.getLogger(__name__)
 CATALYSTS_FILE = DATA_DIR / "config" / "catalysts.json"
 DEFAULT_LOOKAHEAD_DAYS = 14
 INVALID_CALENDAR_REASON = "Catalyst calendar unavailable or invalid."
+UNAVAILABLE_MACRO_CALENDAR_STATES = {
+    "loaded_empty",
+    "missing_file",
+    "invalid_json",
+    "partial_calendar",
+    "stale_fallback",
+    "unknown",
+}
+STALE_MACRO_CALENDAR_STATES = {"stale_calendar"}
+UNVERIFIED_MACRO_CALENDAR_STATES = (
+    UNAVAILABLE_MACRO_CALENDAR_STATES | STALE_MACRO_CALENDAR_STATES
+)
+MACRO_CALENDAR_REASON_BY_STATUS = {
+    "loaded_empty": (
+        "Scheduled macro calendar data is not populated, so upcoming catalyst "
+        "coverage could not be verified."
+    ),
+    "missing_file": (
+        "Scheduled macro calendar data is unavailable, so upcoming catalyst "
+        "coverage could not be verified."
+    ),
+    "invalid_json": (
+        "Scheduled macro calendar data could not be loaded, so upcoming catalyst "
+        "coverage could not be verified."
+    ),
+    "unknown": (
+        "Scheduled macro calendar data could not be loaded, so upcoming catalyst "
+        "coverage could not be verified."
+    ),
+    "partial_calendar": (
+        "Scheduled macro calendar coverage is partial, so upcoming catalyst "
+        "coverage could not be fully verified."
+    ),
+    "stale_fallback": (
+        "Scheduled macro calendar refresh failed, so MNE is using a previous "
+        "calendar whose current coverage could not be fully verified."
+    ),
+    "stale_calendar": (
+        "Scheduled macro calendar data does not cover the current catalyst window."
+    ),
+}
 
 RED_IMPORTANCE = "red"
 ORANGE_IMPORTANCE = "orange"
@@ -304,6 +345,25 @@ def reason_for_density(score, red_events, orange_events):
     return "Medium-impact catalysts are approaching."
 
 
+def is_macro_calendar_available(macro_calendar_status):
+    status = macro_calendar_status or {}
+    state = status.get("macro_calendar_status", "unknown")
+    return state not in UNVERIFIED_MACRO_CALENDAR_STATES
+
+
+def macro_calendar_reason(status_name):
+    return MACRO_CALENDAR_REASON_BY_STATUS.get(
+        status_name,
+        MACRO_CALENDAR_REASON_BY_STATUS["unknown"],
+    )
+
+
+def macro_calendar_unavailable_state(status_name):
+    if status_name in STALE_MACRO_CALENDAR_STATES:
+        return "Calendar Stale"
+    return "Calendar Unavailable"
+
+
 def attach_macro_calendar_status(result, macro_calendar_status):
     status = macro_calendar_status or {}
     result["macro_calendar_status"] = status.get(
@@ -318,19 +378,37 @@ def attach_macro_calendar_status(result, macro_calendar_status):
         "macro_calendar_latest_event_date", None
     )
     result["macro_calendar_warning"] = status.get("macro_calendar_warning", True)
+    result["macro_calendar_metadata_path"] = status.get(
+        "macro_calendar_metadata_path", ""
+    )
+    result["macro_calendar_refresh_status"] = status.get(
+        "macro_calendar_refresh_status", None
+    )
+    result["macro_calendar_generated_at"] = status.get(
+        "macro_calendar_generated_at", None
+    )
+    result["macro_calendar_coverage_start"] = status.get(
+        "macro_calendar_coverage_start", None
+    )
+    result["macro_calendar_coverage_end"] = status.get(
+        "macro_calendar_coverage_end", None
+    )
+    result["macro_calendar_failed_sources"] = status.get(
+        "macro_calendar_failed_sources", []
+    )
+    result["macro_calendar_partial"] = status.get("macro_calendar_partial", False)
+    result["macro_calendar_used_previous_calendar"] = status.get(
+        "macro_calendar_used_previous_calendar", False
+    )
 
-    if result["macro_calendar_status"] == "missing_file":
-        result["state"] = "Calendar Unavailable"
+    auto_macro_enabled = result.get("auto_macro_enabled", True)
+    if auto_macro_enabled and not is_macro_calendar_available(status):
+        status_name = result["macro_calendar_status"]
         result["confidence"] = "Low"
-    elif result["macro_calendar_status"] == "invalid_json":
-        result["state"] = "Calendar Error"
-        result["confidence"] = "Low"
-    elif result["macro_calendar_status"] in {
-        "loaded_empty",
-        "stale_calendar",
-        "unknown",
-    }:
-        result["confidence"] = "Low"
+        result["calendar_found"] = False
+        result["reason"] = macro_calendar_reason(status_name)
+        if result.get("density_score", 0) == 0:
+            result["state"] = macro_calendar_unavailable_state(status_name)
 
     return result
 
