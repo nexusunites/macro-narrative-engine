@@ -326,6 +326,46 @@ class HistoricalResearchTests(unittest.TestCase):
         self.assertIsNone(context["message"])
         self.assertEqual(before, after)
 
+    def test_renders_backfilled_evidence_from_replay_artifact_without_code_changes(self):
+        replay = sample_replay()
+        replay["source_intelligence"]["accepted_evidence"].append(
+            {
+                "evidence_id": "b1",
+                "title": "Federal Reserve issues FOMC statement",
+                "source_id": "fed_fomc",
+                "source_name": "Federal Reserve",
+                "provider": "Federal Reserve",
+                "evidence_type": "Headline",
+                "published_at": "2026-07-06T19:00:00Z",
+                "timestamp": "2026-07-06T19:00:00Z",
+                "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260706a.htm",
+                "accepted": True,
+                "themes": ["ai"],
+                "groups": ["AI / Tech Growth"],
+                "evidence_origin": "HISTORICAL_BACKFILL",
+                "backfill_id": "backfill_2026-07-06_macro_fed_fomc",
+            }
+        )
+        replay["source_intelligence"]["accepted_evidence_count"] = len(
+            replay["source_intelligence"]["accepted_evidence"]
+        )
+        replay["replay_metadata"]["backfilled_evidence_included"] = True
+        replay["replay_metadata"]["backfill_ids_used"] = ["backfill_2026-07-06_macro_fed_fomc"]
+
+        with temporary_mne_data_dir() as data_dir:
+            write_replay(data_dir, replay=replay)
+            context = dashboard.build_historical_research_route_context(
+                object(),
+                "replay_2026-07-06_macro",
+            )
+            html = render_template("historical_research.html", **context)
+
+        self.assertIn("Federal Reserve issues FOMC statement", html)
+        self.assertIn(
+            "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260706a.htm",
+            html,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

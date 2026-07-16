@@ -7,9 +7,10 @@ from datetime import date, datetime, time, timezone
 from pathlib import Path
 
 import config
+from mne import historical_backfill
 from mne.coverage_intelligence import build_coverage_intelligence
 from mne.evidence import persist_attributed_accepted_evidence
-from mne.narrative_signals import compute_group_scores, get_dominant_group
+from mne.narrative_signals import NARRATIVE_GROUPS, compute_group_scores, get_dominant_group
 from mne.source_registry import SourceRegistryError, load_source_registry
 from mne.theme_analysis import analyze_themes, load_themes
 
@@ -31,9 +32,17 @@ class ReplayRequest:
     mode: str
     evidence_cutoff: str
     replay_id: str
+    backfill_id: str | None = None
+    include_backfilled_evidence: bool = False
 
 
-def build_replay_request(replay_date, mode=SUPPORTED_MODE, evidence_cutoff=None):
+def build_replay_request(
+    replay_date,
+    mode=SUPPORTED_MODE,
+    evidence_cutoff=None,
+    backfill_id=None,
+    include_backfilled_evidence=False,
+):
     replay_day = _parse_replay_date(replay_date)
     normalized_mode = str(mode).strip().lower()
     if normalized_mode != SUPPORTED_MODE:
@@ -50,6 +59,8 @@ def build_replay_request(replay_date, mode=SUPPORTED_MODE, evidence_cutoff=None)
         mode=normalized_mode,
         evidence_cutoff=_format_utc(cutoff),
         replay_id=replay_id,
+        backfill_id=backfill_id,
+        include_backfilled_evidence=bool(include_backfilled_evidence or backfill_id),
     )
 
 
@@ -150,7 +161,24 @@ def select_historical_evidence(historical_records, replay_request):
     )
 
 
-def build_replay_metadata(evidence_count, warnings=None):
+def build_replay_metadata(
+    evidence_count,
+    warnings=None,
+    *,
+    backfilled_evidence_included=False,
+    backfill_ids_used=None,
+    live_persisted_evidence_included=True,
+    live_evidence_count=0,
+    backfilled_evidence_count=0,
+):
+    evidence_sources_used = []
+    if live_persisted_evidence_included and live_evidence_count:
+        evidence_sources_used.append("live_persisted")
+    if backfilled_evidence_included and backfilled_evidence_count:
+        evidence_sources_used.append("historical_backfill")
+    if not evidence_sources_used:
+        evidence_sources_used = ["live_persisted"]
+
     return {
         "replay_mode": "HISTORICAL_REPLAY",
         "live_run_source": False,
@@ -158,18 +186,93 @@ def build_replay_metadata(evidence_count, warnings=None):
         "evidence_selection_rule": EVIDENCE_SELECTION_RULE,
         "replay_engine_version": REPLAY_ENGINE_VERSION,
         "warnings": list(warnings or _thin_evidence_warnings(evidence_count)),
+        "backfilled_evidence_included": bool(backfilled_evidence_included),
+        "backfill_ids_used": list(backfill_ids_used or []),
+        "live_persisted_evidence_included": bool(live_persisted_evidence_included),
+        "evidence_sources_used": evidence_sources_used,
+        "backfilled_evidence_count": backfilled_evidence_count,
+        "live_evidence_count": live_evidence_count,
+        "total_evidence_count": live_evidence_count + backfilled_evidence_count,
     }
+
+
+def select_backfilled_evidence(backfill_evidence, replay_request):
+    """Applies the same publish-cutoff/validity discipline select_historical_evidence
+    already applies to live evidence, to a flat list of backfilled EvidenceObject
+    dicts. There is no run-ingestion timestamp gate here - backfilled evidence has
+    no live ingestion event; only its own published_at matters against the cutoff."""
+    request = _coerce_request(replay_request)
+    cutoff = _parse_utc_datetime(request.evidence_cutoff, "evidence_cutoff")
+    candidates = []
+
+    for evidence in backfill_evidence or []:
+        if not isinstance(evidence, dict) or evidence.get("accepted") is not True:
+            continue
+        evidence_id = evidence.get("evidence_id")
+        published_at_value = evidence.get("timestamp") or evidence.get("published_at")
+        if not evidence_id or not published_at_value:
+            continue
+        try:
+            published_at = _parse_utc_datetime(published_at_value, "published_at")
+        except ValueError:
+            continue
+        if published_at > cutoff:
+            continue
+
+        normalized = copy.deepcopy(evidence)
+        normalized["published_at"] = _format_utc(published_at)
+        normalized["timestamp"] = normalized["published_at"]
+        candidates.append(normalized)
+
+    first_by_id = {}
+    for candidate in candidates:
+        evidence_id = str(candidate["evidence_id"])
+        if evidence_id not in first_by_id:
+            first_by_id[evidence_id] = candidate
+
+    return sorted(
+        first_by_id.values(),
+        key=lambda evidence: (evidence.get("timestamp") or "", evidence.get("evidence_id") or ""),
+    )
 
 
 def run_historical_replay(replay_request, historical_records=None, generated_at=None):
     request = _coerce_request(replay_request)
     records = historical_records if historical_records is not None else load_historical_run_records()
-    selected_evidence = select_historical_evidence(records, request)
-    warnings = _thin_evidence_warnings(len(selected_evidence))
+    live_evidence = select_historical_evidence(records, request)
+
+    backfilled_evidence = []
+    backfill_ids_used = []
+    backfill_warning = None
+    if request.include_backfilled_evidence:
+        raw_backfill_evidence = historical_backfill.load_backfilled_evidence(
+            backfill_id=request.backfill_id,
+            requested_date=request.replay_date if not request.backfill_id else None,
+        )
+        selected_backfill_evidence = select_backfilled_evidence(raw_backfill_evidence, request)
+        combined_evidence, backfilled_evidence = _merge_live_and_backfilled_evidence(
+            live_evidence, selected_backfill_evidence
+        )
+        if not backfilled_evidence:
+            backfill_warning = "No eligible backfilled evidence was available for this replay."
+        else:
+            backfill_ids_used = sorted(
+                {
+                    (evidence.get("metadata") or {}).get("backfill_id")
+                    for evidence in backfilled_evidence
+                    if (evidence.get("metadata") or {}).get("backfill_id")
+                }
+            )
+    else:
+        combined_evidence = list(live_evidence)
+
+    warnings = _thin_evidence_warnings(len(combined_evidence))
+    if backfill_warning:
+        warnings.append(backfill_warning)
 
     source_registry = load_source_registry()
     themes, taxonomy_version = load_themes("themes.txt", include_version=True)
-    headlines = [evidence.get("title", "") for evidence in selected_evidence if evidence.get("title")]
+    headlines = [evidence.get("title", "") for evidence in combined_evidence if evidence.get("title")]
     theme_analysis = analyze_themes(
         headlines,
         themes,
@@ -188,15 +291,24 @@ def run_historical_replay(replay_request, historical_records=None, generated_at=
     dominant_theme = _dominant_theme(theme_scores)
     dominant_group, _dominant_group_score = get_dominant_group(group_scores)
 
-    source_intelligence = _build_replay_source_intelligence(selected_evidence)
+    live_theme_attribution = theme_attribution[: len(live_evidence)]
+    backfill_theme_attribution = theme_attribution[len(live_evidence) :]
+
+    source_intelligence = _build_replay_source_intelligence(combined_evidence)
     source_intelligence = persist_attributed_accepted_evidence(
         source_intelligence,
-        selected_evidence,
-        theme_attribution,
+        live_evidence,
+        live_theme_attribution,
         source_registry,
     )
+    if backfilled_evidence:
+        source_intelligence["accepted_evidence"].extend(
+            _backfill_attributed_records(backfilled_evidence, backfill_theme_attribution)
+        )
+        source_intelligence["accepted_evidence_count"] = len(source_intelligence["accepted_evidence"])
+
     coverage = _build_coverage_if_available(
-        selected_evidence,
+        combined_evidence,
         theme_attribution,
         source_registry,
         warnings,
@@ -207,11 +319,11 @@ def run_historical_replay(replay_request, historical_records=None, generated_at=
         "replay_date": request.replay_date,
         "generated_at": _format_utc(generated_at or datetime.now(timezone.utc)),
         "evidence_cutoff": request.evidence_cutoff,
-        "evidence_count": len(selected_evidence),
+        "evidence_count": len(combined_evidence),
         "source_count": len(
             {
                 evidence.get("source_id")
-                for evidence in selected_evidence
+                for evidence in combined_evidence
                 if evidence.get("source_id")
             }
         ),
@@ -223,7 +335,15 @@ def run_historical_replay(replay_request, historical_records=None, generated_at=
         "dominant_group": dominant_group,
         "coverage": coverage,
         "source_intelligence": source_intelligence,
-        "replay_metadata": build_replay_metadata(len(selected_evidence), warnings),
+        "replay_metadata": build_replay_metadata(
+            len(combined_evidence),
+            warnings,
+            backfilled_evidence_included=bool(backfilled_evidence),
+            backfill_ids_used=backfill_ids_used,
+            live_persisted_evidence_included=True,
+            live_evidence_count=len(live_evidence),
+            backfilled_evidence_count=len(backfilled_evidence),
+        ),
         "theme_counts": theme_counts,
         "matched_headlines": matched_headlines,
         "theme_match_audit": theme_match_audit,
@@ -245,8 +365,20 @@ def persist_historical_replay(replay_output, data_dir=None):
     return path
 
 
-def run_and_persist_historical_replay(replay_date, mode=SUPPORTED_MODE, evidence_cutoff=None):
-    request = build_replay_request(replay_date, mode=mode, evidence_cutoff=evidence_cutoff)
+def run_and_persist_historical_replay(
+    replay_date,
+    mode=SUPPORTED_MODE,
+    evidence_cutoff=None,
+    backfill_id=None,
+    include_backfilled_evidence=False,
+):
+    request = build_replay_request(
+        replay_date,
+        mode=mode,
+        evidence_cutoff=evidence_cutoff,
+        backfill_id=backfill_id,
+        include_backfilled_evidence=include_backfilled_evidence,
+    )
     output = run_historical_replay(request)
     path = persist_historical_replay(output)
     return path, output
@@ -257,14 +389,29 @@ def main(args=None):
     parser.add_argument("--date", required=True, help="Replay date as YYYY-MM-DD.")
     parser.add_argument("--mode", default=SUPPORTED_MODE, help="Replay mode; only macro is supported.")
     parser.add_argument("--evidence-cutoff", help="Optional UTC ISO-8601 cutoff timestamp.")
+    parser.add_argument(
+        "--include-backfilled",
+        action="store_true",
+        help="Include eligible already-persisted backfilled historical evidence in this replay.",
+    )
+    parser.add_argument(
+        "--backfill-id",
+        default=None,
+        help="Specific backfill_id to include; implies --include-backfilled.",
+    )
     parsed = parser.parse_args(args)
     path, output = run_and_persist_historical_replay(
         parsed.date,
         mode=parsed.mode,
         evidence_cutoff=parsed.evidence_cutoff,
+        backfill_id=parsed.backfill_id,
+        include_backfilled_evidence=parsed.include_backfilled,
     )
     print(f"Historical replay saved to {path}")
     print(f"Evidence selected: {output['evidence_count']}")
+    replay_metadata = output.get("replay_metadata") or {}
+    if replay_metadata.get("backfilled_evidence_included"):
+        print(f"Backfilled evidence included: {replay_metadata['backfilled_evidence_count']}")
 
 
 def _coerce_request(value):
@@ -383,6 +530,70 @@ def _build_replay_source_intelligence(selected_evidence):
             key=lambda item: (-item["evidence_count"], item["source_id"]),
         ),
     }
+
+
+def _merge_live_and_backfilled_evidence(live_evidence, backfilled_evidence):
+    """Combines live-run evidence with already-cutoff-filtered backfilled evidence,
+    deduping by evidence_id with live evidence taking precedence on any collision.
+    Returns (combined_evidence, deduped_backfilled_evidence)."""
+    if not backfilled_evidence:
+        return list(live_evidence), []
+
+    seen_ids = {str(evidence.get("evidence_id")) for evidence in live_evidence if evidence.get("evidence_id")}
+    deduped_backfilled = []
+    for evidence in backfilled_evidence:
+        evidence_id = str(evidence.get("evidence_id"))
+        if evidence_id in seen_ids:
+            continue
+        seen_ids.add(evidence_id)
+        deduped_backfilled.append(evidence)
+
+    return list(live_evidence) + deduped_backfilled, deduped_backfilled
+
+
+def _backfill_attributed_records(backfilled_evidence, theme_attribution_slice):
+    """Builds accepted_evidence records for backfilled evidence without consulting
+    the live source registry - fed_fomc (and any future historical source) is
+    deliberately not a live registry source, and registry.source_by_id() raises
+    for unknown ids, so this mirrors mne.evidence._accepted_attributed_record's
+    output shape using only fields the backfilled EvidenceObject already carries."""
+    records = []
+    for evidence, attribution in zip(backfilled_evidence, theme_attribution_slice):
+        themes = attribution.get("themes", []) if isinstance(attribution, dict) else []
+        attributed_themes = [theme for theme in themes if theme]
+        metadata = evidence.get("metadata") or {}
+        attributed_groups = sorted(
+            {
+                group
+                for group, group_themes in NARRATIVE_GROUPS.items()
+                if any(theme in group_themes for theme in attributed_themes)
+            }
+        )
+        records.append(
+            {
+                "evidence_id": evidence.get("evidence_id"),
+                "title": evidence.get("title"),
+                "source_id": evidence.get("source_id"),
+                "source_name": evidence.get("source_name"),
+                "provider": metadata.get("provider"),
+                "evidence_type": evidence.get("evidence_type"),
+                "published_at": evidence.get("timestamp"),
+                "timestamp": evidence.get("timestamp"),
+                "url": evidence.get("url"),
+                "freshness_state": evidence.get("freshness_state"),
+                "accepted": True,
+                "rejection_state": None,
+                "themes": attributed_themes,
+                "groups": attributed_groups,
+                "narrative_keys": [
+                    *[f"theme:{theme}" for theme in attributed_themes],
+                    *[f"group:{group}" for group in attributed_groups],
+                ],
+                "evidence_origin": metadata.get("evidence_origin"),
+                "backfill_id": metadata.get("backfill_id"),
+            }
+        )
+    return records
 
 
 def _build_coverage_if_available(selected_evidence, theme_attribution, source_registry, warnings):
