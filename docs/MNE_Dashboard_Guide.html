@@ -1,0 +1,965 @@
+<title>Macro Narrative Engine — Dashboard Guide</title>
+<style>
+  @page { size: Letter; margin: 0.72in 0.68in 0.75in 0.68in; }
+
+  :root{
+    --ink:#12161c; --ink-soft:#454f5b; --ink-faint:#6b7480;
+    --paper:#ffffff; --paper-soft:#f4f6f8; --paper-panel:#eef1f4;
+    --line:#dde2e7; --line-strong:#c7cdd4;
+    --green:#1f7a52; --green-soft:#e5f3ec; --green-line:#bfe2cf;
+    --amber:#93630f; --amber-soft:#faf0dc; --amber-line:#eccf95;
+    --blue:#2c5f8a; --blue-soft:#e8f0f7;
+    --mauve:#7a4a6b; --mauve-soft:#f4e9f1;
+    --dark-bg:#0b0e13; --dark-panel:#12161d; --dark-panel-soft:#171d26;
+    --dark-line:rgba(255,255,255,0.1); --dark-text:#f2f5f8; --dark-muted:#9aa4b2;
+    --font: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --mono: "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ padding:0; margin:0; }
+  body{
+    font-family:var(--font); color:var(--ink); font-size:9.8pt; line-height:1.42;
+    background:var(--paper);
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  h1,h2,h3,h4{ font-family:var(--font); font-weight:800; letter-spacing:-0.01em; color:var(--ink); }
+  p{ margin:0 0 8px 0; }
+  a{ color:var(--green); text-decoration:none; }
+  ul,ol{ margin:6px 0 10px 0; padding-left:19px; }
+  li{ margin-bottom:3px; }
+  strong{ font-weight:700; }
+  small{ color:var(--ink-faint); }
+
+  .eyebrow{ font-size:8pt; font-weight:800; letter-spacing:0.09em; text-transform:uppercase; color:var(--green); margin-bottom:4px; }
+  .eyebrow.amber{ color:var(--amber); }
+  .eyebrow.muted{ color:var(--ink-faint); }
+
+  /* ---------- Page break control ---------- */
+  .page-break{ break-before:page; page-break-before:always; }
+  .avoid-break{ break-inside:avoid; page-break-inside:avoid; }
+  .section{ margin-bottom:15px; }
+  h2{ font-size:15.5pt; margin:0 0 3px 0; break-after:avoid; }
+  h3{ font-size:11.6pt; margin:11px 0 4px 0; break-after:avoid; }
+  h4{ font-size:10.2pt; margin:8px 0 3px 0; break-after:avoid; }
+  .section-intro{ color:var(--ink-soft); font-size:10.1pt; margin-bottom:9px; }
+
+  /* ---------- Cover ---------- */
+  .cover{
+    height:9.9in; background:var(--dark-bg); color:var(--dark-text);
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding:0.55in 0.5in; margin:-0.72in -0.68in 0 -0.68in; width:calc(100% + 1.36in);
+    break-after:page; page-break-after:always;
+  }
+  .cover-top{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .cover-brand{ font-size:11pt; font-weight:800; letter-spacing:0.02em; }
+  .cover-tag{ font-size:8.3pt; color:var(--dark-muted); border:1px solid var(--dark-line); border-radius:999px; padding:4px 12px; }
+  .cover-mid{ padding:1.4in 0 0 0; }
+  .cover-eyebrow{ font-size:9pt; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:#68d391; margin-bottom:14px; }
+  .cover-title{ font-size:52pt; line-height:1.02; font-weight:800; letter-spacing:-0.02em; margin:0 0 10px 0; }
+  .cover-subtitle{ font-family:var(--serif); font-style:italic; font-size:15pt; color:var(--dark-muted); max-width:5.6in; line-height:1.4; }
+  .cover-bottom{ display:flex; justify-content:space-between; align-items:flex-end; border-top:1px solid var(--dark-line); padding-top:14px; }
+  .cover-meta{ font-size:8.6pt; color:var(--dark-muted); line-height:1.6; }
+  .cover-meta b{ color:var(--dark-text); }
+  .cover-chip-row{ display:flex; gap:8px; }
+  .cover-chip{ font-size:7.6pt; color:var(--dark-muted); border:1px solid var(--dark-line); border-radius:999px; padding:3px 10px; }
+
+  /* ---------- TOC ---------- */
+  .toc-list{ list-style:none; padding:0; margin:0; column-count:1; }
+  .toc-item{ display:flex; align-items:baseline; gap:8px; padding:6.5px 0; border-bottom:1px dotted var(--line); }
+  .toc-num{ font-weight:800; color:var(--green); width:22px; flex:none; font-size:9.5pt; }
+  .toc-title{ font-weight:700; flex:1; }
+  .toc-sub{ color:var(--ink-faint); font-size:8.8pt; }
+
+  /* ---------- Callouts ---------- */
+  .callout{ border:1px solid var(--line); border-left:4px solid var(--ink-faint); background:var(--paper-soft); border-radius:6px; padding:8px 13px; margin:8px 0; break-inside:avoid; }
+  .callout p:last-child{ margin-bottom:0; }
+  .callout-title{ font-weight:800; font-size:9pt; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
+  .callout.good{ border-left-color:var(--green); background:var(--green-soft); }
+  .callout.good .callout-title{ color:var(--green); }
+  .callout.warn{ border-left-color:var(--amber); background:var(--amber-soft); }
+  .callout.warn .callout-title{ color:var(--amber); }
+  .callout.read{ border-left-color:var(--blue); background:var(--blue-soft); }
+  .callout.read .callout-title{ color:var(--blue); }
+  .callout.notmean{ border-left-color:#9a3f3f; background:#fbeceb; }
+  .callout.notmean .callout-title{ color:#9a3f3f; }
+
+  /* ---------- Term explainer card ---------- */
+  .term-card{ border:1px solid var(--line); border-radius:8px; padding:10px 15px; margin:9px 0; background:var(--paper); break-inside:avoid; }
+  .term-card h3{ margin-top:0; font-size:12.6pt; }
+  .term-row{ display:flex; gap:10px; margin:4.5px 0; align-items:flex-start; break-inside:avoid; }
+  .term-label{ flex:0 0 122px; font-size:7.7pt; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-faint); padding-top:2px; }
+  .term-body{ flex:1; font-size:9.5pt; }
+
+  /* ---------- Figures ---------- */
+  .figure{ margin:9px 0; break-inside:avoid; }
+  .figure img{ width:100%; display:block; border:1px solid var(--line-strong); border-radius:7px; }
+  .figure-cap{ font-size:8.3pt; color:var(--ink-faint); margin-top:4px; }
+  .figure-cap b{ color:var(--ink-soft); }
+  .legend{ list-style:none; margin:6px 0 0 0; padding:0; font-size:8.6pt; color:var(--ink-soft); }
+  .legend li{ margin-bottom:3px; padding-left:22px; position:relative; }
+  .legend .n{ position:absolute; left:0; top:-1px; width:15px; height:15px; border-radius:50%; background:var(--ink); color:#fff; font-size:7.6pt; font-weight:800; text-align:center; line-height:15px; }
+
+  /* ---------- Tables ---------- */
+  table{ width:100%; border-collapse:collapse; margin:6px 0; font-size:9.1pt; }
+  th{ text-align:left; font-size:7.8pt; text-transform:uppercase; letter-spacing:0.03em; color:var(--ink-faint); border-bottom:1.5px solid var(--line-strong); padding:4px 8px; }
+  td{ padding:4.5px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr:last-child td{ border-bottom:none; }
+  .state-pill{ display:inline-block; font-size:8.3pt; font-weight:700; padding:1.5px 8px; border-radius:999px; background:var(--paper-panel); border:1px solid var(--line-strong); white-space:nowrap; }
+
+  /* ---------- Two column ---------- */
+  .two-col{ display:flex; gap:18px; }
+  .two-col > div{ flex:1; min-width:0; }
+  .three-col{ display:flex; gap:12px; }
+  .three-col > div{ flex:1; min-width:0; }
+
+  /* ---------- Flow diagram ---------- */
+  .flow{ display:flex; flex-direction:column; gap:0; align-items:center; margin:14px 0; }
+  .flow-box{ width:100%; max-width:5.4in; border:1.5px solid var(--ink); border-radius:8px; padding:9px 16px; text-align:center; font-weight:700; font-size:10pt; background:var(--paper-soft); }
+  .flow-arrow{ font-size:13pt; color:var(--ink-faint); line-height:1; padding:2px 0; }
+  .flow-row{ display:flex; gap:10px; width:100%; max-width:6.3in; justify-content:center; }
+  .flow-row .flow-box{ flex:1; max-width:none; font-size:9pt; padding:8px 10px; }
+
+  /* ---------- Scale bar (Pulse) ---------- */
+  .scale{ display:flex; border-radius:7px; overflow:hidden; border:1px solid var(--line-strong); margin:10px 0; }
+  .scale > div{ flex:1; padding:9px 4px; text-align:center; font-size:8.3pt; font-weight:800; color:#fff; }
+  .scale .s0{ background:#8b8f96; } .scale .s1{ background:#7a92a8; } .scale .s2{ background:#5f8f7a; }
+  .scale .s3{ background:#3f9a6e; } .scale .s4{ background:#1f7a52; }
+
+  /* ---------- Reading order map ---------- */
+  .rmap{ display:flex; flex-direction:column; gap:6px; margin:12px 0; }
+  .rmap-item{ display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:7px; padding:8px 12px; background:var(--paper-soft); break-inside:avoid; }
+  .rmap-item .num{ flex:none; width:24px; height:24px; border-radius:50%; background:var(--ink); color:#fff; font-weight:800; font-size:10pt; text-align:center; line-height:24px; }
+  .rmap-item .lbl{ font-weight:700; font-size:10pt; }
+  .rmap-item .desc{ color:var(--ink-faint); font-size:8.8pt; }
+  .rmap-tag{ margin-left:auto; font-size:7.6pt; text-transform:uppercase; letter-spacing:0.04em; font-weight:800; padding:2px 8px; border-radius:999px; flex:none; }
+  .tag-primary{ background:var(--green-soft); color:var(--green); }
+  .tag-secondary{ background:var(--blue-soft); color:var(--blue); }
+  .tag-support{ background:var(--paper-panel); color:var(--ink-faint); }
+  .tag-diag{ background:var(--amber-soft); color:var(--amber); }
+
+  /* ---------- Divider page ---------- */
+  .divider{
+    height:9.9in; background:var(--dark-bg); color:var(--dark-text);
+    margin:-0.72in -0.68in 0 -0.68in; width:calc(100% + 1.36in);
+    display:flex; flex-direction:column; justify-content:center; padding:0 0.9in;
+    break-after:page; page-break-after:always;
+  }
+  .divider .eyebrow{ color:#68d391; }
+  .divider h1{ font-size:34pt; margin:6px 0 12px 0; color:var(--dark-text); }
+  .divider p{ color:var(--dark-muted); font-size:11pt; max-width:5in; }
+
+  /* ---------- Glossary ---------- */
+  .gloss{ margin:0; }
+  .gterm{ break-inside:avoid; display:flex; gap:12px; padding:5.5px 0; border-bottom:1px dotted var(--line); }
+  .gterm dt{ flex:0 0 172px; font-weight:800; font-size:9.3pt; color:var(--ink); }
+  .gterm dd{ margin:0; flex:1; font-size:8.8pt; color:var(--ink-soft); }
+
+  /* ---------- Worked example ---------- */
+  .wex-grid{ display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+  .wex-chip{ flex:1 1 30%; min-width:145px; border:1px solid var(--line); border-radius:7px; padding:8px 10px; background:var(--paper-soft); break-inside:avoid; }
+  .wex-chip .k{ font-size:7.6pt; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-faint); font-weight:800; }
+  .wex-chip .v{ font-size:10.4pt; font-weight:800; margin-top:2px; }
+  .wex-chip .r{ font-size:8.3pt; color:var(--ink-soft); margin-top:2px; }
+
+  code{ font-family:var(--mono); font-size:8.9pt; background:var(--paper-panel); padding:1px 5px; border-radius:4px; }
+  .timeline{ display:flex; align-items:center; margin:16px 0; }
+  .tl-seg{ flex:1; text-align:center; padding:14px 10px; border-radius:8px; font-size:9.3pt; font-weight:700; }
+  .tl-seg.in{ background:var(--green-soft); border:1.5px solid var(--green-line); color:var(--green); }
+  .tl-seg.out{ background:#f2f2f2; border:1.5px dashed var(--line-strong); color:var(--ink-faint); }
+  .tl-cut{ flex:none; width:2px; align-self:stretch; background:var(--ink); position:relative; margin:0 10px; }
+  .tl-cut span{ position:absolute; top:-18px; left:50%; transform:translateX(-50%); font-size:7.6pt; font-weight:800; white-space:nowrap; color:var(--ink); }
+
+  .footnote-src{ font-size:7.6pt; color:var(--ink-faint); font-family:var(--mono); margin-top:2px; }
+</style>
+
+<!-- ============================================================ COVER ============================================================ -->
+<div class="cover">
+  <div class="cover-top">
+    <div class="cover-brand">MACRO NARRATIVE ENGINE</div>
+    <div class="cover-tag">Dashboard Guide</div>
+  </div>
+  <div class="cover-mid">
+    <div class="cover-eyebrow">User Guide · First-Time Reader Edition</div>
+    <div class="cover-title">Macro<br>Narrative<br>Engine</div>
+    <div class="cover-subtitle">How to read the market environment, narratives, catalysts, evidence, and positioning shown on the MNE dashboard.</div>
+  </div>
+  <div class="cover-bottom">
+    <div class="cover-meta">Generated <b>July 16, 2026</b><br>Reflects the dashboard implementation as of this date<br>Source of truth: current application code and a live persisted run</div>
+    <div class="cover-chip-row">
+      <div class="cover-chip">Evidence-driven</div>
+      <div class="cover-chip">Not a signal generator</div>
+      <div class="cover-chip">Not financial advice</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ TOC ============================================================ -->
+<div class="section">
+  <div class="eyebrow">Contents</div>
+  <h2>Table of Contents</h2>
+  <ul class="toc-list">
+    <li class="toc-item"><span class="toc-num">01</span><span class="toc-title"><a href="#s-what">What MNE Does</a></span><span class="toc-sub">The evidence-to-intelligence pipeline</span></li>
+    <li class="toc-item"><span class="toc-num">02</span><span class="toc-title"><a href="#s-onepage">The Dashboard in One Page</a></span><span class="toc-sub">A labeled reading order</span></li>
+    <li class="toc-item"><span class="toc-num">03</span><span class="toc-title"><a href="#s-60sec">How to Use MNE in 60 Seconds</a></span><span class="toc-sub">A practical first pass</span></li>
+    <li class="toc-item"><span class="toc-num">04</span><span class="toc-title"><a href="#s-trust">Run Context &amp; Data Quality</a></span><span class="toc-sub">What the Trust Summary is telling you</span></li>
+    <li class="toc-item"><span class="toc-num">05</span><span class="toc-title"><a href="#s-market-env">Market Environment</a></span><span class="toc-sub">What kind of backdrop is present</span></li>
+    <li class="toc-item"><span class="toc-num">06</span><span class="toc-title"><a href="#s-leadership">Narrative Leadership</a></span><span class="toc-sub">Theme, group, dominance, and rank</span></li>
+    <li class="toc-item"><span class="toc-num">07</span><span class="toc-title"><a href="#s-pulse">Pulse</a></span><span class="toc-sub">How strong is a narrative's current pull</span></li>
+    <li class="toc-item"><span class="toc-num">08</span><span class="toc-title"><a href="#s-regime">Regime</a></span><span class="toc-sub">Is price action confirming the narrative</span></li>
+    <li class="toc-item"><span class="toc-num">09</span><span class="toc-title"><a href="#s-mode">Operating Mode</a></span><span class="toc-sub">Macro vs. Nasdaq interpretation</span></li>
+    <li class="toc-item"><span class="toc-num">10</span><span class="toc-title"><a href="#s-dynamics">Narrative Dynamics</a></span><span class="toc-sub">Persistence, acceleration, memory</span></li>
+    <li class="toc-item"><span class="toc-num">11</span><span class="toc-title"><a href="#s-brief">Narrative Brief</a></span><span class="toc-sub">The plain-language explanation panel</span></li>
+    <li class="toc-item"><span class="toc-num">12</span><span class="toc-title"><a href="#s-catalyst">Catalyst Environment</a></span><span class="toc-sub">Scheduled events and calendar coverage</span></li>
+    <li class="toc-item"><span class="toc-num">13</span><span class="toc-title"><a href="#s-confirm">Market Confirmation &amp; Divergence</a></span><span class="toc-sub">Narrative vs. price agreement</span></li>
+    <li class="toc-item"><span class="toc-num">14</span><span class="toc-title"><a href="#s-breadth">Breadth</a></span><span class="toc-sub">Broad or narrow participation</span></li>
+    <li class="toc-item"><span class="toc-num">15</span><span class="toc-title"><a href="#s-positioning">Positioning</a></span><span class="toc-sub">Calendar-driven positioning context</span></li>
+    <li class="toc-item"><span class="toc-num">16</span><span class="toc-title"><a href="#s-expr">Market Expression Map</a></span><span class="toc-sub">Narrative-to-asset context mapping</span></li>
+    <li class="toc-item"><span class="toc-num">17</span><span class="toc-title"><a href="#s-trends">Trends</a></span><span class="toc-sub">Daily leadership history</span></li>
+    <li class="toc-item"><span class="toc-num">18</span><span class="toc-title"><a href="#s-research">Research Workspace</a></span><span class="toc-sub">Investigating a single narrative</span></li>
+    <li class="toc-item"><span class="toc-num">19</span><span class="toc-title"><a href="#s-replay">Historical Replay</a></span><span class="toc-sub">Reconstructing a past date</span></li>
+    <li class="toc-item"><span class="toc-num">20</span><span class="toc-title"><a href="#s-cancannot">What MNE Can &amp; Cannot Tell You</a></span><span class="toc-sub">Scope and limits, stated plainly</span></li>
+    <li class="toc-item"><span class="toc-num">21</span><span class="toc-title"><a href="#s-workflow">Suggested Daily Workflow</a></span><span class="toc-sub">Before, during, and after the session</span></li>
+    <li class="toc-item"><span class="toc-num">22</span><span class="toc-title"><a href="#s-worked">Worked Example</a></span><span class="toc-sub">A complete walkthrough of one real run</span></li>
+    <li class="toc-item"><span class="toc-num">23</span><span class="toc-title"><a href="#s-glossary">Complete Glossary</a></span><span class="toc-sub">Every term, alphabetically</span></li>
+  </ul>
+</div>
+
+<!-- ============================================================ 01 WHAT MNE DOES ============================================================ -->
+<div class="section page-break" id="s-what">
+  <div class="eyebrow">01 · Orientation</div>
+  <h2>What MNE Does</h2>
+  <p class="section-intro">Macro Narrative Engine (MNE) is an evidence-driven market intelligence system. It helps you understand the current market environment, the dominant narratives driving attention, the catalysts ahead, and — just as importantly — how much you should trust the evidence behind all of it.</p>
+
+  <p>Every dashboard run follows the same pipeline. Headlines and data are collected, sorted into narrative themes, measured for strength and change over time, and then layered against real market and calendar context. The result is a single page that tells you what the market conversation currently looks like, and how solid the ground under that read actually is.</p>
+
+  <div class="flow">
+    <div class="flow-box">Market evidence<br><small>Headlines, prices, and scheduled events collected and deduplicated</small></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-box">Narrative classification<br><small>Evidence sorted into themes (energy, ai, inflation…) and narrative groups</small></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-box">Narrative dynamics<br><small>Persistence, acceleration, pulse, and leadership rotation over time</small></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-box">Market &amp; catalyst context<br><small>Price action, breadth, positioning, and the calendar layered on top</small></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-box">Dashboard intelligence<br><small>A single reviewed page, plus a stated confidence level for the read</small></div>
+  </div>
+
+  <div class="callout good">
+    <div class="callout-title">MNE is</div>
+    <p>An evidence-driven market intelligence system that helps you understand the current market environment, dominant narratives, catalysts, positioning, and the quality of the evidence behind the read.</p>
+  </div>
+  <div class="callout notmean">
+    <div class="callout-title">MNE is not</div>
+    <p>A stock-picking service, a prediction engine, a trade-signal generator, a guaranteed forecasting tool, or financial advice. MNE helps you understand the environment you are making decisions in — it does not make the decision for you.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 02 DASHBOARD IN ONE PAGE ============================================================ -->
+<div class="section" id="s-onepage">
+  <div class="eyebrow">02 · Orientation</div>
+  <h2>The Dashboard in One Page</h2>
+  <p class="section-intro">The live dashboard (the <b>Overview</b> page) is built as one long, top-to-bottom scroll. Everything above the fold is primary; everything below is supporting detail you reach for when you want to go deeper. Read it in this order the first few times you use it.</p>
+
+  <div class="rmap">
+    <div class="rmap-item"><div class="num">1</div><div><div class="lbl">Trust Summary &amp; run context</div><div class="desc">Data Quality banner, selected run, last updated time</div></div><div class="rmap-tag tag-primary">Start here</div></div>
+    <div class="rmap-item"><div class="num">2</div><div><div class="lbl">Market environment (hero)</div><div class="desc">The one-line read of the current backdrop and confidence</div></div><div class="rmap-tag tag-primary">Primary</div></div>
+    <div class="rmap-item"><div class="num">3</div><div><div class="lbl">Narrative Brief</div><div class="desc">Plain-language explanation of the dominant narrative</div></div><div class="rmap-tag tag-primary">Primary</div></div>
+    <div class="rmap-item"><div class="num">4</div><div><div class="lbl">What Changed Since Last Run</div><div class="desc">A run-over-run delta of the major moves</div></div><div class="rmap-tag tag-secondary">Secondary</div></div>
+    <div class="rmap-item"><div class="num">5</div><div><div class="lbl">Metric grid &amp; Regime Alignment History</div><div class="desc">Regime, Dominant Narrative, Market Environment, Catalysts, Positioning at a glance</div></div><div class="rmap-tag tag-primary">Primary</div></div>
+    <div class="rmap-item"><div class="num">6</div><div><div class="lbl">Narrative Leadership</div><div class="desc">Ranked cards for the top narrative groups, with Pulse and rotation</div></div><div class="rmap-tag tag-primary">Primary</div></div>
+    <div class="rmap-item"><div class="num">7</div><div><div class="lbl">Daily Leadership history, Narrative &amp; Group Scores</div><div class="desc">Supporting detail behind the leadership cards</div></div><div class="rmap-tag tag-support">Supporting</div></div>
+    <div class="rmap-item"><div class="num">8</div><div><div class="lbl">Market Snapshot</div><div class="desc">QQQ, NVDA, VIX, DXY — the raw price context</div></div><div class="rmap-tag tag-support">Supporting</div></div>
+    <div class="rmap-item"><div class="num">9</div><div><div class="lbl">Market, Catalysts, Positioning cards</div><div class="desc">The three environment classifiers, each with its own reasoning</div></div><div class="rmap-tag tag-diag">Diagnostic</div></div>
+    <div class="rmap-item"><div class="num">10</div><div><div class="lbl">Top Theme Evidence</div><div class="desc">Example headlines behind the leading themes</div></div><div class="rmap-tag tag-support">Supporting</div></div>
+  </div>
+
+  <p class="section-intro">Three page-level jump links (<b>Narratives</b>, <b>Market</b>, <b>Catalysts</b>, <b>Trends</b>) sit in the header for fast navigation once you know the layout. A left-hand rail switches between <b>Overview</b> (live dashboard), <b>Research</b> (narrative investigation workspace), and <b>Admin</b> (operational diagnostics).</p>
+
+  <div class="figure">
+    <img src="guide_assets/fig_header_trust.png" alt="Dashboard header and Data Quality banner">
+    <div class="figure-cap"><b>Figure 2.1 —</b> The header and Data Quality banner, captured from a live run. This is always the first thing to read.</div>
+  </div>
+</div>
+
+<!-- ============================================================ 03 60 SECONDS ============================================================ -->
+<div class="section" id="s-60sec">
+  <div class="eyebrow">03 · Orientation</div>
+  <h2>How to Use MNE in 60 Seconds</h2>
+  <p class="section-intro">A practical first pass through the dashboard, in the order you should actually do it.</p>
+  <ol>
+    <li><b>Confirm the Data Quality banner.</b> Is the evidence base Strong, Usable, Limited, or Thin? This tells you how much weight to put on everything below it.</li>
+    <li><b>Read the Market Environment.</b> One label (e.g. "Energy Shock," "Clean Risk-On") tells you the backdrop MNE is reading right now.</li>
+    <li><b>Identify the dominant narrative.</b> Check the Narrative Leadership section for the #1 card and its share of total narrative attention.</li>
+    <li><b>Check whether it's strengthening or fading.</b> Look at Pulse, Acceleration, and the rotation badge (Stable, Losing, Challenging, and so on) on that same card.</li>
+    <li><b>Review upcoming catalysts.</b> The Catalyst Environment card tells you how dense the next two weeks of scheduled events are.</li>
+    <li><b>Compare the narrative with market behavior.</b> Regime Alignment and the narrative/market relationship label tell you whether price action agrees with the story.</li>
+    <li><b>Open Research Workspace when you need more.</b> Click "Investigate narrative" on any leadership card to see the underlying evidence.</li>
+  </ol>
+  <div class="callout read">
+    <div class="callout-title">How to read this guide</div>
+    <p>Sections 04–17 explain each dashboard element in the order you encounter it on the page. Section 18 covers the Research Workspace, Section 19 covers Historical Replay. If you only read one more section right now, read Section 20 — what MNE can and cannot tell you.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 04 TRUST / DATA QUALITY ============================================================ -->
+<div class="section" id="s-trust">
+  <div class="eyebrow">04 · Run Context</div>
+  <h2>Run Context &amp; Data Quality</h2>
+  <p class="section-intro">Before you read anything else, the dashboard tells you how much evidence it had to work with, and how current that evidence is.</p>
+
+  <h3>Which run am I looking at?</h3>
+  <p>MNE writes a new result file every time it runs. The dashboard defaults to the <b>latest meaningful run</b> — the newest run that actually produced narrative signal — rather than simply the newest file on disk.</p>
+
+  <div class="term-row">
+    <div class="term-label">Selected run</div>
+    <div class="term-body">You explicitly chose a run from the <b>Run</b> dropdown. MNE shows exactly that file, with no substitution.</div>
+  </div>
+  <div class="term-row">
+    <div class="term-label">Latest meaningful run</div>
+    <div class="term-body">The default. MNE walks backward from the newest file until it finds one with real theme or group scores, skipping any run that produced no narrative signal. If it had to skip forward, a banner tells you so: <i>"Latest run had no narrative signal; showing latest meaningful run."</i></div>
+  </div>
+  <div class="term-row">
+    <div class="term-label">Latest run (Admin only)</div>
+    <div class="term-body">The Admin view shows the literal newest file regardless of content, so an operator can see empty or failed runs the public dashboard hides.</div>
+  </div>
+
+  <h3>Reading the Trust Summary</h3>
+  <p>The banner at the top states one of five evidence-base labels, a confidence level, a plain-language reason, and a row of supporting facts.</p>
+  <table>
+    <tr><th>State</th><th>What it means</th></tr>
+    <tr><td class="state-pill">Strong evidence base</td><td>Ample accepted evidence, healthy provider network, good coverage.</td></tr>
+    <tr><td class="state-pill">Usable evidence base</td><td>Enough evidence to read with normal confidence, without being exceptional.</td></tr>
+    <tr><td class="state-pill">Limited evidence base</td><td>Meaningful constraints exist in the evidence network — read with more caution.</td></tr>
+    <tr><td class="state-pill">Thin evidence base</td><td>Very little accepted evidence, or the dashboard had to fall back to an older meaningful run.</td></tr>
+    <tr><td class="state-pill">Data unavailable</td><td>No run data or diagnostics could be loaded at all.</td></tr>
+  </table>
+
+  <p>The fact row spells out the inputs behind that label: <b>Accepted evidence</b> (how many evidence items passed acceptance checks this run), <b>Providers</b> (distinct upstream sources), <b>Evidence network</b> (a composite network-health read), <b>Source confidence</b> (how well sources fetched and contributed this run), and <b>Coverage</b> (how broadly that evidence was spread across narratives).</p>
+
+  <div class="callout warn">
+    <div class="callout-title">What this does not mean</div>
+    <p>Data confidence describes the evidence base — how much was collected, how fresh it is, how many independent sources agree it exists — not confidence that the market will move in a particular direction. A "Strong evidence base" run can still describe a highly uncertain market; a "Thin evidence base" run can still be directionally correct. They are answering different questions.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 05 MARKET ENVIRONMENT ============================================================ -->
+<div class="section" id="s-market-env">
+  <div class="eyebrow">05 · Primary Read</div>
+  <h2>Market Environment</h2>
+  <p class="section-intro">Market Environment is the hero headline at the top of the dashboard. It answers one question:</p>
+  <div class="callout read"><p><b>"What kind of market backdrop is currently present?"</b></p></div>
+
+  <p>MNE checks a fixed, ordered set of conditions — narrative signals (macro stress, AI strength, energy dominance), how concentrated attention is, and two market moves (QQQ and VIX) — and returns the first label that matches:</p>
+
+  <table>
+    <tr><th>State</th><th>Roughly means</th></tr>
+    <tr><td class="state-pill">Energy Shock</td><td>Energy and inflation scores are both elevated alongside high or rising macro stress.</td></tr>
+    <tr><td class="state-pill">Risk-Off</td><td>Volatility sharply higher, Nasdaq down, and Macro Pressure is the dominant narrative.</td></tr>
+    <tr><td class="state-pill">Fragile Risk-On</td><td>Stocks up, but volatility is also sharply higher and macro stress is high — a shaky rally.</td></tr>
+    <tr><td class="state-pill">AI Momentum</td><td>AI / Tech Growth dominates, AI narrative score is strong, and Nasdaq is strongly higher.</td></tr>
+    <tr><td class="state-pill">Clean Risk-On</td><td>Nasdaq strongly higher, volatility flat or down, AI leading, macro stress low.</td></tr>
+    <tr><td class="state-pill">Macro Stress</td><td>Macro stress is high alongside Macro Pressure leadership or rising volatility.</td></tr>
+    <tr><td class="state-pill">Narrative Rotation</td><td>No narrative group clearly dominates; the top two groups are close in score.</td></tr>
+    <tr><td class="state-pill">Low-Conviction Chop</td><td>Nasdaq and volatility both flat, and attention isn't concentrated. Also the fallback state.</td></tr>
+  </table>
+
+  <p>Each state also carries a <b>confidence</b> (High / Moderate / Low, based on how many corroborating conditions fired) and a <b>reason</b> — a fixed, human-written sentence explaining the match.</p>
+
+  <div class="figure">
+    <img src="guide_assets/fig_hero.png" alt="Market environment hero read">
+    <div class="figure-cap"><b>Figure 5.1 —</b> The hero read from a live run: state <i>"Broad Macro Read"</i> is the Operating Mode's plain-language framing (see Section 09); the underlying Market Environment label for this run was <i>Energy Shock</i>, visible in the metric grid.</div>
+  </div>
+
+  <h3>Worked example</h3>
+  <p>On the run captured for this guide, the Market Environment card read <b>Energy Shock</b>, with the reason: <i>"Energy and inflation scores are elevated while macro stress remains high."</i> That single label told the user, before reading anything else, that the backdrop was commodity- and inflation-driven rather than a clean risk-on or risk-off tape.</p>
+
+  <div class="callout notmean">
+    <div class="callout-title">Do not interpret it as</div>
+    <p>A forecast of what markets will do next, or an instruction to buy or sell energy-sensitive assets. It is a classification of present conditions, not a projection of future ones.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 06 NARRATIVE LEADERSHIP ============================================================ -->
+<div class="section" id="s-leadership">
+  <div class="eyebrow">06 · Primary Read</div>
+  <h2>Narrative Leadership</h2>
+  <p class="section-intro">This section answers: <b>which story is currently dominating market attention, and by how much?</b></p>
+
+  <h3>Theme, group, and dominance — how they relate</h3>
+  <div class="flow">
+    <div class="flow-box">Theme<br><small>A single keyword-scored topic, e.g. <code>energy</code>, <code>ai</code>, <code>inflation</code>, <code>recession</code>, <code>rates</code></small></div>
+    <div class="flow-arrow">↓ rolled up into one of four fixed groups</div>
+    <div class="flow-box">Narrative Group<br><small>AI / Tech Growth · Macro Pressure · Energy / Commodities · Geopolitical Risk</small></div>
+    <div class="flow-arrow">↓ the group with the highest score this run</div>
+    <div class="flow-box">Dominant Narrative Group<br><small>Ranked #1 on the Narrative Leadership cards</small></div>
+  </div>
+
+  <div class="term-row"><div class="term-label">Theme Score</div><div class="term-body">A keyword-weighted count of matching headlines for one theme. Stronger keyword matches ("strong" = 3, "medium" = 2, "weak" = 1 point) are summed across non-overlapping matches.</div></div>
+  <div class="term-row"><div class="term-label">Group Score</div><div class="term-body">The sum of its constituent themes' scores. Energy / Commodities, for example, sums the <code>energy</code>, <code>oil</code>, and <code>commodities</code> theme scores.</div></div>
+  <div class="term-row"><div class="term-label">Dominant Narrative Share</div><div class="term-body">The leading theme's count divided by total mentions across all themes — how much of the total conversation the top story occupies.</div></div>
+  <div class="term-row"><div class="term-label">Concentration Gap</div><div class="term-body">The point gap between the top theme and the runner-up. A large gap means a clear leader; a small gap means a close contest.</div></div>
+  <div class="term-row"><div class="term-label">Narrative Concentration</div><div class="term-body">The general idea that Dominant Share and Concentration Gap together describe — is attention spread across many stories, or piled onto one?</div></div>
+  <div class="term-row"><div class="term-label">Leadership label</div><div class="term-body">Each ranked card also carries a plain-language tag: <b>Dominant Narrative</b> (#1), <b>Challenging Leadership</b> (a close #2), or <b>Secondary Narrative</b> (further back).</div></div>
+
+  <div class="figure">
+    <img src="guide_assets/fig_leadership_cards.png" alt="Narrative Leadership cards">
+    <div class="figure-cap"><b>Figure 6.1 —</b> Three ranked Narrative Leadership cards from a live run.</div>
+    <ul class="legend">
+      <li><span class="n">1</span><b>Rank &amp; leadership label</b> — #1 "Dominant Narrative," #2 "Challenging Leadership," #3 "Secondary Narrative."</li>
+      <li><span class="n">2</span><b>Rotation badge</b> — how this group's rank has moved recently (Stable, Losing, Challenging, Dominant, Holding, Challenged, Emerging). This is a separate signal from Pulse — see Section 17.</li>
+      <li><span class="n">3</span><b>Pulse, Acceleration, Crowding</b> — see Section 07 for Pulse; Acceleration and Crowding are covered in Section 10.</li>
+      <li><span class="n">4</span><b>Mentions and the meter bar</b> — the group's raw score, shown relative to the #1 group.</li>
+      <li><span class="n">5</span><b>"Investigate narrative"</b> — opens this narrative in the Research Workspace (Section 18).</li>
+    </ul>
+  </div>
+
+  <div class="callout notmean">
+    <div class="callout-title">Do not interpret it as</div>
+    <p>A prediction that the dominant narrative will keep leading. It is a same-run ranking of existing narrative-group scores, nothing more.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 07 PULSE ============================================================ -->
+<div class="section" id="s-pulse">
+  <div class="eyebrow">07 · Primary Read</div>
+  <h2>Pulse</h2>
+  <div class="term-card">
+    <div class="term-row"><div class="term-label">What it is</div><div class="term-body">A per-narrative-group score (the "strength index") that measures how strongly a narrative is currently pulling attention, weighted mostly by its share of total narrative-group score and how many consecutive runs it has held the lead.</div></div>
+    <div class="term-row"><div class="term-label">Use it to answer</div><div class="term-body">"How much force is behind this narrative right now — is it a passing mention or the center of gravity?"</div></div>
+    <div class="term-row"><div class="term-label">Inputs</div><div class="term-body">Group's share of total narrative-group score (weighted most heavily), leadership persistence in consecutive runs, the group's raw current score, and its acceleration state (Accelerating / Stable / Cooling).</div></div>
+    <div class="term-row"><div class="term-label">What it does not mean</div><div class="term-body">Pulse is deliberately kept separate from acceleration, crowding, and market direction. A high Pulse does not mean the narrative is accelerating, and it says nothing about whether price is confirming it — check Acceleration (Section 10) and Regime (Section 08) separately.</div></div>
+    <div class="term-row"><div class="term-label">Compare with</div><div class="term-body">Narrative Leadership rank (Section 06), Acceleration (Section 10), and Regime Alignment (Section 08) to see whether narrative strength, trend, and market confirmation all agree.</div></div>
+  </div>
+
+  <h3>The five Pulse states</h3>
+  <div class="scale">
+    <div class="s0">Dormant<br><small>0–14</small></div>
+    <div class="s1">Emerging<br><small>15–29</small></div>
+    <div class="s2">Building<br><small>30–49</small></div>
+    <div class="s3">Strong<br><small>50–69</small></div>
+    <div class="s4">Dominant<br><small>70+</small></div>
+  </div>
+  <p>Each Pulse reading also carries its own <b>confidence</b> (High / Medium / Low), based on how much share and persistence back up the state — a "Strong" Pulse backed by 30%+ share and a multi-run streak is High confidence; a "Strong" reading with thin support is Low confidence.</p>
+
+  <div class="callout warn">
+    <div class="callout-title">How it differs from a market signal</div>
+    <p>Pulse measures narrative attention and leadership persistence — not price, not volume, not options flow. A Dominant Pulse describes how much the story is dominating coverage, not how the related assets are trading. For that, look at Regime Alignment and the narrative/market relationship state (Sections 08 and 13).</p>
+  </div>
+</div>
+
+<!-- ============================================================ 08 REGIME ============================================================ -->
+<div class="section" id="s-regime">
+  <div class="eyebrow">08 · Primary Read</div>
+  <h2>Regime</h2>
+  <p class="section-intro">On the dashboard, "Regime" refers to <b>Regime Alignment</b> — a single 0–100 score measuring how well price and market action are <i>confirming</i> the current dominant narrative.</p>
+
+  <div class="two-col">
+    <div>
+      <div class="callout read">
+        <div class="callout-title">Market Environment</div>
+        <p>Classifies the current backdrop (Energy Shock, Risk-Off, Clean Risk-On…) from price moves and narrative signals.</p>
+      </div>
+    </div>
+    <div>
+      <div class="callout read">
+        <div class="callout-title">Regime (Regime Alignment)</div>
+        <p>Scores, 0–100, how well narrative leadership is being confirmed by price, breadth, positioning, and catalysts.</p>
+      </div>
+    </div>
+  </div>
+  <div class="callout read">
+    <div class="callout-title">Operating Mode</div>
+    <p>A display-only interpretation lens (Macro or Nasdaq) that turns the same underlying data into a plain-language "read" sentence. It does not change any score.</p>
+  </div>
+
+  <h3>How the score moves</h3>
+  <p>Regime Alignment starts at a neutral base of 50 and is adjusted by five inputs: the narrative/market relationship state (confirmation adds, divergence or exhaustion subtracts), breadth confirmation, market environment, positioning, and Nasdaq-specific price/volatility context. The result is clamped to 0–100.</p>
+
+  <table>
+    <tr><th>Score</th><th>State</th></tr>
+    <tr><td>80–100</td><td class="state-pill">High Alignment</td></tr>
+    <tr><td>60–79</td><td class="state-pill">Moderate Alignment</td></tr>
+    <tr><td>40–59</td><td class="state-pill">Mixed / Low Alignment</td></tr>
+    <tr><td>20–39</td><td class="state-pill">Conflicted Environment</td></tr>
+    <tr><td>0–19</td><td class="state-pill">Highly Conflicted Environment</td></tr>
+  </table>
+
+  <div class="figure">
+    <img src="guide_assets/fig_regime_history.png" alt="Regime Alignment History chart">
+    <div class="figure-cap"><b>Figure 8.1 —</b> Regime Alignment History from a live run — the score's day-over-day path, ending at 60.0 (Moderate Alignment).</div>
+  </div>
+
+  <div class="callout notmean">
+    <div class="callout-title">Do not interpret it as</div>
+    <p>A trend-strength or volatility-regime indicator in the traditional technical-analysis sense. It specifically measures narrative-to-market agreement, nothing else.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 09 OPERATING MODE ============================================================ -->
+<div class="section" id="s-mode">
+  <div class="eyebrow">09 · Primary Read</div>
+  <h2>Operating Mode</h2>
+  <p class="section-intro">Operating Mode is an interpretation lens, not a scoring input. Two modes are currently implemented:</p>
+  <div class="two-col">
+    <div class="term-card">
+      <h3>Macro</h3>
+      <p>The default mode. Produces a fixed-format "Broad Macro Read" state and a Moderate-confidence sentence naming the dominant group, market state, and breadth state.</p>
+    </div>
+    <div class="term-card">
+      <h3>Nasdaq</h3>
+      <p>A richer, Nasdaq-specific read built from QQQ, NVDA, VIX, and DXY moves, macro stress, AI dominance, catalyst positioning, breadth, and Regime Alignment. States include Nasdaq Macro Pressure, Nasdaq Pre-Catalyst Chop, Nasdaq Risk-On Confirmation, Nasdaq Divergence, and Nasdaq Mixed Conditions.</p>
+    </div>
+  </div>
+  <div class="callout warn">
+    <div class="callout-title">What changing the mode affects</div>
+    <p>Mode changes only the generated headline sentence and its confidence label — it does not change Pulse, Regime Alignment, group scores, theme scores, or any other underlying calculation. Both modes read the same evidence; they just narrate it differently. An unrecognized mode value silently falls back to Macro.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 10 NARRATIVE DYNAMICS ============================================================ -->
+<div class="section" id="s-dynamics">
+  <div class="eyebrow">10 · Primary Read</div>
+  <h2>Narrative Dynamics</h2>
+  <p class="section-intro">A narrative's score tells you where it stands right now. Dynamics tell you where it's headed.</p>
+
+  <div class="term-row"><div class="term-label">Persistence</div><div class="term-body">How many consecutive runs a theme or group has held the dominant position. Shown as a run-streak count feeding both Pulse and the Recent Memory panel in Research Workspace.</div></div>
+  <div class="term-row"><div class="term-label">Acceleration</div><div class="term-body">Compares the most recent score change to the prior one. States: <b>Accelerating</b> (the move is speeding up), <b>Cooling</b> (slowing down), <b>Stable</b>, or <b>Insufficient history</b> with fewer than three runs on record.</div></div>
+  <div class="term-row"><div class="term-label">Momentum</div><div class="term-body">A related but separate trend classifier used in reporting and Narrative Memory: Building, Fading, Cooling, Re-accelerating, Flat, or Stable, based on the last two run-over-run deltas.</div></div>
+  <div class="term-row"><div class="term-label">Crowding</div><div class="term-body">How concentrated and persistent attention on the dominant narrative has become — <b>High / Moderate / Low</b>, from dominant share, streak length, and acceleration. The engine's own note is explicit: <i>this measures narrative attention crowding, not actual market positioning.</i></div></div>
+
+  <h3>Narrative Memory states</h3>
+  <p>In the Research Workspace, a "Recent Memory" panel classifies a narrative's recent behavior into one label: <b>Dominant, Persistent, Building, Fading, Recurring, Re-accelerating, Dormant, Emerging,</b> or <b>Absent</b>, alongside plain-language context like appearances, dominance count, streak length, and score/share deltas.</p>
+
+  <h3>Reading dynamics together — three examples</h3>
+  <div class="three-col">
+    <div class="callout"><div class="callout-title">High score, fading</div><p>A group leads on raw score but Acceleration reads Cooling and Momentum reads Fading — the lead is inherited from past runs, not being reinforced today.</p></div>
+    <div class="callout"><div class="callout-title">Lower score, accelerating</div><p>A #3 group with a modest score but Accelerating momentum can be more informative than a flat #1 — it signals where attention is moving next.</p></div>
+    <div class="callout"><div class="callout-title">Dominant but losing share</div><p>A group can remain #1 by score while its Dominant Share shrinks run over run — leadership intact, but the margin narrowing.</p></div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-title">A note on "Entrenched" and "Decelerating"</div>
+    <p>These two labels are not currently produced anywhere in MNE's dynamics or memory engine. If you've seen them used informally, treat the closest current equivalents as <b>Persistent</b> / <b>Dominant</b> (for "entrenched") and <b>Cooling</b> (for "decelerating").</p>
+  </div>
+</div>
+
+<!-- ============================================================ 11 NARRATIVE BRIEF ============================================================ -->
+<div class="section" id="s-brief">
+  <div class="eyebrow">11 · Primary Read</div>
+  <h2>Narrative Brief</h2>
+  <p class="section-intro">The Narrative Brief translates the run's numbers into a short, plain-language explanation — a headline, a summary, and a handful of key points, each traceable back to the exact fields that produced it.</p>
+
+  <div class="figure">
+    <img src="guide_assets/fig_narrative_brief.png" alt="Narrative Brief card">
+    <div class="figure-cap"><b>Figure 11.1 —</b> A live Narrative Brief, with its "Data Completeness" badge and key points.</div>
+  </div>
+
+  <div class="term-row"><div class="term-label">Headline &amp; summary</div><div class="term-body">Generated from a library of pre-written templates, each gated behind a required-evidence check. A template is only used if every field it needs is actually present in the run.</div></div>
+  <div class="term-row"><div class="term-label">Key points</div><div class="term-body">One line per section (Dominant Story, Why It Changed, Market Agreement, Attention, Overall Assessment), each naming the exact modules that supported it.</div></div>
+  <div class="term-row"><div class="term-label">Data Completeness</div><div class="term-body">The label shown on the badge is the brief's internal <b>confidence</b> field (High / Medium / Low), relabeled for the reader. It drops when required inputs for a section are missing, or when more than one generation template conflicted.</div></div>
+  <div class="term-row"><div class="term-label">When evidence is limited</div><div class="term-body">Each section has a fallback template ("Dominant narrative data is unavailable for this run.") that fires automatically rather than fabricating a read. A style guide also blocks hype language — words like "guaranteed," "certain," or "will" are rejected at the template level, before a brief is ever generated.</div></div>
+
+  <div class="callout warn">
+    <div class="callout-title">Read this as</div>
+    <p>An explanation of the current narrative structure, not as a forecast. Every sentence in the brief is grounded in a specific, logged field from this run — it is describing what already happened in the evidence, not projecting what happens next.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 12 CATALYST ENVIRONMENT ============================================================ -->
+<div class="section" id="s-catalyst">
+  <div class="eyebrow">12 · Primary Read</div>
+  <h2>Catalyst Environment</h2>
+  <p class="section-intro">The Catalyst Environment answers: <b>how much scheduled market-moving news is coming, and how well-verified is that calendar?</b></p>
+
+  <h3>Density and state</h3>
+  <p>MNE counts upcoming <b>red</b> (high-impact) and <b>orange</b> (medium-impact) events over the next 14 days. Density score = (red events × 2) + orange events.</p>
+  <table>
+    <tr><th>Density score</th><th>State</th></tr>
+    <tr><td>0</td><td class="state-pill">Quiet</td></tr>
+    <tr><td>1</td><td class="state-pill">Light</td></tr>
+    <tr><td>2–3</td><td class="state-pill">Moderate</td></tr>
+    <tr><td>4–5</td><td class="state-pill">Elevated</td></tr>
+    <tr><td>6+</td><td class="state-pill">Heavy</td></tr>
+  </table>
+
+  <h3>What counts as red vs. orange</h3>
+  <p>High-impact (red) events currently include CPI, PPI, the Employment Situation (the monthly jobs report), FOMC decisions and press conferences, GDP, and Personal Income and Outlays (which carries the PCE price index). Medium-impact (orange) events include JOLTS, the Employment Cost Index, Import/Export Price Indexes, FOMC Minutes, International Trade, and the EIA's weekly petroleum and natural-gas reports.</p>
+
+  <div class="callout warn">
+    <div class="callout-title">Importance is not direction</div>
+    <p>A CPI print being flagged "high-impact" says nothing about whether it will be bullish or bearish. The red/orange label is purely about expected attention and volatility, never about direction. Nothing in the catalyst engine assigns bullish or bearish meaning to any event.</p>
+  </div>
+
+  <h3>Verified quiet vs. calendar unavailable</h3>
+  <p>A density score of 0 alone is not enough for MNE to claim "nothing is coming." It only labels the calendar <b>Quiet</b> when the automatic macro-calendar refresh is healthy and current. If that refresh was partial, stale, missing, or unparseable, MNE reports <b>Calendar Unavailable</b> or <b>Calendar Stale</b> instead of Quiet — and lowers catalyst confidence — so a failed check is never mistaken for a genuinely clear calendar.</p>
+  <table>
+    <tr><th>Verified Quiet</th><th>Calendar Unavailable / Stale</th></tr>
+    <tr><td>Macro calendar refreshed successfully, and no red/orange events found.</td><td>The refresh itself failed, was partial, or every stored event date is in the past — MNE cannot confirm there's nothing coming.</td></tr>
+  </table>
+
+  <div class="figure">
+    <img src="guide_assets/fig_catalysts_row.png" alt="Market, Catalysts, and Positioning cards">
+    <div class="figure-cap"><b>Figure 12.1 —</b> Live Catalysts card showing state <i>Heavy</i> with a Calendar Notice — the calendar found events, but the refresh itself was only partial, so MNE flags that upcoming coverage may be incomplete even while reporting a real state.</div>
+  </div>
+
+  <p>Company earnings catalysts are sourced automatically for a fixed watchlist of ten large-cap names (NVDA, AAPL, MSFT, GOOGL, META, AMZN, AMD, TSM, AVGO, TSLA); anything outside that list must be added manually to the catalyst calendar.</p>
+</div>
+
+<!-- ============================================================ 13 CONFIRMATION / DIVERGENCE ============================================================ -->
+<div class="section" id="s-confirm">
+  <div class="eyebrow">13 · Primary Read</div>
+  <h2>Market Confirmation &amp; Divergence</h2>
+  <p class="section-intro">This is the narrative/market relationship classifier — it compares what the narrative is saying against what price is actually doing.</p>
+  <table>
+    <tr><th>State</th><th>What it means</th></tr>
+    <tr><td class="state-pill">Narrative Confirmation</td><td>The AI / Tech Growth narrative is stable or accelerating, and QQQ and NVDA are both up while volatility stays controlled — price is validating the story.</td></tr>
+    <tr><td class="state-pill">Narrative Divergence</td><td>The AI / Tech Growth narrative is still strong by score, but QQQ or NVDA is down — the story isn't being confirmed by price.</td></tr>
+    <tr><td class="state-pill">Narrative Exhaustion</td><td>Attention crowding is High, the same group has led for 5+ runs, share is 50%+, but price is now weakening — the narrative may be overextended.</td></tr>
+    <tr><td class="state-pill">Narrative Rotation</td><td>The dominant group changed from the prior run, or the leader is cooling while another group accelerates.</td></tr>
+    <tr><td class="state-pill">Neutral / Mixed</td><td>No clear pattern, or required inputs were unavailable.</td></tr>
+  </table>
+  <div class="callout warn">
+    <div class="callout-title">A scope note</div>
+    <p>The Confirmation and Divergence states are currently only defined for the AI / Tech Growth group. Other dominant groups (Macro Pressure, Energy / Commodities, Geopolitical Risk) will show Rotation or Neutral / Mixed instead — they don't yet have their own confirmation logic.</p>
+  </div>
+
+  <h3>Examples</h3>
+  <ul>
+    <li>AI narrative strengthens, and QQQ and NVDA both confirm with volatility contained → <b>Narrative Confirmation</b>.</li>
+    <li>Energy headlines accelerate, but energy-sensitive assets don't respond → this shows up as <b>Rotation</b> or <b>Neutral / Mixed</b>, since the confirmation logic only tracks AI / Tech Growth directly.</li>
+    <li>Macro stress rises while defensive positioning firms up → reflected through Regime Alignment's market-environment and positioning inputs, not this classifier directly.</li>
+  </ul>
+  <div class="callout notmean">
+    <div class="callout-title">Do not interpret it as</div>
+    <p>A trade signal. "Confirmation" means price and narrative currently agree — it is not an instruction to buy, and "Divergence" is not an instruction to sell.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 14 BREADTH ============================================================ -->
+<div class="section" id="s-breadth">
+  <div class="eyebrow">14 · Primary Read</div>
+  <h2>Breadth</h2>
+  <p class="section-intro">Breadth checks whether index-level moves are broadly shared or concentrated in a handful of large names, using SPY, RSP (equal-weight S&amp;P 500), QQQE (equal-weight Nasdaq-100), and IWM (small caps) alongside QQQ, NVDA, and VIX.</p>
+
+  <div class="two-col">
+    <div class="callout good"><div class="callout-title">Broad participation</div><p>QQQ, SPY, and RSP all rising together, volatility flat or down — strength shared across cap-weighted, equal-weight, and small-cap names.</p></div>
+    <div class="callout warn"><div class="callout-title">Narrow participation</div><p>QQQ and NVDA up while equal-weight and small-cap proxies lag or fall — the index move is a small number of names doing the work.</p></div>
+  </div>
+
+  <table>
+    <tr><th>State</th><th>Meaning</th></tr>
+    <tr><td class="state-pill">Strong Breadth Confirmation</td><td>Broad-based strength across cap-weighted, equal-weight, and small-cap participation.</td></tr>
+    <tr><td class="state-pill">Broad Risk-Off</td><td>Broad-based selling across the same participation set, with volatility rising.</td></tr>
+    <tr><td class="state-pill">Narrow Leadership</td><td>Headline strength concentrated in QQQ/NVDA while broader participation lags.</td></tr>
+    <tr><td class="state-pill">Weak Breadth</td><td>Headline index holding up while underlying participation is deteriorating.</td></tr>
+    <tr><td class="state-pill">Neutral Breadth</td><td>No clear broad confirmation or deterioration — the fallback state.</td></tr>
+  </table>
+
+  <div class="callout notmean">
+    <div class="callout-title">What breadth does not prove</div>
+    <p>Breadth can support or weaken confidence in a narrative read, but it does not by itself prove a move is real or fake — it is one more piece of corroborating context, best read alongside Regime Alignment and the narrative/market relationship state.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 15 POSITIONING ============================================================ -->
+<div class="section" id="s-positioning">
+  <div class="eyebrow">15 · Primary Read</div>
+  <h2>Positioning</h2>
+  <p class="section-intro">On the current dashboard, "Positioning Environment" is a <b>calendar-driven</b> classifier — it describes how close the market is to a high-impact scheduled event, not trader positioning, options skew, or futures data.</p>
+
+  <table>
+    <tr><th>State</th><th>Trigger</th></tr>
+    <tr><td class="state-pill">Active Catalyst Positioning</td><td>A high-impact event is scheduled today.</td></tr>
+    <tr><td class="state-pill">Heavy Event Positioning</td><td>Catalyst density score is 6 or higher.</td></tr>
+    <tr><td class="state-pill">Elevated Positioning Activity</td><td>Catalyst density score is 4 or higher.</td></tr>
+    <tr><td class="state-pill">Pre-Catalyst Positioning</td><td>A high-impact event is scheduled tomorrow.</td></tr>
+    <tr><td class="state-pill">Light Event Positioning</td><td>Some catalyst density, below the Elevated threshold.</td></tr>
+    <tr><td class="state-pill">Normal Positioning Environment</td><td>No nearby high-impact catalysts.</td></tr>
+    <tr><td class="state-pill">Unknown</td><td>Catalyst data wasn't available to classify against.</td></tr>
+  </table>
+
+  <div class="figure">
+    <img src="guide_assets/fig_catalysts_row.png" alt="Positioning card">
+    <div class="figure-cap"><b>Figure 15.1 —</b> In this live run, Positioning read <i>Unknown</i> — "No catalyst environment data available." — a reminder that this classifier depends entirely on the catalyst calendar being present in the shape it expects.</div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-title">What this does not mean</div>
+    <p>MNE does not currently compute trader positioning, options-market crowding, one-sided futures positioning, or unwind risk from market data — those concepts are not implemented in the codebase. What's labeled "Positioning" here is contextual and calendar-based: it tells you how close you are to a scheduled catalyst, not how crowded a trade is. Do not use it as a timing signal for entries or exits. The separate "narrative crowding" concept (Section 10) measures attention concentration, not market positioning, either.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 16 MARKET EXPRESSION MAP ============================================================ -->
+<div class="section" id="s-expr">
+  <div class="eyebrow">16 · Context Mapping</div>
+  <h2>Market Expression Map</h2>
+  <p class="section-intro">MNE maintains a static map from each theme to the assets typically associated with it — primary names, secondary names, and offsets (hedges or inversely-related instruments).</p>
+  <div class="callout warn">
+    <div class="callout-title">Not currently shown on the dashboard</div>
+    <p>This mapping is computed on every run and saved into the run's data, but it is <b>not rendered anywhere in the current dashboard interface</b>. It exists in the underlying data and in text/CLI reports, and it can be cited as supporting context inside a Narrative Brief, but there is no dashboard panel for it today. If you see asset tickers referenced in brief text, this map is the likely source.</p>
+  </div>
+  <p>When it is surfaced (in reports or future dashboard views), each entry is explicitly labeled: <i>"These assets are narrative-expression proxies and not trade recommendations."</i></p>
+  <div class="callout notmean">
+    <div class="callout-title">If this is ever added to the dashboard</div>
+    <p>The Market Expression Map identifies assets connected to a narrative. It does not tell the user to buy or sell them.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 17 TRENDS ============================================================ -->
+<div class="section" id="s-trends">
+  <div class="eyebrow">17 · Supporting Detail</div>
+  <h2>Trends</h2>
+  <p class="section-intro">The Narrative Leadership History table tracks which group led each day, its dominant share, and the gap to the runner-up — the run-over-run story behind the leadership cards.</p>
+
+  <div class="figure">
+    <img src="guide_assets/fig_leadership_history_table.png" alt="Daily Leadership history table">
+    <div class="figure-cap"><b>Figure 17.1 —</b> Ten trading days of daily leadership history from a live run. Notice the leadership change from AI / Tech Growth to Energy / Commodities around 07/07, and back-and-forth with Macro Pressure through mid-July.</div>
+  </div>
+
+  <h3>One run per day, not one row per run</h3>
+  <p>MNE can be run more than once on the same day. To keep this history meaningful, the daily trend views (this table, and the CLI trend reports) collapse each calendar day down to its single most recent run before charting it — so re-running MNE five times on a Tuesday does not inflate Tuesday's weight in the trend line to five data points. This day-collapsing logic is separate from the "Recent Memory" panel in Research Workspace, which instead looks at the last N runs directly, regardless of how many fell on the same day.</p>
+
+  <div class="callout read">
+    <div class="callout-title">How to read the Gap column</div>
+    <p>Gap is the point difference between the day's leader and the runner-up. A widening gap over successive days means the leading narrative is pulling away; a narrowing gap means the field is tightening — worth cross-checking against the rotation badge on the live leadership card.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 18 RESEARCH WORKSPACE ============================================================ -->
+<div class="section" id="s-research">
+  <div class="eyebrow">18 · Going Deeper</div>
+  <h2>Research Workspace</h2>
+  <p class="section-intro">When the dashboard's summary isn't enough, click <b>Investigate narrative</b> on any leadership card — or open <b>Research</b> from the left rail — to enter a focused evidence review for a single narrative.</p>
+
+  <div class="figure">
+    <img src="guide_assets/fig_research_selector.png" alt="Research Workspace selector page">
+    <div class="figure-cap"><b>Figure 18.1 —</b> The narrative selector: one card per investigable narrative in the selected run, both at the group level and the individual theme level.</div>
+  </div>
+
+  <h3>The four zones of a narrative investigation</h3>
+  <div class="rmap">
+    <div class="rmap-item"><div class="num">1</div><div><div class="lbl">Snapshot</div><div class="desc">"What is happening?" — score, Pulse, Regime Alignment, evidence breadth</div></div></div>
+    <div class="rmap-item"><div class="num">2</div><div><div class="lbl">Explanation</div><div class="desc">"Why is it happening?" — the narrative-scoped portion of the Narrative Brief</div></div></div>
+    <div class="rmap-item"><div class="num">3</div><div><div class="lbl">Evidence</div><div class="desc">"What evidence supports it?" — Supporting Evidence, the Evidence Reader, Coverage, and Source Summary</div></div></div>
+    <div class="rmap-item"><div class="num">4</div><div><div class="lbl">Research</div><div class="desc">"Where should I look next?" — links back to the dashboard, admin diagnostics, and related catalysts</div></div></div>
+  </div>
+
+  <div class="figure">
+    <img src="guide_assets/fig_inv_evidence.png" alt="Supporting Evidence and Evidence Reader panels">
+    <div class="figure-cap"><b>Figure 18.2 —</b> Supporting Evidence list (left) with source, provider, and timestamp per item, and the Evidence Reader panel (right) for a quick, headline-level summary of a selected item.</div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-title">Headline-level evidence, stated honestly</div>
+    <p>The Evidence Reader panel is explicit about its own limits. Every item includes the line: <i>"This interpretation is based on the persisted headline and evidence metadata. Full article text is not available in MNE."</i> and <i>"This is not a complete article summary."</i> MNE tells you directly when its knowledge of a story stops at the headline.</p>
+  </div>
+
+  <p><b>Coverage</b> in this view (Minimal / Limited / Moderate / Broad / Extensive) describes how broad the supporting evidence is for one narrative — how many items, sources, and providers back it — and is explicitly not a judgment of narrative quality. <b>Source Summary</b> lists each contributing source with its health and freshness state.</p>
+</div>
+
+<!-- ============================================================ 19 HISTORICAL REPLAY ============================================================ -->
+<div class="section" id="s-replay">
+  <div class="eyebrow">19 · Going Deeper (Admin)</div>
+  <h2>Historical Replay</h2>
+  <p class="section-intro">Historical Replay reconstructs what MNE would have shown on a past date, using only evidence that MNE had actually stored at or before that moment. It is an admin-only, read-only feature.</p>
+
+  <div class="timeline">
+    <div class="tl-seg in">Evidence published<br>on or before the cutoff<br><b>→ included</b></div>
+    <div class="tl-cut"><span>CUTOFF</span></div>
+    <div class="tl-seg out">Evidence published<br>after the cutoff<br><b>→ excluded</b></div>
+  </div>
+
+  <h3>Why replay results may be thin</h3>
+  <p>Two separate limits apply. First, replay can only draw on evidence MNE actually persisted at the time — if live collection wasn't running yet for a given date, there is nothing to replay. Second, an optional <b>Historical Backfill</b> can add older evidence from outside sources, but today that backfill covers exactly one source: Federal Reserve / FOMC public communications. It is explicitly labeled partial coverage, not a full market-news reconstruction.</p>
+
+  <h3>How replay differs from current intelligence</h3>
+  <table>
+    <tr><th></th><th>Live dashboard</th><th>Historical Replay</th></tr>
+    <tr><td><b>Evidence</b></td><td>Current, ongoing collection</td><td>Persisted evidence only, up to a chosen cutoff</td></tr>
+    <tr><td><b>Live fetching</b></td><td>Yes</td><td>Never</td></tr>
+    <tr><td><b>Access</b></td><td>Public dashboard</td><td>Admin only, read only</td></tr>
+    <tr><td><b>Use case</b></td><td>What's happening now</td><td>What MNE could have known on a past date</td></tr>
+  </table>
+
+  <p><b>Historical Comparison</b> takes two completed replay artifacts and shows what changed between them — dominant theme/group shifts, score deltas, and evidence-base differences — without generating any new evidence or scores.</p>
+
+  <div class="callout warn">
+    <div class="callout-title">Read with caution when evidence is thin</div>
+    <p>Historical Research views carry their own warnings when source coverage is limited, and state directly: <i>"Historical coverage may be incomplete if MNE had limited stored evidence for this date."</i> Older replays should be trusted less by default, not more.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 20 CAN / CANNOT ============================================================ -->
+<div class="section" id="s-cancannot">
+  <div class="eyebrow">20 · Scope</div>
+  <h2>What MNE Can &amp; Cannot Tell You</h2>
+  <div class="two-col">
+    <div>
+      <h3 style="color:var(--green)">MNE can help with</h3>
+      <ul>
+        <li>Identifying which narrative is dominating market attention right now</li>
+        <li>Understanding how much and how reliable the underlying evidence is</li>
+        <li>Recognizing when narrative leadership is changing or rotating</li>
+        <li>Seeing which high-impact events are coming up</li>
+        <li>Comparing a narrative's strength against how price is actually behaving</li>
+        <li>Structuring how you prepare for a session, methodically and repeatably</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:#9a3f3f">MNE cannot guarantee</h3>
+      <ul>
+        <li>Market direction, on any timeframe</li>
+        <li>Exact price targets</li>
+        <li>Profitable trades</li>
+        <li>The outcome of any scheduled event</li>
+        <li>Timing precision for entries or exits</li>
+        <li>Complete historical evidence coverage</li>
+        <li>Perfect or continuous source availability</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout notmean" style="margin-top:14px;">
+    <div class="callout-title">The one sentence to remember</div>
+    <p>MNE helps a user understand the environment in which they are making decisions. It does not make the decision for them.</p>
+  </div>
+</div>
+
+<!-- ============================================================ 21 WORKFLOW ============================================================ -->
+<div class="section" id="s-workflow">
+  <div class="eyebrow">21 · Practice</div>
+  <h2>Suggested Daily Workflow</h2>
+
+  <h3>Before market open</h3>
+  <ul>
+    <li>Check run freshness and the Data Quality banner — confirm you're not looking at a stale or thin run.</li>
+    <li>Read the Market Environment and identify the dominant narrative.</li>
+    <li>Review upcoming catalysts and note anything red (high-impact) in the next day or two.</li>
+    <li>Note the confirmation/divergence state — is price already agreeing with the story, or not yet?</li>
+    <li>Ask yourself: what specific evidence, if it appeared today, would invalidate this read?</li>
+  </ul>
+
+  <h3>During the session</h3>
+  <ul>
+    <li>Use MNE as context for interpreting what you're seeing — not as an entry trigger by itself.</li>
+    <li>Watch whether price action is confirming or rejecting the environment MNE described this morning.</li>
+    <li>Resist forcing a trade just because a narrative is dominant — dominance is a description of attention, not permission to act.</li>
+  </ul>
+
+  <h3>After the session</h3>
+  <ul>
+    <li>Compare what changed against the "What Changed Since Last Run" card.</li>
+    <li>Review acceleration and persistence — is the story building, cooling, or unchanged?</li>
+    <li>If something surprised you, open Research Workspace and read the actual supporting evidence, not just the score.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ 22 WORKED EXAMPLE ============================================================ -->
+<div class="section" id="s-worked">
+  <div class="eyebrow">22 · Complete Walkthrough</div>
+  <h2>Worked Example</h2>
+  <p class="section-intro">A full read-through of one real, live MNE run, captured for this guide on <b>2026-07-16 at 11:57</b>. Every figure below is sourced directly from that run.</p>
+
+  <div class="wex-grid">
+    <div class="wex-chip"><div class="k">Data Quality</div><div class="v">Limited evidence base</div><div class="r">High confidence · 91 accepted evidence · 13 providers</div></div>
+    <div class="wex-chip"><div class="k">Market Environment</div><div class="v">Energy Shock</div><div class="r">Energy and inflation elevated, macro stress high</div></div>
+    <div class="wex-chip"><div class="k">Dominant Narrative</div><div class="v">Energy / Commodities</div><div class="r">19 mentions · 45.2% dominant share · gap of 9</div></div>
+    <div class="wex-chip"><div class="k">Pulse</div><div class="v">Strong</div><div class="r">High confidence · Accelerating</div></div>
+    <div class="wex-chip"><div class="k">Regime Alignment</div><div class="v">60 / 100</div><div class="r">Moderate Alignment</div></div>
+    <div class="wex-chip"><div class="k">Narrative / Market Relationship</div><div class="v">Narrative Rotation</div><div class="r">Leadership changed from Macro Pressure this run</div></div>
+    <div class="wex-chip"><div class="k">Catalyst Environment</div><div class="v">Heavy</div><div class="r">Macro calendar refresh was partial</div></div>
+    <div class="wex-chip"><div class="k">Breadth</div><div class="v">Neutral Breadth</div><div class="r">No clear broad confirmation either way</div></div>
+    <div class="wex-chip"><div class="k">Positioning</div><div class="v">Unknown</div><div class="r">No catalyst environment data available for this classifier</div></div>
+  </div>
+
+  <h3>Walking through it</h3>
+  <p><b>Data quality first.</b> The banner read "Limited evidence base" at High summary confidence — enough evidence to read the run, with a stated network constraint. That set the caution level for everything that followed.</p>
+  <p><b>Environment and dominant narrative.</b> Market Environment read Energy Shock. Narrative Leadership confirmed Energy / Commodities as the clear #1, having just taken leadership from Macro Pressure — visible directly in the "What Changed Since Last Run" card ("Energy / Commodities took leadership from Macro Pressure").</p>
+  <p><b>Pulse and Regime.</b> Pulse was Strong with High confidence and an Accelerating trend — this wasn't a narrative merely holding on to a prior lead, it was actively strengthening. Regime Alignment sat at 60 (Moderate Alignment) — price and market context were partially, not fully, confirming the story.</p>
+  <p><b>Persistence and catalysts.</b> Research Workspace showed Energy / Commodities dominant in 10 of the last 10 meaningful runs, with a 10-run streak and +18.0 point share delta — a narrative gaining ground, not just persisting. The Catalyst Environment read Heavy, but with a Calendar Notice flagging a partial macro-calendar refresh, so upcoming coverage might understate what's actually scheduled.</p>
+  <p><b>Confirmation and positioning.</b> The narrative/market relationship read Narrative Rotation (a same-run leadership change), and Breadth was Neutral — no strong broad confirmation either direction. Positioning read Unknown, because the calendar data it depends on wasn't available in the shape that classifier needed.</p>
+
+  <div class="figure">
+    <img src="guide_assets/fig_inv_memory.png" alt="Recent Memory panel for Energy / Commodities">
+    <div class="figure-cap"><b>Figure 22.1 —</b> The Recent Memory panel for Energy / Commodities from this run.</div>
+  </div>
+
+  <div class="two-col" style="margin-top:14px;">
+    <div class="callout good">
+      <div class="callout-title">What the dashboard suggests</div>
+      <p>Energy / Commodities was the clear, strengthening center of market attention, backed by a real and accelerating evidence trend — not a one-run spike.</p>
+    </div>
+    <div class="callout warn">
+      <div class="callout-title">What remains uncertain</div>
+      <p>Regime Alignment was only Moderate, breadth was Neutral, and positioning context was unavailable — market confirmation was partial, not complete, and the catalyst calendar itself was flagged as an incomplete refresh.</p>
+    </div>
+  </div>
+  <div class="callout read" style="margin-top:10px;">
+    <div class="callout-title">What the user should monitor next</div>
+    <p>Whether Regime Alignment moves toward High Alignment as more market confirmation arrives, whether the macro calendar refresh completes and changes the catalyst read, and whether Energy / Commodities' Pulse and share continue to build or begin cooling in the next run.</p>
+  </div>
+  <p style="margin-top:10px; font-size:8.6pt; color:var(--ink-faint);">This walkthrough is a description of one run's data, not a trade recommendation. See Section 20 for what MNE can and cannot tell you.</p>
+</div>
+
+<!-- ============================================================ 23 GLOSSARY ============================================================ -->
+<div class="section page-break" id="s-glossary">
+  <div class="eyebrow">23 · Reference</div>
+  <h2>Complete Glossary</h2>
+  <p class="section-intro">Every term used on the dashboard, defined in one place. Where a state applies specific numeric thresholds, see the relevant numbered section for detail.</p>
+
+  <dl class="gloss">
+    <div class="gterm"><dt>Accepted Evidence</dt><dd>An evidence item that passed acceptance checks this run (not a duplicate, not stale, has a parseable timestamp). Counted on the Trust Summary banner.</dd></div>
+    <div class="gterm"><dt>Acceleration</dt><dd>Whether a narrative's score change is speeding up (Accelerating), slowing (Cooling), or flat (Stable), based on the last three runs. §10</dd></div>
+    <div class="gterm"><dt>Breadth</dt><dd>Whether index-level strength or weakness is shared broadly across cap-weighted, equal-weight, and small-cap proxies, or concentrated in a few names. §14</dd></div>
+    <div class="gterm"><dt>Catalyst</dt><dd>A scheduled, market-relevant event — a macro data release, a Fed decision, an earnings report — tagged as high-impact (red) or medium-impact (orange). §12</dd></div>
+    <div class="gterm"><dt>Catalyst Density</dt><dd>A weighted count of upcoming red and orange catalysts within a 14-day lookahead window. §12</dd></div>
+    <div class="gterm"><dt>Catalyst Environment</dt><dd>The dashboard card combining catalyst density, state, and calendar-coverage confidence. §12</dd></div>
+    <div class="gterm"><dt>Concentration Gap</dt><dd>The score gap between the top theme and its closest rival. Larger = clearer leader. §06</dd></div>
+    <div class="gterm"><dt>Confidence</dt><dd>Appears throughout the dashboard with different scopes each time — evidence-base confidence, catalyst confidence, Pulse confidence, brief confidence. Always read it next to the label it's attached to, not on its own.</dd></div>
+    <div class="gterm"><dt>Confirmation</dt><dd>"Narrative Confirmation" — price action (currently tracked for AI / Tech Growth) agreeing with a strengthening narrative. §13</dd></div>
+    <div class="gterm"><dt>Coverage</dt><dd>How broadly a narrative's supporting evidence spans across items, sources, and providers: Minimal, Limited, Moderate, Broad, or Extensive. Not a quality judgment. §18</dd></div>
+    <div class="gterm"><dt>Crowding</dt><dd>How concentrated and persistent narrative <i>attention</i> has become (High/Moderate/Low) — explicitly not a measure of market positioning. §10, §15</dd></div>
+    <div class="gterm"><dt>Data Completeness</dt><dd>The user-facing label for a Narrative Brief's internal confidence score (High/Medium/Low). §11</dd></div>
+    <div class="gterm"><dt>Divergence</dt><dd>"Narrative Divergence" — a strong or accelerating narrative (currently tracked for AI / Tech Growth) whose related assets are falling instead of confirming it. §13</dd></div>
+    <div class="gterm"><dt>Dominant Narrative</dt><dd>The single theme with the highest score this run. §06</dd></div>
+    <div class="gterm"><dt>Dominant Narrative Group</dt><dd>The narrative group (of four fixed groups) with the highest summed score this run. §06</dd></div>
+    <div class="gterm"><dt>Dominant Narrative Share</dt><dd>The dominant theme's mention count divided by total mentions across all themes. §06</dd></div>
+    <div class="gterm"><dt>Energy Dominance</dt><dd>A narrative-strength signal for the energy theme: HIGH, ELEVATED, or LOW, based on share and concentration. Feeds Market Environment.</dd></div>
+    <div class="gterm"><dt>Entrenched</dt><dd>Not currently produced by MNE's dynamics or memory engine. The closest current states are Persistent and Dominant. §10</dd></div>
+    <div class="gterm"><dt>Evidence Funnel</dt><dd>The count of items fetched vs. accepted (fresh) vs. rejected (stale, duplicate, or unknown-timestamp) each run.</dd></div>
+    <div class="gterm"><dt>Evidence Network</dt><dd>The Trust Summary fact label for the composite Network Confidence / Network Health read. §04</dd></div>
+    <div class="gterm"><dt>Evidence Reader</dt><dd>The Research Workspace panel that gives a headline-level summary of one evidence item, with explicit "what MNE knows / does not know" sections. §18</dd></div>
+    <div class="gterm"><dt>Exhaustion</dt><dd>"Narrative Exhaustion" — high, persistent attention crowding on a dominant narrative even as price begins weakening. §13</dd></div>
+    <div class="gterm"><dt>Feed Health</dt><dd>Per-source fetch outcome this run: Healthy, Partial, Empty, Offline, Redirected, Parse Error, Rate Limited, Blocked, or Unknown.</dd></div>
+    <div class="gterm"><dt>Freshness</dt><dd>Whether evidence or a source's latest item arrived within its configured recency threshold: Fresh, Stale, Unknown, or (source-level) Quiet.</dd></div>
+    <div class="gterm"><dt>Group Score</dt><dd>The sum of a narrative group's constituent theme scores. §06</dd></div>
+    <div class="gterm"><dt>Historical Replay</dt><dd>An admin-only reconstruction of what MNE would have shown on a past date, using only evidence persisted at or before a chosen cutoff. §19</dd></div>
+    <div class="gterm"><dt>Latest Meaningful Run</dt><dd>The newest result file that actually produced narrative signal — the dashboard's default, skipping empty or failed newer runs. §04</dd></div>
+    <div class="gterm"><dt>Macro Stress</dt><dd>A composite signal (HIGH/ELEVATED/MODERATE/LOW) built from energy, rates, inflation, and recession theme intensity. Feeds Market Environment and Regime.</dd></div>
+    <div class="gterm"><dt>Market Environment</dt><dd>The classified current market backdrop (Energy Shock, Risk-Off, Clean Risk-On, etc.). §05</dd></div>
+    <div class="gterm"><dt>Market Expression</dt><dd>A static per-theme map of associated primary, secondary, and offset tickers. Computed, but not currently shown on the dashboard. §16</dd></div>
+    <div class="gterm"><dt>Momentum</dt><dd>A trend classifier (Building/Fading/Cooling/Re-accelerating/Flat/Stable) used in reporting and Narrative Memory. §10</dd></div>
+    <div class="gterm"><dt>Narrative</dt><dd>A recurring market story tracked at either theme level (e.g. "energy") or group level (e.g. "Energy / Commodities"). §06</dd></div>
+    <div class="gterm"><dt>Narrative Brief</dt><dd>The generated plain-language explanation of the current dominant narrative and its supporting evidence. §11</dd></div>
+    <div class="gterm"><dt>Narrative Concentration</dt><dd>How much of total narrative attention is piled onto the leading story, vs. spread across several. §06</dd></div>
+    <div class="gterm"><dt>Narrative Group</dt><dd>One of four fixed roll-ups: AI / Tech Growth, Macro Pressure, Energy / Commodities, Geopolitical Risk. §06</dd></div>
+    <div class="gterm"><dt>Narrative Leadership</dt><dd>The ranked view of narrative groups by score, with rotation and Pulse context. §06</dd></div>
+    <div class="gterm"><dt>Narrative Persistence</dt><dd>Consecutive runs a theme or group has held the dominant position. §10</dd></div>
+    <div class="gterm"><dt>Network Confidence</dt><dd>A composite trust signal (HIGH/MODERATE/LOW/VERY_LOW/UNKNOWN) built from network health, source confidence, source reliability, and coverage together. §04</dd></div>
+    <div class="gterm"><dt>Network Health</dt><dd>Feed-infrastructure status by provider and category: Healthy, Partial, Degraded, or Critical. §04</dd></div>
+    <div class="gterm"><dt>Operating Mode</dt><dd>The display lens (Macro or Nasdaq) used to narrate the same underlying data. Does not change scoring. §09</dd></div>
+    <div class="gterm"><dt>Partial Coverage</dt><dd>Not a single fixed state — used loosely for two distinct things: a partial macro-calendar refresh (§12), and Minimal-level narrative evidence coverage, labeled "Thin" on the Trust Summary (§04).</dd></div>
+    <div class="gterm"><dt>Positioning</dt><dd>A calendar-proximity classifier — not trader positioning, options data, or unwind risk. §15</dd></div>
+    <div class="gterm"><dt>Pulse</dt><dd>A per-group strength index (Dormant/Emerging/Building/Strong/Dominant), weighted mostly by share and leadership persistence. §07</dd></div>
+    <div class="gterm"><dt>Regime</dt><dd>Regime Alignment — a 0–100 score measuring how well price action confirms the dominant narrative. §08</dd></div>
+    <div class="gterm"><dt>Rotation</dt><dd>Two distinct uses: "Narrative Rotation" (a narrative/market relationship state, §13) and a leadership card's rotation badge (Dominant/Holding/Challenged/Challenging/Emerging/Losing/Stable, describing rank stability, §06).</dd></div>
+    <div class="gterm"><dt>Source Confidence</dt><dd>A single-run, whole-network read of fetch success, contribution, and freshness ratios: High/Moderate/Low/Unknown. §04</dd></div>
+    <div class="gterm"><dt>Source Reliability</dt><dd>A per-source, multi-run behavioral track record: Stable/Watch/Repeated Failure/Quarantine Recommended/Unknown. §04</dd></div>
+    <div class="gterm"><dt>Theme</dt><dd>The most granular narrative unit — e.g. energy, ai, inflation, recession, rates. §06</dd></div>
+    <div class="gterm"><dt>Theme Score</dt><dd>A keyword-weighted count of matching headlines for one theme. §06</dd></div>
+    <div class="gterm"><dt>Thin Evidence Base</dt><dd>A Trust Summary state: very little accepted evidence this run, or a forced fallback to an older meaningful run. §04</dd></div>
+    <div class="gterm"><dt>Trust Summary</dt><dd>The Data Quality banner at the top of the dashboard, stating evidence-base state, confidence, and supporting facts. §04</dd></div>
+    <div class="gterm"><dt>Verified Quiet Calendar</dt><dd>A "Quiet" catalyst state backed by a successful, current macro-calendar refresh — distinct from a calendar that's simply unavailable. §12</dd></div>
+  </dl>
+</div>
