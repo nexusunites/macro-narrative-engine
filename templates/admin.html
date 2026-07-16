@@ -41,6 +41,7 @@
     {% set recent_replays = replay_console.get("recent_replays", {}) %}
     <nav class="zone-jump admin-section-nav" aria-label="Admin sections">
       <a href="#historical-replay">Historical Replay</a>
+      <a href="#historical-comparison">Historical Comparison</a>
       <a href="#operations-center">Operations Center</a>
       <a href="#configuration-diagnostics">Configuration</a>
       <a href="#recent-runs">Recent Runs</a>
@@ -221,6 +222,39 @@
           {% else %}
             <p class="muted">No historical replay has been run from this console yet.</p>
           {% endif %}
+        {% endif %}
+      </article>
+    </section>
+
+    <section class="content-section historical-bridge" id="historical-comparison">
+      <div class="section-heading">
+        <p class="eyebrow">Historical Comparison</p>
+        <h2>Compare Two Replays</h2>
+        <p class="leadership-read">Compare two completed replay artifacts. This does not run a new replay or fetch any source.</p>
+      </div>
+      <article class="card">
+        {% if recent_replays.get("files") %}
+          <form method="get" action="/admin/replay/compare" class="replay-form">
+            <div>
+              <label for="replay_a">Replay A</label>
+              <select id="replay_a" name="replay_a" required>
+                {% for replay_file in recent_replays.get("files", []) if replay_file.replay_id %}
+                  <option value="{{ replay_file.replay_id }}">{{ replay_file.filename }} ({{ replay_file.replay_date or "Unavailable" }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label for="replay_b">Replay B</label>
+              <select id="replay_b" name="replay_b" required>
+                {% for replay_file in recent_replays.get("files", []) if replay_file.replay_id %}
+                  <option value="{{ replay_file.replay_id }}">{{ replay_file.filename }} ({{ replay_file.replay_date or "Unavailable" }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit">Compare</button>
+          </form>
+        {% else %}
+          <p class="muted">No replay artifacts are available to compare.</p>
         {% endif %}
       </article>
     </section>

@@ -16,6 +16,7 @@ from mne.config_diagnostics import build_configuration_report, format_startup_re
 from mne.dashboard_trust_summary import build_dashboard_trust_summary
 from mne.event_lifecycle import load_event_definitions
 from mne import historical_replay
+from mne.historical_comparison import build_historical_comparison
 from mne.historical_research import (
     HistoricalResearchError,
     build_historical_research_context,
@@ -1355,6 +1356,26 @@ def build_historical_research_route_context(request: Request, replay_id: str):
     return context
 
 
+def build_historical_comparison_route_context(request: Request, replay_a: str, replay_b: str):
+    context = {
+        "request": request,
+        "message": None,
+        "comparison": None,
+    }
+    replay_a = (replay_a or "").strip()
+    replay_b = (replay_b or "").strip()
+    if not replay_a or not replay_b:
+        context["message"] = "Select two replay artifacts to compare."
+        return context
+    try:
+        context["comparison"] = build_historical_comparison(replay_a, replay_b)
+    except HistoricalResearchError as error:
+        context["message"] = error.message
+    except Exception:
+        context["message"] = "The selected replay artifacts could not be compared."
+    return context
+
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, run: Optional[str] = Query(default=None)):
     context = build_template_context(request, run, meaningful_default=True)
@@ -1434,6 +1455,16 @@ def admin_narrative_investigation(request: Request, key: str):
 def admin_historical_research(request: Request, replay_id: str):
     context = build_historical_research_route_context(request, replay_id)
     return templates.TemplateResponse("historical_research.html", context)
+
+
+@app.get("/admin/replay/compare", response_class=HTMLResponse)
+def admin_historical_comparison(
+    request: Request,
+    replay_a: Optional[str] = Query(default=None),
+    replay_b: Optional[str] = Query(default=None),
+):
+    context = build_historical_comparison_route_context(request, replay_a, replay_b)
+    return templates.TemplateResponse("historical_comparison.html", context)
 
 
 if __name__ == "__main__":
