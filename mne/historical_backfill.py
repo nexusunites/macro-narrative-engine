@@ -5,12 +5,13 @@ from datetime import date, datetime, time, timezone
 from pathlib import Path
 
 import config
-from mne.backfill_sources import fed_fomc
+from mne.backfill_sources import bls_cpi, fed_fomc
 from mne.evidence import EVIDENCE_TYPE_HEADLINE, EvidenceObject, generate_evidence_id
 from mne.freshness import UNKNOWN
 
 
 SUPPORTED_SOURCE = "fed_fomc"
+SUPPORTED_SOURCES = (SUPPORTED_SOURCE, "bls_cpi")
 SUPPORTED_MODE = "macro"
 STORAGE_TIER = "TIER_2_NORMALIZED_EVIDENCE"
 EVIDENCE_ORIGIN = "HISTORICAL_BACKFILL"
@@ -22,6 +23,45 @@ LIMITATIONS = [
     "Historical reconstruction available for supported sources.",
     "This date has partial historical coverage.",
 ]
+BLS_WARNINGS = (
+    "BLS CPI backfill covers official CPI/inflation releases only.",
+    WARNING_PARTIAL_COVERAGE,
+    WARNING_NO_LIVE_SOURCES,
+    WARNING_NO_PAYWALLED_NEWS,
+)
+BLS_LIMITATIONS = [
+    "Historical reconstruction covers official BLS CPI/inflation releases only.",
+    "This date range has partial historical coverage and excludes market news and other BLS releases.",
+]
+
+
+SOURCE_SPECS = {
+    SUPPORTED_SOURCE: {
+        "fetch": fed_fomc.fetch_fed_fomc_records,
+        "normalize": fed_fomc.normalize_fed_fomc_record,
+        "provider": "Federal Reserve",
+        "category": "Central Bank Communications",
+        "warnings": (
+            WARNING_SOURCE_SCOPE,
+            WARNING_PARTIAL_COVERAGE,
+            WARNING_NO_LIVE_SOURCES,
+            WARNING_NO_PAYWALLED_NEWS,
+        ),
+        "limitations": LIMITATIONS,
+        "empty_warning": "No Fed/FOMC statement evidence was found for the requested date range.",
+        "record_label": "Fed/FOMC",
+    },
+    "bls_cpi": {
+        "fetch": bls_cpi.fetch_bls_cpi_records,
+        "normalize": bls_cpi.normalize_bls_cpi_record,
+        "provider": "BLS",
+        "category": "Inflation / Economic Data",
+        "warnings": BLS_WARNINGS,
+        "limitations": BLS_LIMITATIONS,
+        "empty_warning": "No BLS CPI release evidence was found for the requested date range.",
+        "record_label": "BLS CPI",
+    },
+}
 
 
 @dataclass(frozen=True)
@@ -55,8 +95,9 @@ def build_backfill_request(
         raise ValueError(f"Unsupported historical backfill narrative_mode: {narrative_mode!r}")
 
     categories = tuple(str(item).strip().lower() for item in source_categories)
-    if categories != (SUPPORTED_SOURCE,):
-        raise ValueError("Unsupported historical backfill source; only fed_fomc is supported.")
+    if len(categories) != 1 or categories[0] not in SUPPORTED_SOURCES:
+        raise ValueError(_unsupported_source_message())
+    source_id = categories[0]
     if requested_date is None and requested_range is None:
         raise ValueError("Either requested_date or requested_range is required.")
     if requested_date is not None and requested_range is not None:
@@ -77,26 +118,23 @@ def build_backfill_request(
         id_date_part = f"{start.isoformat()}_{end.isoformat()}"
 
     return BackfillRequest(
-        backfill_id=f"backfill_{id_date_part}_{normalized_mode}_{SUPPORTED_SOURCE}",
+        backfill_id=f"backfill_{id_date_part}_{normalized_mode}_{source_id}",
         requested_date=request_date,
         requested_range=(start.isoformat(), end.isoformat()),
         narrative_mode=normalized_mode,
         source_categories=categories,
         evidence_cutoff=_format_utc(datetime.combine(end, time.max, tzinfo=timezone.utc)),
         generated_at=_format_utc(datetime.now(timezone.utc)),
-        warnings=(
-            WARNING_SOURCE_SCOPE,
-            WARNING_PARTIAL_COVERAGE,
-            WARNING_NO_LIVE_SOURCES,
-            WARNING_NO_PAYWALLED_NEWS,
-        ),
+        warnings=SOURCE_SPECS[source_id]["warnings"],
     )
 
 
 def run_historical_backfill(request, connector=None, fetch=None) -> dict:
     coerced = _coerce_request(request)
     _validate_supported_request(coerced)
-    connector_fn = connector or fed_fomc.fetch_fed_fomc_records
+    source_id = coerced.source_categories[0]
+    source_spec = SOURCE_SPECS[source_id]
+    connector_fn = connector or source_spec["fetch"]
     raw_records = connector_fn(
         coerced.requested_range[0],
         coerced.requested_range[1],
@@ -111,9 +149,15 @@ def run_historical_backfill(request, connector=None, fetch=None) -> dict:
 
     for raw_record in raw_records:
         try:
-            connector_record = fed_fomc.normalize_fed_fomc_record(raw_record)
+            connector_record = source_spec["normalize"](raw_record)
             connector_records.append(connector_record)
-            evidence = normalize_backfill_record(connector_record, coerced.backfill_id)
+            evidence = normalize_backfill_record(
+                connector_record,
+                coerced.backfill_id,
+                historical_source_id=source_id,
+                provider=source_spec["provider"],
+                category=source_spec["category"],
+            )
         except (TypeError, ValueError) as error:
             normalization_errors.append(str(error))
             continue
@@ -125,11 +169,11 @@ def run_historical_backfill(request, connector=None, fetch=None) -> dict:
 
     if normalization_errors:
         warnings.append(
-            f"{len(normalization_errors)} raw Fed/FOMC record(s) could not be normalized."
+            f"{len(normalization_errors)} raw {source_spec['record_label']} record(s) could not be normalized."
         )
     if len(connector_records) != len(evidence_objects):
-        warnings.append("Duplicate Fed/FOMC records were deduped deterministically.")
-    source_coverage = _source_coverage(connector_records)
+        warnings.append(f"Duplicate {source_spec['record_label']} records were deduped deterministically.")
+    source_coverage = _source_coverage(connector_records, source_id=source_id)
     manifest = build_backfill_manifest(coerced, evidence_objects, warnings, source_coverage, len(raw_records))
     return {
         "request": coerced,
@@ -196,12 +240,14 @@ def build_backfill_manifest(
     records_found=None,
 ) -> dict:
     coerced = _coerce_request(request)
+    source_id = coerced.source_categories[0]
+    source_spec = SOURCE_SPECS[source_id]
     evidence_count = len(normalized_evidence)
     unresolved_errors = any("could not be normalized" in warning for warning in warnings)
     replay_ready = evidence_count > 0 and not unresolved_errors
     final_warnings = list(dict.fromkeys(warnings))
     if evidence_count == 0:
-        final_warnings.append("No Fed/FOMC statement evidence was found for the requested date range.")
+        final_warnings.append(source_spec["empty_warning"])
     if not replay_ready:
         final_warnings.append("Backfill evidence is not replay-ready because no accepted evidence was produced or normalization errors remain.")
 
@@ -210,16 +256,16 @@ def build_backfill_manifest(
         "requested_start_date": coerced.requested_range[0],
         "requested_end_date": coerced.requested_range[1],
         "generated_at": _format_utc(datetime.now(timezone.utc)),
-        "source_id": SUPPORTED_SOURCE,
-        "provider": "Federal Reserve",
-        "category": "Central Bank Communications",
+        "source_id": source_id,
+        "provider": source_spec["provider"],
+        "category": source_spec["category"],
         "records_found": len(normalized_evidence) if records_found is None else records_found,
         "evidence_count": evidence_count,
         "date_range_covered": source_coverage,
         "storage_tier": STORAGE_TIER,
         "warnings": list(dict.fromkeys(final_warnings)),
         "replay_ready": replay_ready,
-        "limitations": LIMITATIONS,
+        "limitations": source_spec["limitations"],
         "status": "COMPLETE" if replay_ready else "PARTIAL",
     }
 
@@ -287,9 +333,13 @@ def load_backfilled_evidence(backfill_id=None, requested_date=None, data_dir=Non
 
 
 def run_and_persist_historical_backfill(source, start, end, fetch=None, data_dir=None):
-    if str(source).strip().lower() != SUPPORTED_SOURCE:
-        raise ValueError("Unsupported historical backfill source; only fed_fomc is supported.")
-    request = build_backfill_request(requested_range=(start, end))
+    source_id = str(source).strip().lower()
+    if source_id not in SUPPORTED_SOURCES:
+        raise ValueError(_unsupported_source_message())
+    request = build_backfill_request(
+        requested_range=(start, end),
+        source_categories=(source_id,),
+    )
     result = run_historical_backfill(request, fetch=fetch)
     path = persist_backfill_result(
         result["request"],
@@ -302,7 +352,12 @@ def run_and_persist_historical_backfill(source, start, end, fetch=None, data_dir
 
 def main(args=None):
     parser = argparse.ArgumentParser(description="Run a historical evidence backfill.")
-    parser.add_argument("--source", required=True, help="Backfill source; only fed_fomc is supported.")
+    parser.add_argument(
+        "--source",
+        required=True,
+        choices=SUPPORTED_SOURCES,
+        help="Backfill source (fed_fomc or bls_cpi).",
+    )
     parser.add_argument("--start", required=True, help="Start date as YYYY-MM-DD.")
     parser.add_argument("--end", required=True, help="End date as YYYY-MM-DD.")
     parsed = parser.parse_args(args)
@@ -333,17 +388,23 @@ def _coerce_request(value) -> BackfillRequest:
 def _validate_supported_request(request: BackfillRequest):
     if request.narrative_mode != SUPPORTED_MODE:
         raise ValueError(f"Unsupported historical backfill narrative_mode: {request.narrative_mode!r}")
-    if tuple(request.source_categories) != (SUPPORTED_SOURCE,):
-        raise ValueError("Unsupported historical backfill source; only fed_fomc is supported.")
+    if len(request.source_categories) != 1 or request.source_categories[0] not in SUPPORTED_SOURCES:
+        raise ValueError(_unsupported_source_message())
 
 
-def _source_coverage(records: list[dict]) -> dict:
+def _source_coverage(records: list[dict], source_id=SUPPORTED_SOURCE) -> dict:
     dates = [
         _format_utc(record["published_at"])[:10]
         for record in records
         if record.get("published_at")
     ]
-    return {"earliest": min(dates) if dates else None, "latest": max(dates) if dates else None}
+    if source_id == SUPPORTED_SOURCE:
+        return {"earliest": min(dates) if dates else None, "latest": max(dates) if dates else None}
+    return {"start": min(dates) if dates else None, "end": max(dates) if dates else None}
+
+
+def _unsupported_source_message() -> str:
+    return "Unsupported historical backfill source; valid options are: fed_fomc, bls_cpi."
 
 
 def _latest_backfill_id_for_date(requested_date, data_dir=None) -> str | None:
@@ -404,4 +465,3 @@ def _required_text(value, field_name: str) -> str:
 
 if __name__ == "__main__":
     main()
-
