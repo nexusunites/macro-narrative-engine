@@ -5,13 +5,13 @@ from datetime import date, datetime, time, timezone
 from pathlib import Path
 
 import config
-from mne.backfill_sources import bls_cpi, fed_fomc
+from mne.backfill_sources import bea_gdp_pce, bls_cpi, fed_fomc
 from mne.evidence import EVIDENCE_TYPE_HEADLINE, EvidenceObject, generate_evidence_id
 from mne.freshness import UNKNOWN
 
 
 SUPPORTED_SOURCE = "fed_fomc"
-SUPPORTED_SOURCES = (SUPPORTED_SOURCE, "bls_cpi")
+SUPPORTED_SOURCES = (SUPPORTED_SOURCE, "bls_cpi", "bea_gdp_pce")
 SUPPORTED_MODE = "macro"
 STORAGE_TIER = "TIER_2_NORMALIZED_EVIDENCE"
 EVIDENCE_ORIGIN = "HISTORICAL_BACKFILL"
@@ -32,6 +32,16 @@ BLS_WARNINGS = (
 BLS_LIMITATIONS = [
     "Historical reconstruction covers official BLS CPI/inflation releases only.",
     "This date range has partial historical coverage and excludes market news and other BLS releases.",
+]
+BEA_WARNINGS = (
+    "BEA GDP/PCE backfill covers official BEA macroeconomic releases only.",
+    WARNING_PARTIAL_COVERAGE,
+    WARNING_NO_LIVE_SOURCES,
+    WARNING_NO_PAYWALLED_NEWS,
+)
+BEA_LIMITATIONS = [
+    "Historical reconstruction covers official BEA GDP and Personal Income and Outlays (PCE) releases only.",
+    "This date range has partial historical coverage and excludes market news, other BEA releases (e.g., industry GDP, regional GDP, international trade), and other agencies' data.",
 ]
 
 
@@ -60,6 +70,16 @@ SOURCE_SPECS = {
         "limitations": BLS_LIMITATIONS,
         "empty_warning": "No BLS CPI release evidence was found for the requested date range.",
         "record_label": "BLS CPI",
+    },
+    "bea_gdp_pce": {
+        "fetch": bea_gdp_pce.fetch_bea_gdp_pce_records,
+        "normalize": bea_gdp_pce.normalize_bea_gdp_pce_record,
+        "provider": "BEA",
+        "category": "Economic Data / Growth / Inflation",
+        "warnings": BEA_WARNINGS,
+        "limitations": BEA_LIMITATIONS,
+        "empty_warning": "No BEA GDP/PCE release evidence was found for the requested date range.",
+        "record_label": "BEA GDP/PCE",
     },
 }
 
@@ -356,7 +376,7 @@ def main(args=None):
         "--source",
         required=True,
         choices=SUPPORTED_SOURCES,
-        help="Backfill source (fed_fomc or bls_cpi).",
+        help="Backfill source (fed_fomc, bls_cpi, or bea_gdp_pce).",
     )
     parser.add_argument("--start", required=True, help="Start date as YYYY-MM-DD.")
     parser.add_argument("--end", required=True, help="End date as YYYY-MM-DD.")
@@ -404,7 +424,7 @@ def _source_coverage(records: list[dict], source_id=SUPPORTED_SOURCE) -> dict:
 
 
 def _unsupported_source_message() -> str:
-    return "Unsupported historical backfill source; valid options are: fed_fomc, bls_cpi."
+    return "Unsupported historical backfill source; valid options are: fed_fomc, bls_cpi, bea_gdp_pce."
 
 
 def _latest_backfill_id_for_date(requested_date, data_dir=None) -> str | None:

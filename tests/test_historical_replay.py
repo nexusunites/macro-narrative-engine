@@ -395,6 +395,32 @@ class HistoricalReplayTests(unittest.TestCase):
         self.assertEqual(output["evidence_count"], 1)
         self.assertTrue(output["replay_metadata"]["backfilled_evidence_included"])
 
+    def test_replay_loads_bea_backfill_by_id_and_enforces_cutoff(self):
+        backfill_id = "backfill_2020-01-01_2020-03-31_macro_bea_gdp_pce"
+        request = historical_replay.build_replay_request("2020-01-31", backfill_id=backfill_id)
+        included = backfill_evidence(
+            "bea1", "Gross Domestic Product, 4th Quarter 2019", "2020-01-30T13:30:00Z",
+            backfill_id=backfill_id, source_id="bea_gdp_pce", provider="BEA",
+        )
+        future = backfill_evidence(
+            "bea2", "Personal Income and Outlays, January 2020", "2020-02-28T13:30:00Z",
+            backfill_id=backfill_id, source_id="bea_gdp_pce", provider="BEA",
+        )
+        for row in (included, future):
+            row["source_name"] = "BEA"
+            row["metadata"]["category"] = "Economic Data / Growth / Inflation"
+        with patch.object(
+            historical_replay.historical_backfill, "load_backfilled_evidence",
+            return_value=[included, future],
+        ) as loader:
+            output = historical_replay.run_historical_replay(request, historical_records=[])
+        loader.assert_called_once_with(backfill_id=backfill_id, requested_date=None)
+        self.assertEqual(output["evidence_count"], 1)
+        accepted = output["source_intelligence"]["accepted_evidence"][0]
+        self.assertEqual(accepted["evidence_id"], "bea1")
+        self.assertEqual(accepted["evidence_origin"], "HISTORICAL_BACKFILL")
+        self.assertEqual(accepted["backfill_id"], backfill_id)
+
     def test_replay_resolves_backfill_by_date_when_only_include_flag_set(self):
         request = historical_replay.build_replay_request("2026-07-06", include_backfilled_evidence=True)
         fixture = [backfill_evidence("b1", "Federal Reserve issues FOMC statement", "2026-07-06T19:00:00Z")]
