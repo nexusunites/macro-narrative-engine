@@ -39,6 +39,7 @@
     {% set replay_form = replay_console.get("form", {}) %}
     {% set replay_result = replay_console.get("result") %}
     {% set recent_replays = replay_console.get("recent_replays", {}) %}
+    {% set backfill_choices = replay_console.get("backfill_choices", []) %}
     {% set backfill_console = historical_backfill_console | default({}) %}
     {% set backfill_form = backfill_console.get("form", {}) %}
     {% set backfill_result = backfill_console.get("result") %}
@@ -76,6 +77,28 @@
             <label>Mode</label>
             <input type="hidden" name="mode" value="macro">
             <p class="replay-fixed-mode">macro</p>
+          </div>
+          <div class="replay-backfill-choices">
+            <label>Backfills to include (optional)</label>
+            {% if backfill_choices %}
+              <ul class="admin-evidence-list backfill-choice-list">
+                {% for b in backfill_choices %}
+                  <li class="backfill-choice{% if not b.replay_ready %} backfill-choice-disabled{% endif %}">
+                    <label>
+                      <input type="checkbox" name="backfill_id" value="{{ b.backfill_id }}"
+                             {% if b.backfill_id in replay_form.get('backfill_ids', []) %}checked{% endif %}
+                             {% if not b.replay_ready %}disabled{% endif %}>
+                      <span class="backfill-choice-id" title="{{ b.backfill_id }}">{{ b.backfill_id }}</span>
+                      — {{ b.source }} / {{ b.provider }}, {{ b.requested_start_date }}–{{ b.requested_end_date }},
+                      {{ b.evidence_count }} evidence
+                      {% if not b.replay_ready %}(not replay-ready){% endif %}
+                    </label>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="muted">No backfills are available to include.</p>
+            {% endif %}
           </div>
           <button type="submit">Run replay</button>
         </form>
@@ -138,6 +161,28 @@
                   <li>{{ warning }}</li>
                 {% endfor %}
               </ul>
+            </div>
+          {% endif %}
+          {% if replay_result.backfill_ids_requested %}
+            <div class="replay-backfill-summary">
+              <p class="eyebrow">Backfills Used</p>
+              <table>
+                <tbody>
+                  <tr><th>Requested</th><td>{{ replay_result.backfill_ids_requested|join(", ") }}</td></tr>
+                  <tr><th>Used</th><td>{{ replay_result.backfill_ids_used|join(", ") if replay_result.backfill_ids_used else "None" }}</td></tr>
+                  <tr><th>Live Evidence Count</th><td>{{ replay_result.live_evidence_count if replay_result.live_evidence_count is not none else "Unavailable" }}</td></tr>
+                  <tr><th>Backfilled Evidence Count</th><td>{{ replay_result.backfilled_evidence_count if replay_result.backfilled_evidence_count is not none else "Unavailable" }}</td></tr>
+                  <tr><th>Total Evidence Count</th><td>{{ replay_result.total_evidence_count if replay_result.total_evidence_count is not none else "Unavailable" }}</td></tr>
+                  <tr><th>Evidence Source Types</th><td>{{ replay_result.evidence_sources_used|join(", ") if replay_result.evidence_sources_used else "Unavailable" }}</td></tr>
+                </tbody>
+              </table>
+              {% if replay_result.backfilled_evidence_counts_by_id %}
+                <ul class="admin-evidence-list">
+                  {% for bid, count in replay_result.backfilled_evidence_counts_by_id.items() %}
+                    <li><code>{{ bid }}</code>: {{ count }} evidence</li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
             </div>
           {% endif %}
           <div class="two-column replay-score-grid">

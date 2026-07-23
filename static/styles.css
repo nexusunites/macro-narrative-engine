@@ -681,6 +681,51 @@ button:hover {
   font-weight: 700;
 }
 
+.replay-backfill-choices {
+  flex-basis: 100%;
+  min-width: 220px;
+}
+
+.backfill-choice-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.backfill-choice {
+  display: flex;
+  gap: 6px;
+  color: var(--muted-strong);
+  font-size: 13px;
+}
+
+.backfill-choice label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--muted-strong);
+  font-weight: 400;
+}
+
+.backfill-choice-disabled {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.backfill-choice-id {
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  font-family: "SFMono-Regular", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.replay-backfill-summary {
+  margin-top: 4px;
+}
+
 .replay-notices {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

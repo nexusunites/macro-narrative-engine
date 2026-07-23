@@ -29,6 +29,7 @@ from mne.historical_replay_admin import (
     is_valid_replay_id,
     list_recent_replay_summaries,
     load_replay_summary_by_id,
+    validate_replay_backfill_ids,
 )
 from mne.narrative_signals import compute_group_scores
 from mne.operations_center import build_operations_center
@@ -313,17 +314,21 @@ def list_recent_replay_files(limit=RECENT_REPLAY_LIMIT):
     }
 
 
-def build_historical_replay_console(result=None, error=None, form=None, message=None):
+def build_historical_replay_console(
+    result=None, error=None, form=None, message=None, backfill_choices=None
+):
     form = form or {}
     return {
         "form": {
             "replay_date": form.get("replay_date", ""),
             "mode": form.get("mode", historical_replay.SUPPORTED_MODE),
+            "backfill_ids": form.get("backfill_ids", []),
         },
         "error": error,
         "message": message,
         "result": result,
         "recent_replays": list_recent_replay_files(),
+        "backfill_choices": backfill_choices if backfill_choices is not None else [],
     }
 
 
@@ -386,8 +391,8 @@ def execute_admin_backfill_form(source, start_date, end_date, fetch=None):
     return {"backfill_id": backfill_id}
 
 
-def run_admin_historical_replay(replay_date, mode=historical_replay.SUPPORTED_MODE):
-    request = historical_replay.build_replay_request(replay_date, mode=mode)
+def run_admin_historical_replay(replay_date, mode=historical_replay.SUPPORTED_MODE, backfill_ids=None):
+    request = historical_replay.build_replay_request(replay_date, mode=mode, backfill_ids=backfill_ids)
     output = historical_replay.run_historical_replay(request)
     path = historical_replay.persist_historical_replay(output)
     return build_replay_result_view(output, path)
@@ -417,11 +422,12 @@ def build_admin_replay_context(request, run, replay_date=None, mode=historical_r
         error=replay_error,
         form=form,
         message=replay_message,
+        backfill_choices=historical_backfill_admin.list_recent_backfill_summaries(),
     )
     return context
 
 
-def execute_admin_replay_form(replay_date, mode):
+def execute_admin_replay_form(replay_date, mode, backfill_ids=None):
     normalized_date = (replay_date or "").strip()
     normalized_mode = (mode or historical_replay.SUPPORTED_MODE).strip() or historical_replay.SUPPORTED_MODE
     if not normalized_date:
@@ -429,8 +435,18 @@ def execute_admin_replay_form(replay_date, mode):
     if normalized_mode != historical_replay.SUPPORTED_MODE:
         return {"error": "The selected replay mode is not supported.", "error_code": "unsupported_mode"}
 
+    backfill_ids = backfill_ids or ()
+    valid_ids, invalid_ids = validate_replay_backfill_ids(backfill_ids)
+    if invalid_ids:
+        return {
+            "error": f"The following backfill selection(s) could not be used: {', '.join(invalid_ids)}.",
+            "error_code": "invalid_backfill_selection",
+        }
+
     try:
-        result = run_admin_historical_replay(normalized_date, mode=normalized_mode)
+        result = run_admin_historical_replay(
+            normalized_date, mode=normalized_mode, backfill_ids=valid_ids
+        )
     except ValueError:
         return {
             "error": "The selected replay date could not be processed.",
@@ -1289,22 +1305,28 @@ def build_template_context(
         "view": None,
         "regime_history": build_regime_history(),
         "narrative_leadership_history": build_narrative_leadership_history(),
-        "historical_replay_console": build_historical_replay_console(),
+        "historical_replay_console": build_historical_replay_console(
+            backfill_choices=historical_backfill_admin.list_recent_backfill_summaries(),
+        ),
         "historical_backfill_console": build_historical_backfill_console(),
     }
     if replay_id:
+        replay_backfill_choices = historical_backfill_admin.list_recent_backfill_summaries()
         try:
             replay_dir = historical_replay.ensure_replay_dir()
             context["historical_replay_console"] = build_historical_replay_console(
                 result=load_replay_summary_by_id(replay_dir, replay_id),
+                backfill_choices=replay_backfill_choices,
             )
         except (ValueError, FileNotFoundError):
             context["historical_replay_console"] = build_historical_replay_console(
                 error="The selected replay summary could not be found.",
+                backfill_choices=replay_backfill_choices,
             )
         except Exception as error:
             context["historical_replay_console"] = build_historical_replay_console(
                 error=build_replay_error_context(error)["message"],
+                backfill_choices=replay_backfill_choices,
             )
     if backfill_id:
         try:
@@ -1491,6 +1513,8 @@ def admin_dashboard(
             console["error"] = "Enter a valid replay date."
         elif replay_error == "unsupported_mode":
             console["error"] = "The selected replay mode is not supported."
+        elif replay_error == "invalid_backfill_selection":
+            console["error"] = "One or more selected backfills could not be used. Review your selection and try again."
         else:
             console["error"] = "The replay could not be completed. Review the replay diagnostics and try again."
         context["historical_replay_console"] = console
@@ -1512,7 +1536,8 @@ async def admin_replay(request: Request, run: Optional[str] = Query(default=None
     form_data = parse_qs(body, keep_blank_values=True)
     replay_date = (form_data.get("replay_date") or [""])[0].strip()
     mode = (form_data.get("mode") or [historical_replay.SUPPORTED_MODE])[0].strip()
-    result = execute_admin_replay_form(replay_date, mode)
+    selected_backfill_ids = form_data.get("backfill_id", [])
+    result = execute_admin_replay_form(replay_date, mode, backfill_ids=selected_backfill_ids)
     query = f"?run={Path(run).name}" if run else ""
     separator = "&" if query else "?"
     if result.get("replay_id"):

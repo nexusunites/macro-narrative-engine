@@ -3,6 +3,8 @@ import logging
 import re
 from pathlib import Path
 
+from mne import historical_backfill_admin
+
 
 LOGGER = logging.getLogger(__name__)
 RECENT_REPLAY_LIMIT = 10
@@ -11,6 +13,42 @@ REPLAY_ID_PATTERN = re.compile(r"^replay_\d{4}-\d{2}-\d{2}_[a-z0-9_-]+$")
 
 def is_valid_replay_id(value):
     return bool(REPLAY_ID_PATTERN.fullmatch(str(value or "")))
+
+
+def validate_replay_backfill_ids(backfill_ids, data_dir=None):
+    """Splits requested backfill ids into (ordered_valid_ids, invalid_ids).
+
+    Deduplicates the input preserving first-occurrence order. A backfill id is
+    rejected if it fails historical_backfill_admin.is_valid_backfill_id (format /
+    path-containment discipline lives there, not here) or if its summary cannot be
+    loaded (raises or is falsy)."""
+    ordered_unique = []
+    seen = set()
+    for backfill_id in backfill_ids or ():
+        if backfill_id in seen:
+            continue
+        seen.add(backfill_id)
+        ordered_unique.append(backfill_id)
+
+    valid_ids = []
+    invalid_ids = []
+    for backfill_id in ordered_unique:
+        if not historical_backfill_admin.is_valid_backfill_id(backfill_id):
+            invalid_ids.append(backfill_id)
+            continue
+        try:
+            summary = historical_backfill_admin.load_backfill_summary_by_id(
+                backfill_id, data_dir=data_dir
+            )
+        except Exception:
+            invalid_ids.append(backfill_id)
+            continue
+        if not summary:
+            invalid_ids.append(backfill_id)
+            continue
+        valid_ids.append(backfill_id)
+
+    return valid_ids, invalid_ids
 
 
 def sorted_scores(scores):
@@ -45,6 +83,13 @@ def build_replay_admin_summary(replay_output, replay_path=None, replay_dir=None)
         if replay_path
         else _artifact_display_path(artifact_filename),
         "research_url": _research_url(output.get("replay_id")),
+        "backfill_ids_requested": metadata.get("backfill_ids_requested") or [],
+        "backfill_ids_used": metadata.get("backfill_ids_used") or [],
+        "backfilled_evidence_counts_by_id": metadata.get("backfilled_evidence_counts_by_id") or {},
+        "live_evidence_count": metadata.get("live_evidence_count"),
+        "backfilled_evidence_count": metadata.get("backfilled_evidence_count"),
+        "total_evidence_count": metadata.get("total_evidence_count"),
+        "evidence_sources_used": metadata.get("evidence_sources_used") or [],
     }
 
 
@@ -147,6 +192,16 @@ def normalize_replay_display_path(replay_path, replay_dir=None):
 
 def build_replay_error_context(error):
     LOGGER.warning("Historical replay admin operation failed: %s", error, exc_info=True)
+    from mne import historical_replay
+
+    if isinstance(error, historical_replay.HistoricalReplayError):
+        return {
+            "status": "failed",
+            "message": (
+                "Historical replay could not load the requested backfill(s): "
+                f"{', '.join(error.missing_or_failed)}."
+            ),
+        }
     return {
         "status": "failed",
         "message": "The replay could not be completed. Review the replay diagnostics and try again.",
