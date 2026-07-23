@@ -16,7 +16,7 @@ from mne.config_diagnostics import build_configuration_report, format_startup_re
 from mne.dashboard_trust_summary import build_dashboard_trust_summary
 from mne.event_lifecycle import load_event_definitions
 from mne import historical_backfill, historical_backfill_admin
-from mne import historical_replay
+from mne import historical_replay, historical_workflow
 from mne.historical_comparison import build_historical_comparison
 from mne.historical_research import (
     HistoricalResearchError,
@@ -389,6 +389,147 @@ def execute_admin_backfill_form(source, start_date, end_date, fetch=None):
             "error_code": "failed",
         }
     return {"backfill_id": backfill_id}
+
+
+def execute_admin_workflow_backfills(
+    sources, replay_date, start_date=None, end_date=None
+):
+    normalized_replay_date = str(replay_date or "").strip()
+    normalized_start = str(start_date or "").strip() or normalized_replay_date
+    normalized_end = str(end_date or "").strip() or normalized_replay_date
+    try:
+        # Building the manifest first validates the complete request before any
+        # selected connector can run.
+        draft = historical_workflow.build_workflow_manifest(
+            normalized_replay_date,
+            normalized_start,
+            normalized_end,
+            historical_workflow.SUPPORTED_MODE,
+            sources,
+            [],
+        )
+        outcomes = historical_workflow.run_workflow_backfills(
+            draft["requested_sources"],
+            draft["requested_start_date"],
+            draft["requested_end_date"],
+        )
+        draft["source_outcomes"] = outcomes
+        historical_workflow.write_workflow_manifest(draft)
+    except ValueError:
+        return {
+            "error": "Select supported sources and enter valid replay and range dates.",
+            "error_code": "invalid_request",
+        }
+    except Exception:
+        return {
+            "error": "The workflow results could not be saved.",
+            "error_code": "failed",
+        }
+    return {"workflow_id": draft["workflow_id"]}
+
+
+def execute_admin_workflow_confirmation(workflow_id, action):
+    if action == "cancel":
+        return {"cancelled": True}
+    if action != "run_replay":
+        return {"error": "Choose a valid workflow action.", "error_code": "invalid_action"}
+    try:
+        manifest = historical_workflow.load_workflow_manifest(workflow_id)
+    except (ValueError, FileNotFoundError, json.JSONDecodeError):
+        return {"error": "The selected workflow could not be found.", "error_code": "invalid_workflow"}
+    except Exception:
+        return {"error": "The selected workflow could not be opened.", "error_code": "failed"}
+    if not manifest:
+        return {"error": "The selected workflow could not be found.", "error_code": "invalid_workflow"}
+    if manifest.get("replay_id"):
+        replay_id = manifest["replay_id"]
+        if is_valid_replay_id(replay_id):
+            return {"replay_id": replay_id}
+        return {"error": "The workflow replay reference is invalid.", "error_code": "failed"}
+
+    backfill_ids = [
+        outcome.get("backfill_id")
+        for outcome in manifest.get("source_outcomes") or []
+        if outcome.get("status") == "COMPLETE"
+        and outcome.get("replay_ready") is True
+        and outcome.get("backfill_id")
+    ]
+    if not backfill_ids:
+        return {
+            "error": "No completed backfills are available for replay.",
+            "error_code": "no_complete_backfills",
+        }
+    valid_ids, invalid_ids = validate_replay_backfill_ids(backfill_ids)
+    if invalid_ids or valid_ids != backfill_ids:
+        return {
+            "error": "One or more completed backfills are no longer available.",
+            "error_code": "invalid_backfill_selection",
+        }
+    try:
+        _, output = historical_replay.run_and_persist_historical_replay(
+            replay_date=manifest["requested_replay_date"],
+            mode=manifest["mode"],
+            backfill_ids=valid_ids,
+        )
+        replay_id = output.get("replay_id")
+        if not is_valid_replay_id(replay_id):
+            raise ValueError("Replay returned an invalid identifier.")
+        historical_workflow.mark_workflow_replay(workflow_id, replay_id)
+    except ValueError:
+        return {"error": "The selected replay date could not be processed.", "error_code": "invalid_date"}
+    except Exception as error:
+        return {"error": build_replay_error_context(error)["message"], "error_code": "failed"}
+    return {"replay_id": replay_id}
+
+
+def build_historical_workflow_context(
+    request, workflow_id=None, error_code=None
+):
+    context = {
+        "request": request,
+        "supported_sources": list(historical_backfill.SUPPORTED_SOURCES),
+        "mode": historical_workflow.SUPPORTED_MODE,
+        "workflow": None,
+        "error": None,
+    }
+    if error_code:
+        context["error"] = (
+            "Select at least one supported source and enter valid dates."
+            if error_code == "invalid_request"
+            else "The historical workflow could not be completed."
+        )
+    if not workflow_id:
+        return context
+    try:
+        manifest = historical_workflow.load_workflow_manifest(workflow_id)
+        if manifest is None:
+            raise FileNotFoundError("Workflow manifest was not found.")
+        display_outcomes = []
+        for outcome in manifest.get("source_outcomes") or []:
+            display = dict(outcome)
+            if outcome.get("backfill_id"):
+                summary = historical_backfill_admin.load_backfill_summary_by_id(
+                    outcome["backfill_id"]
+                )
+                display.update(summary)
+                display["status"] = outcome.get("status")
+                display["error_message"] = outcome.get("error_message")
+            display_outcomes.append(display)
+        manifest = dict(manifest)
+        manifest["source_outcomes"] = display_outcomes
+        manifest["replay_backfill_ids"] = [
+            item.get("backfill_id")
+            for item in display_outcomes
+            if item.get("status") == "COMPLETE"
+            and item.get("replay_ready") is True
+            and item.get("backfill_id")
+        ]
+        context["workflow"] = manifest
+    except (ValueError, FileNotFoundError, json.JSONDecodeError):
+        context["error"] = "The selected historical workflow could not be found."
+    except Exception:
+        context["error"] = "The selected historical workflow could not be opened."
+    return context
 
 
 def run_admin_historical_replay(replay_date, mode=historical_replay.SUPPORTED_MODE, backfill_ids=None):
@@ -1528,6 +1669,85 @@ def admin_dashboard(
             console["error"] = "The backfill could not be completed. Review the backfill diagnostics and try again."
         context["historical_backfill_console"] = console
     return templates.TemplateResponse("admin.html", context)
+
+
+@app.get("/admin/historical-workflow", response_class=HTMLResponse)
+def admin_historical_workflow(
+    request: Request,
+    workflow_error: Optional[str] = Query(default=None),
+):
+    return templates.TemplateResponse(
+        "historical_workflow.html",
+        build_historical_workflow_context(request, error_code=workflow_error),
+    )
+
+
+@app.post("/admin/historical-workflow/run-backfills")
+async def admin_historical_workflow_backfills(request: Request):
+    body = (await request.body()).decode("utf-8")
+    form_data = parse_qs(body, keep_blank_values=True)
+    result = execute_admin_workflow_backfills(
+        form_data.get("source", []),
+        (form_data.get("replay_date") or [""])[0],
+        (form_data.get("start_date") or [""])[0],
+        (form_data.get("end_date") or [""])[0],
+    )
+    if result.get("workflow_id"):
+        return RedirectResponse(
+            url=(
+                "/admin/historical-workflow/confirm"
+                f"?workflow_id={result['workflow_id']}"
+            ),
+            status_code=303,
+        )
+    return RedirectResponse(
+        url=(
+            "/admin/historical-workflow"
+            f"?workflow_error={result.get('error_code') or 'failed'}"
+        ),
+        status_code=303,
+    )
+
+
+@app.get("/admin/historical-workflow/confirm", response_class=HTMLResponse)
+def admin_historical_workflow_confirm(
+    request: Request,
+    workflow_id: Optional[str] = Query(default=None),
+    workflow_error: Optional[str] = Query(default=None),
+):
+    return templates.TemplateResponse(
+        "historical_workflow.html",
+        build_historical_workflow_context(
+            request, workflow_id=workflow_id, error_code=workflow_error
+        ),
+    )
+
+
+@app.post("/admin/historical-workflow/confirm")
+async def admin_historical_workflow_confirmation(request: Request):
+    body = (await request.body()).decode("utf-8")
+    form_data = parse_qs(body, keep_blank_values=True)
+    workflow_id = (form_data.get("workflow_id") or [""])[0].strip()
+    action = (form_data.get("action") or [""])[0].strip()
+    result = execute_admin_workflow_confirmation(workflow_id, action)
+    if result.get("cancelled"):
+        return RedirectResponse(url="/admin/historical-workflow", status_code=303)
+    if result.get("replay_id"):
+        return RedirectResponse(
+            url=f"/admin?replay={result['replay_id']}", status_code=303
+        )
+    error_code = result.get("error_code") or "failed"
+    safe_workflow_id = (
+        workflow_id if historical_workflow.is_valid_workflow_id(workflow_id) else ""
+    )
+    if safe_workflow_id:
+        url = (
+            "/admin/historical-workflow/confirm"
+            f"?workflow_id={safe_workflow_id}&workflow_error={error_code}"
+        )
+    else:
+        url = f"/admin/historical-workflow?workflow_error={error_code}"
+    return RedirectResponse(url=url, status_code=303)
 
 
 @app.post("/admin/historical-replay")

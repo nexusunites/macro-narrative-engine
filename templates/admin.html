@@ -44,6 +44,7 @@
     {% set backfill_form = backfill_console.get("form", {}) %}
     {% set backfill_result = backfill_console.get("result") %}
     <nav class="zone-jump admin-section-nav" aria-label="Admin sections">
+      <a href="/admin/historical-workflow">Build Historical Replay</a>
       <a href="#historical-replay">Historical Replay</a>
       <a href="#historical-comparison">Historical Comparison</a>
       <a href="#historical-backfill">Historical Backfill</a>
@@ -60,6 +61,15 @@
       <a href="#catalysts">Catalysts</a>
       <a href="#raw-diagnostics">Raw Diagnostics</a>
     </nav>
+
+    <section class="content-section historical-bridge">
+      <div class="section-heading">
+        <p class="eyebrow">Guided Historical Workflow</p>
+        <h2>Build Historical Replay</h2>
+        <p class="leadership-read">Run selected source backfills, review every outcome, then explicitly confirm a separate combined replay.</p>
+      </div>
+      <a href="/admin/historical-workflow">Open guided workflow</a>
+    </section>
 
     <section class="content-section replay-console historical-replay-console historical-bridge" id="historical-replay">
       <div class="section-heading">

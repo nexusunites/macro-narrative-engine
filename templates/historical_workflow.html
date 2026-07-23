@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Build Historical Replay · MNE Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body class="admin-body">
+  {% set active_tier = "admin" %}
+  {% include "_partials/app_rail.html" %}
+  <header class="site-header admin-header">
+    <div class="brand-row">
+      <a class="brand" href="/admin">Macro Narrative Engine Admin</a>
+    </div>
+  </header>
+  <main class="page-shell admin-shell">
+    <section class="content-section historical-bridge">
+      <div class="section-heading">
+        <p class="eyebrow">Admin Guided Workflow</p>
+        <h1>Build Historical Replay</h1>
+        <p class="leadership-read">Backfills run first. A replay is created only after you review the outcomes and explicitly confirm it.</p>
+      </div>
+
+      {% if error %}<p class="replay-message">{{ error }}</p>{% endif %}
+
+      {% if not workflow %}
+        <article class="card">
+          <form method="post" action="/admin/historical-workflow/run-backfills" class="replay-form">
+            <fieldset>
+              <legend>Sources</legend>
+              {% for source in supported_sources %}
+                <label><input type="checkbox" name="source" value="{{ source }}"> {{ source }}</label>
+              {% endfor %}
+            </fieldset>
+            <div>
+              <label for="workflow_replay_date">Replay date</label>
+              <input id="workflow_replay_date" name="replay_date" type="date" required>
+            </div>
+            <div>
+              <label for="workflow_start_date">Start date (optional)</label>
+              <input id="workflow_start_date" name="start_date" type="date">
+            </div>
+            <div>
+              <label for="workflow_end_date">End date (optional)</label>
+              <input id="workflow_end_date" name="end_date" type="date">
+            </div>
+            <input type="hidden" name="mode" value="{{ mode }}">
+            <button type="submit">Run selected backfills</button>
+          </form>
+          <ul class="replay-notices">
+            <li>Only selected supported connectors run, sequentially.</li>
+            <li>Leaving the range blank uses the replay date for both endpoints.</li>
+            <li>No live RSS or live result data is fetched or modified.</li>
+            <li>This step does not run a replay.</li>
+          </ul>
+        </article>
+      {% else %}
+        <article class="card">
+          <p class="eyebrow">Backfill Outcomes</p>
+          <h2>Review before replay</h2>
+          <p><code>{{ workflow.workflow_id }}</code></p>
+          <p>Replay date: {{ workflow.requested_replay_date }} · Backfill range: {{ workflow.requested_start_date }}–{{ workflow.requested_end_date }}</p>
+          {% for outcome in workflow.source_outcomes %}
+            <section class="card">
+              <h3>{{ outcome.source }} — {{ outcome.status }}</h3>
+              {% if outcome.backfill_id %}
+                <p>Backfill ID: <code>{{ outcome.backfill_id }}</code></p>
+                <p>Evidence count: {{ outcome.evidence_count }} · Replay ready: {{ outcome.replay_ready }}</p>
+                {% if outcome.artifact_display_path %}<p>Stored at: <code>{{ outcome.artifact_display_path }}</code></p>{% endif %}
+              {% endif %}
+              {% if outcome.error_message %}<p>{{ outcome.error_message }}</p>{% endif %}
+              {% if outcome.warnings %}
+                <h4>Warnings</h4>
+                <ul>{% for warning in outcome.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+              {% endif %}
+              {% if outcome.limitations %}
+                <h4>Limitations</h4>
+                <ul>{% for limitation in outcome.limitations %}<li>{{ limitation }}</li>{% endfor %}</ul>
+              {% endif %}
+            </section>
+          {% endfor %}
+          <h3>Proposed combined replay</h3>
+          {% if workflow.replay_backfill_ids %}
+            <ol>{% for backfill_id in workflow.replay_backfill_ids %}<li><code>{{ backfill_id }}</code></li>{% endfor %}</ol>
+          {% else %}
+            <p>No COMPLETE backfills are available. A replay cannot be run.</p>
+          {% endif %}
+          <form method="post" action="/admin/historical-workflow/confirm">
+            <input type="hidden" name="workflow_id" value="{{ workflow.workflow_id }}">
+            <button type="submit" name="action" value="run_replay" {% if not workflow.replay_backfill_ids or workflow.replay_id %}disabled{% endif %}>Run combined replay</button>
+            <button type="submit" name="action" value="cancel">Cancel</button>
+          </form>
+          {% if workflow.replay_id %}<p>Replay already created: <code>{{ workflow.replay_id }}</code></p>{% endif %}
+        </article>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>
