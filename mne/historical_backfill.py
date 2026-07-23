@@ -5,13 +5,13 @@ from datetime import date, datetime, time, timezone
 from pathlib import Path
 
 import config
-from mne.backfill_sources import bea_gdp_pce, bls_cpi, fed_fomc
+from mne.backfill_sources import bea_gdp_pce, bls_cpi, eia_energy, fed_fomc
 from mne.evidence import EVIDENCE_TYPE_HEADLINE, EvidenceObject, generate_evidence_id
 from mne.freshness import UNKNOWN
 
 
 SUPPORTED_SOURCE = "fed_fomc"
-SUPPORTED_SOURCES = (SUPPORTED_SOURCE, "bls_cpi", "bea_gdp_pce")
+SUPPORTED_SOURCES = (SUPPORTED_SOURCE, "bls_cpi", "bea_gdp_pce", "eia_energy")
 SUPPORTED_MODE = "macro"
 STORAGE_TIER = "TIER_2_NORMALIZED_EVIDENCE"
 EVIDENCE_ORIGIN = "HISTORICAL_BACKFILL"
@@ -42,6 +42,16 @@ BEA_WARNINGS = (
 BEA_LIMITATIONS = [
     "Historical reconstruction covers official BEA GDP and Personal Income and Outlays (PCE) releases only.",
     "This date range has partial historical coverage and excludes market news, other BEA releases (e.g., industry GDP, regional GDP, international trade), and other agencies' data.",
+]
+EIA_WARNINGS = (
+    "EIA Energy backfill covers official EIA energy releases only.",
+    WARNING_PARTIAL_COVERAGE,
+    WARNING_NO_LIVE_SOURCES,
+    WARNING_NO_PAYWALLED_NEWS,
+)
+EIA_LIMITATIONS = [
+    "Historical reconstruction covers official EIA Weekly Petroleum Status Report and Weekly Natural Gas Storage Report releases only.",
+    "This date range has partial historical coverage and excludes market news, other EIA reports (electricity, coal, long-term outlook), and other agencies' data.",
 ]
 
 
@@ -80,6 +90,16 @@ SOURCE_SPECS = {
         "limitations": BEA_LIMITATIONS,
         "empty_warning": "No BEA GDP/PCE release evidence was found for the requested date range.",
         "record_label": "BEA GDP/PCE",
+    },
+    "eia_energy": {
+        "fetch": eia_energy.fetch_eia_energy_records,
+        "normalize": eia_energy.normalize_eia_energy_record,
+        "provider": "EIA",
+        "category": "Energy / Commodities",
+        "warnings": EIA_WARNINGS,
+        "limitations": EIA_LIMITATIONS,
+        "empty_warning": "No EIA energy release evidence was found for the requested date range.",
+        "record_label": "EIA Energy",
     },
 }
 
@@ -376,7 +396,7 @@ def main(args=None):
         "--source",
         required=True,
         choices=SUPPORTED_SOURCES,
-        help="Backfill source (fed_fomc, bls_cpi, or bea_gdp_pce).",
+        help="Backfill source (fed_fomc, bls_cpi, bea_gdp_pce, or eia_energy).",
     )
     parser.add_argument("--start", required=True, help="Start date as YYYY-MM-DD.")
     parser.add_argument("--end", required=True, help="End date as YYYY-MM-DD.")
@@ -424,7 +444,7 @@ def _source_coverage(records: list[dict], source_id=SUPPORTED_SOURCE) -> dict:
 
 
 def _unsupported_source_message() -> str:
-    return "Unsupported historical backfill source; valid options are: fed_fomc, bls_cpi, bea_gdp_pce."
+    return "Unsupported historical backfill source; valid options are: fed_fomc, bls_cpi, bea_gdp_pce, eia_energy."
 
 
 def _latest_backfill_id_for_date(requested_date, data_dir=None) -> str | None:

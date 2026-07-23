@@ -421,6 +421,33 @@ class HistoricalReplayTests(unittest.TestCase):
         self.assertEqual(accepted["evidence_origin"], "HISTORICAL_BACKFILL")
         self.assertEqual(accepted["backfill_id"], backfill_id)
 
+    def test_replay_loads_eia_backfill_by_id_and_enforces_cutoff(self):
+        backfill_id = "backfill_2020-01-01_2020-03-31_macro_eia_energy"
+        request = historical_replay.build_replay_request("2020-01-31", backfill_id=backfill_id)
+        included = backfill_evidence(
+            "eia1", "Weekly Petroleum Status Report — Week Ending January 24, 2020",
+            "2020-01-29T15:30:00Z", backfill_id=backfill_id, source_id="eia_energy", provider="EIA",
+        )
+        future = backfill_evidence(
+            "eia2", "Weekly Natural Gas Storage Report — Week Ending February 5, 2020",
+            "2020-02-06T15:30:00Z", backfill_id=backfill_id, source_id="eia_energy", provider="EIA",
+        )
+        for row in (included, future):
+            row["source_name"] = "EIA"
+            row["metadata"]["category"] = "Energy / Commodities"
+            row["metadata"]["source_type"] = "official_release"
+        with patch.object(
+            historical_replay.historical_backfill, "load_backfilled_evidence",
+            return_value=[included, future],
+        ) as loader:
+            output = historical_replay.run_historical_replay(request, historical_records=[])
+        loader.assert_called_once_with(backfill_id=backfill_id, requested_date=None)
+        self.assertEqual(output["evidence_count"], 1)
+        accepted = output["source_intelligence"]["accepted_evidence"][0]
+        self.assertEqual(accepted["evidence_id"], "eia1")
+        self.assertEqual(accepted["evidence_origin"], "HISTORICAL_BACKFILL")
+        self.assertEqual(accepted["backfill_id"], backfill_id)
+
     def test_replay_resolves_backfill_by_date_when_only_include_flag_set(self):
         request = historical_replay.build_replay_request("2026-07-06", include_backfilled_evidence=True)
         fixture = [backfill_evidence("b1", "Federal Reserve issues FOMC statement", "2026-07-06T19:00:00Z")]
