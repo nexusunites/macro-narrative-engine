@@ -39,9 +39,13 @@
     {% set replay_form = replay_console.get("form", {}) %}
     {% set replay_result = replay_console.get("result") %}
     {% set recent_replays = replay_console.get("recent_replays", {}) %}
+    {% set backfill_console = historical_backfill_console | default({}) %}
+    {% set backfill_form = backfill_console.get("form", {}) %}
+    {% set backfill_result = backfill_console.get("result") %}
     <nav class="zone-jump admin-section-nav" aria-label="Admin sections">
       <a href="#historical-replay">Historical Replay</a>
       <a href="#historical-comparison">Historical Comparison</a>
+      <a href="#historical-backfill">Historical Backfill</a>
       <a href="#operations-center">Operations Center</a>
       <a href="#configuration-diagnostics">Configuration</a>
       <a href="#recent-runs">Recent Runs</a>
@@ -255,6 +259,114 @@
           </form>
         {% else %}
           <p class="muted">No replay artifacts are available to compare.</p>
+        {% endif %}
+      </article>
+    </section>
+
+    <section class="content-section historical-bridge" id="historical-backfill">
+      <div class="section-heading">
+        <p class="eyebrow">Historical Backfill</p>
+        <h2>Historical Backfill</h2>
+        <p class="leadership-read">Fetch and persist historical evidence from one supported source for a selected date range.</p>
+      </div>
+      <article class="card">
+        <form method="post" action="/admin/historical-backfill{% if selected_file %}?run={{ selected_file }}{% endif %}" class="replay-form">
+          <div>
+            <label for="backfill_source">Source</label>
+            <select id="backfill_source" name="source" required>
+              {% for source in backfill_console.get("supported_sources", []) %}
+                <option value="{{ source }}" {% if source == backfill_form.get("source") %}selected{% endif %}>{{ source }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="start_date">Start date</label>
+            <input id="start_date" name="start_date" type="date" value="{{ backfill_form.get('start_date', '') }}" required>
+          </div>
+          <div>
+            <label for="end_date">End date</label>
+            <input id="end_date" name="end_date" type="date" value="{{ backfill_form.get('end_date', '') }}" required>
+          </div>
+          <button type="submit">Run historical backfill</button>
+        </form>
+        {% if backfill_console.get("error") %}
+          <p class="replay-message">{{ backfill_console.get("error") }}</p>
+        {% endif %}
+        {% if backfill_console.get("message") %}
+          <p class="replay-message">{{ backfill_console.get("message") }}</p>
+        {% endif %}
+      </article>
+
+      {% if backfill_result %}
+        <article class="card replay-result">
+          <p class="eyebrow">Historical Backfill Result</p>
+          <h3>{{ backfill_result.backfill_id }}</h3>
+          <table>
+            <tbody>
+              <tr><th>Backfill ID</th><td><code>{{ backfill_result.backfill_id }}</code></td></tr>
+              <tr><th>Source</th><td>{{ backfill_result.source }}</td></tr>
+              <tr><th>Provider</th><td>{{ backfill_result.provider }}</td></tr>
+              <tr><th>Category</th><td>{{ backfill_result.category }}</td></tr>
+              <tr><th>Date Range</th><td>{{ backfill_result.requested_start_date }}–{{ backfill_result.requested_end_date }}</td></tr>
+              <tr><th>Records Found</th><td>{{ backfill_result.records_found }}</td></tr>
+              <tr><th>Evidence Count</th><td>{{ backfill_result.evidence_count }}</td></tr>
+              <tr><th>Replay Ready</th><td>{{ backfill_result.replay_ready }}</td></tr>
+              <tr><th>Stored At</th><td><code>{{ backfill_result.artifact_display_path }}</code></td></tr>
+            </tbody>
+          </table>
+          {% if backfill_result.warnings %}
+            <h4>Warnings</h4>
+            <ul class="admin-evidence-list">
+              {% for warning in backfill_result.warnings %}
+                <li>{{ warning }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if backfill_result.limitations %}
+            <h4>Limitations</h4>
+            <ul class="admin-evidence-list">
+              {% for limitation in backfill_result.limitations %}
+                <li>{{ limitation }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          <p>To use this in Historical Replay, run replay with this backfill_id.</p>
+        </article>
+      {% endif %}
+
+      <article class="card">
+        <h3>Recent Backfills</h3>
+        {% if backfill_console.get("recent_backfills") %}
+          <div class="table-scroll table-scroll-wide">
+            <table>
+              <thead>
+                <tr>
+                  <th>Backfill ID</th>
+                  <th>Source</th>
+                  <th>Provider</th>
+                  <th>Date Range</th>
+                  <th>Evidence Count</th>
+                  <th>Replay Ready</th>
+                  <th>Generated At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for backfill in backfill_console.get("recent_backfills", []) %}
+                  <tr>
+                    <td><code>{{ backfill.backfill_id }}</code></td>
+                    <td>{{ backfill.source }}</td>
+                    <td>{{ backfill.provider }}</td>
+                    <td>{{ backfill.requested_start_date }}–{{ backfill.requested_end_date }}</td>
+                    <td>{{ backfill.evidence_count }}</td>
+                    <td>{{ backfill.replay_ready }}</td>
+                    <td>{{ backfill.generated_at }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="muted">No historical backfill has been run yet.</p>
         {% endif %}
       </article>
     </section>

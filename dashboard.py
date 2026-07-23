@@ -15,6 +15,7 @@ from config import RESULTS_DIR, ensure_data_dir
 from mne.config_diagnostics import build_configuration_report, format_startup_report
 from mne.dashboard_trust_summary import build_dashboard_trust_summary
 from mne.event_lifecycle import load_event_definitions
+from mne import historical_backfill, historical_backfill_admin
 from mne import historical_replay
 from mne.historical_comparison import build_historical_comparison
 from mne.historical_research import (
@@ -324,6 +325,65 @@ def build_historical_replay_console(result=None, error=None, form=None, message=
         "result": result,
         "recent_replays": list_recent_replay_files(),
     }
+
+
+def build_historical_backfill_console(result=None, error=None, form=None, message=None):
+    form = form or {}
+    return {
+        "form": {
+            "source": form.get("source", ""),
+            "start_date": form.get("start_date", ""),
+            "end_date": form.get("end_date", ""),
+        },
+        "error": error,
+        "message": message,
+        "result": result,
+        "supported_sources": list(historical_backfill.SUPPORTED_SOURCES),
+        "recent_backfills": historical_backfill_admin.list_recent_backfill_summaries(),
+    }
+
+
+def execute_admin_backfill_form(source, start_date, end_date, fetch=None):
+    normalized_source = (source or "").strip()
+    normalized_start = (start_date or "").strip()
+    normalized_end = (end_date or "").strip()
+    if normalized_source not in historical_backfill.SUPPORTED_SOURCES:
+        return {
+            "error": "The selected source is not supported.",
+            "error_code": "unsupported_source",
+        }
+    if not normalized_start or not normalized_end:
+        return {
+            "error": "Enter a valid start and end date.",
+            "error_code": "invalid_date_range",
+        }
+
+    try:
+        _, result = historical_backfill.run_and_persist_historical_backfill(
+            normalized_source,
+            normalized_start,
+            normalized_end,
+            fetch=fetch,
+            data_dir=None,
+        )
+    except ValueError:
+        return {
+            "error": "The requested date range could not be processed.",
+            "error_code": "invalid_date_range",
+        }
+    except Exception as error:
+        return {
+            "error": historical_backfill_admin.build_backfill_error_context(error)["message"],
+            "error_code": "failed",
+        }
+
+    backfill_id = (result.get("manifest") or {}).get("backfill_id")
+    if not historical_backfill_admin.is_valid_backfill_id(backfill_id):
+        return {
+            "error": "The backfill completed, but the result could not be opened safely.",
+            "error_code": "failed",
+        }
+    return {"backfill_id": backfill_id}
 
 
 def run_admin_historical_replay(replay_date, mode=historical_replay.SUPPORTED_MODE):
@@ -1205,6 +1265,7 @@ def build_template_context(
     run: Optional[str],
     meaningful_default: bool = True,
     replay_id: Optional[str] = None,
+    backfill_id: Optional[str] = None,
 ):
     recent_files = list_result_files()
     selected_path = safe_result_path(run) if run else None
@@ -1229,6 +1290,7 @@ def build_template_context(
         "regime_history": build_regime_history(),
         "narrative_leadership_history": build_narrative_leadership_history(),
         "historical_replay_console": build_historical_replay_console(),
+        "historical_backfill_console": build_historical_backfill_console(),
     }
     if replay_id:
         try:
@@ -1243,6 +1305,19 @@ def build_template_context(
         except Exception as error:
             context["historical_replay_console"] = build_historical_replay_console(
                 error=build_replay_error_context(error)["message"],
+            )
+    if backfill_id:
+        try:
+            context["historical_backfill_console"] = build_historical_backfill_console(
+                result=historical_backfill_admin.load_backfill_summary_by_id(backfill_id),
+            )
+        except (ValueError, FileNotFoundError):
+            context["historical_backfill_console"] = build_historical_backfill_console(
+                error="The selected backfill summary could not be found.",
+            )
+        except Exception as error:
+            context["historical_backfill_console"] = build_historical_backfill_console(
+                error=historical_backfill_admin.build_backfill_error_context(error)["message"],
             )
 
     if not current_file:
@@ -1400,12 +1475,15 @@ def admin_dashboard(
     run: Optional[str] = Query(default=None),
     replay: Optional[str] = Query(default=None),
     replay_error: Optional[str] = Query(default=None),
+    backfill: Optional[str] = Query(default=None),
+    backfill_error: Optional[str] = Query(default=None),
 ):
     context = build_template_context(
         request,
         run,
         meaningful_default=False,
         replay_id=replay,
+        backfill_id=backfill,
     )
     if replay_error:
         console = context.get("historical_replay_console") or build_historical_replay_console()
@@ -1416,6 +1494,15 @@ def admin_dashboard(
         else:
             console["error"] = "The replay could not be completed. Review the replay diagnostics and try again."
         context["historical_replay_console"] = console
+    if backfill_error:
+        console = context.get("historical_backfill_console") or build_historical_backfill_console()
+        if backfill_error == "unsupported_source":
+            console["error"] = "The selected source is not supported."
+        elif backfill_error == "invalid_date_range":
+            console["error"] = "Enter a valid start and end date."
+        else:
+            console["error"] = "The backfill could not be completed. Review the backfill diagnostics and try again."
+        context["historical_backfill_console"] = console
     return templates.TemplateResponse("admin.html", context)
 
 
@@ -1436,6 +1523,28 @@ async def admin_replay(request: Request, run: Optional[str] = Query(default=None
     error_code = result.get("error_code") or "failed"
     return RedirectResponse(
         url=f"/admin{query}{separator}replay_error={error_code}",
+        status_code=303,
+    )
+
+
+@app.post("/admin/historical-backfill")
+async def admin_historical_backfill(request: Request, run: Optional[str] = Query(default=None)):
+    body = (await request.body()).decode("utf-8")
+    form_data = parse_qs(body, keep_blank_values=True)
+    source = (form_data.get("source") or [""])[0].strip()
+    start_date = (form_data.get("start_date") or [""])[0].strip()
+    end_date = (form_data.get("end_date") or [""])[0].strip()
+    result = execute_admin_backfill_form(source, start_date, end_date)
+    query = f"?run={Path(run).name}" if run else ""
+    separator = "&" if query else "?"
+    if result.get("backfill_id"):
+        return RedirectResponse(
+            url=f"/admin{query}{separator}backfill={result['backfill_id']}",
+            status_code=303,
+        )
+    error_code = result.get("error_code") or "failed"
+    return RedirectResponse(
+        url=f"/admin{query}{separator}backfill_error={error_code}",
         status_code=303,
     )
 
