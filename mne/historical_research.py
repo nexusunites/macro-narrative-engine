@@ -242,6 +242,27 @@ def build_safe_replay_metadata_context(replay_artifact):
         "future_evidence_excluded": metadata.get("future_evidence_excluded"),
         "live_run_source": metadata.get("live_run_source"),
         "warnings": list(metadata.get("warnings") or []),
+        "coverage_intelligence": build_historical_coverage_display_context(artifact),
+    }
+
+
+def build_historical_coverage_display_context(replay_artifact):
+    artifact = replay_artifact if isinstance(replay_artifact, dict) else {}
+    source_intelligence = artifact.get("source_intelligence")
+    coverage = (
+        source_intelligence.get("coverage_intelligence")
+        if isinstance(source_intelligence, dict)
+        else None
+    )
+    if not isinstance(coverage, dict):
+        return None
+    return {
+        "breadth_state": coverage.get("breadth_state"),
+        "evidence_origins_used": list(coverage.get("evidence_origins_used") or []),
+        "coverage_limitations": list(coverage.get("coverage_limitations") or []),
+        "contributing_source_count": coverage.get("contributing_source_count"),
+        "contributing_provider_count": coverage.get("contributing_provider_count"),
+        "contributing_category_count": coverage.get("contributing_category_count"),
     }
 
 

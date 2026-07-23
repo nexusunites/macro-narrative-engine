@@ -303,6 +303,78 @@ class HistoricalComparisonTests(unittest.TestCase):
             historical_comparison.compare_evidence_base(replay_a, replay_b)["copy"],
         )
 
+    def test_coverage_intelligence_counts_and_breadth_state_compare_when_present(self):
+        replay_a, replay_b = sample_replay_pair()
+        replay_a["source_intelligence"] = {
+            "coverage_intelligence": {
+                "breadth_state": "LIMITED",
+                "contributing_source_count": 2,
+                "contributing_provider_count": 2,
+                "contributing_category_count": 2,
+            }
+        }
+        replay_b["source_intelligence"] = {
+            "coverage_intelligence": {
+                "breadth_state": "MODERATE",
+                "contributing_source_count": 3,
+                "contributing_provider_count": 3,
+                "contributing_category_count": 3,
+            }
+        }
+
+        evidence = historical_comparison.compare_evidence_base(replay_a, replay_b)
+
+        self.assertTrue(evidence["coverage_available_a"])
+        self.assertTrue(evidence["coverage_available_b"])
+        self.assertEqual(evidence["breadth_state_a"], "LIMITED")
+        self.assertEqual(evidence["breadth_state_b"], "MODERATE")
+        self.assertEqual(evidence["contributing_source_count_a"], 2)
+        self.assertEqual(evidence["contributing_source_count_b"], 3)
+        self.assertIn("Coverage breadth changed from LIMITED to MODERATE.", evidence["copy"])
+
+    def test_coverage_intelligence_missing_on_one_side_does_not_crash_and_is_not_zero(self):
+        replay_a, replay_b = sample_replay_pair()
+        replay_b["source_intelligence"] = {
+            "coverage_intelligence": {
+                "breadth_state": "MODERATE",
+                "contributing_source_count": 3,
+                "contributing_provider_count": 3,
+                "contributing_category_count": 3,
+            }
+        }
+
+        evidence = historical_comparison.compare_evidence_base(replay_a, replay_b)
+
+        self.assertFalse(evidence["coverage_available_a"])
+        self.assertTrue(evidence["coverage_available_b"])
+        self.assertIsNone(evidence["breadth_state_a"])
+        self.assertIsNone(evidence["contributing_source_count_a"])
+        self.assertIn(
+            "Coverage breadth could not be compared because it is only available for one replay.",
+            evidence["copy"],
+        )
+
+    def test_coverage_intelligence_absent_from_both_artifacts_renders_calmly(self):
+        replay_a, replay_b = sample_replay_pair()
+
+        evidence = historical_comparison.compare_evidence_base(replay_a, replay_b)
+
+        self.assertFalse(evidence["coverage_available_a"])
+        self.assertFalse(evidence["coverage_available_b"])
+        self.assertIsNone(evidence["breadth_state_a"])
+        self.assertIsNone(evidence["breadth_state_b"])
+
+        with temporary_mne_data_dir() as data_dir:
+            write_replay(data_dir, replay_a)
+            write_replay(data_dir, replay_b)
+            context = dashboard.build_historical_comparison_route_context(
+                object(), replay_a["replay_id"], replay_b["replay_id"]
+            )
+            html = render_template("historical_comparison.html", **context)
+
+        self.assertIsNone(context["message"])
+        self.assertNotIn("Traceback", html)
+
     def test_multiple_backfill_ids_used_carry_through_comparison(self):
         replay_a, replay_b = sample_replay_pair()
         replay_b["replay_metadata"]["backfill_ids_used"] = [

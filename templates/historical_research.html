@@ -85,6 +85,17 @@
             </ul>
           </div>
         {% endif %}
+        {% if metadata.coverage_intelligence %}
+          <div class="historical-warning">
+            <p class="eyebrow">Historical Coverage</p>
+            <p class="coverage-state">{{ metadata.coverage_intelligence.breadth_state or "Unavailable" }}</p>
+            <ul>
+              {% for limitation in metadata.coverage_intelligence.coverage_limitations %}
+                <li>{{ limitation }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
       </section>
 
       <section class="content-section historical-zone">

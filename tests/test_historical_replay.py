@@ -589,10 +589,118 @@ class HistoricalReplayTests(unittest.TestCase):
         self.assertEqual(backfilled["evidence_origin"], "HISTORICAL_BACKFILL")
         self.assertEqual(backfilled["backfill_id"], "backfill_2020-01-01_2020-01-31_macro_fed_fomc")
         self.assertEqual(backfilled["provider"], "Federal Reserve")
-        # Coverage Intelligence is registry-driven and fed_fomc is not a live
-        # registry source; this is an accepted, pre-existing graceful degradation,
-        # not a regression introduced by backfill support.
-        self.assertNotIn("coverage", output)
+        self.assertEqual(backfilled["category"], "Central Bank Communications")
+        self.assertEqual(backfilled["connector_source_id"], "fed_fomc")
+        # fed_fomc is not a live registry source. build_coverage_intelligence
+        # (the top-level "coverage" field) is now scoped to live evidence only,
+        # so it no longer raises SourceRegistryError just because backfilled
+        # evidence is also present, and is no longer omitted from the output.
+        self.assertIn("coverage", output)
+        self.assertEqual(output["coverage"]["per_narrative"], [])
+
+    def test_source_intelligence_coverage_intelligence_present_for_backfilled_evidence(self):
+        request = historical_replay.build_replay_request("2026-07-06", include_backfilled_evidence=True)
+        fixture = [backfill_evidence("b1", "Federal Reserve issues FOMC statement", "2026-07-06T19:00:00Z")]
+
+        with patch.object(historical_replay.historical_backfill, "load_backfilled_evidence", return_value=fixture):
+            output = historical_replay.run_historical_replay(request, historical_records=[])
+
+        coverage_intelligence = output["source_intelligence"]["coverage_intelligence"]
+        self.assertEqual(coverage_intelligence["accepted_evidence_count"], 1)
+        self.assertEqual(coverage_intelligence["contributing_source_count"], 1)
+        self.assertEqual(coverage_intelligence["evidence_count_by_source"], {"fed_fomc": 1})
+        self.assertEqual(coverage_intelligence["evidence_origins_used"], ["historical_backfill"])
+        self.assertEqual(coverage_intelligence["breadth_state"], "MINIMAL")
+        self.assertIn(
+            "This is not complete historical market-news coverage.",
+            coverage_intelligence["coverage_limitations"],
+        )
+
+    def test_top_level_coverage_uses_live_evidence_only_and_is_unaffected_by_backfill(self):
+        records = [
+            run_record(
+                "2026-07-06T10:00:00Z",
+                [evidence("e1", "AI data center investment surges", "2026-07-06T09:00:00Z")],
+            )
+        ]
+        fixture = [backfill_evidence("b1", "Federal Reserve issues FOMC statement", "2026-07-06T19:00:00Z")]
+
+        with patch.object(historical_replay.historical_backfill, "load_backfilled_evidence", return_value=fixture):
+            with_backfill = historical_replay.run_historical_replay(
+                historical_replay.build_replay_request("2026-07-06", include_backfilled_evidence=True),
+                historical_records=records,
+            )
+        without_backfill = historical_replay.run_historical_replay(
+            historical_replay.build_replay_request("2026-07-06"),
+            historical_records=records,
+        )
+
+        self.assertEqual(with_backfill["coverage"], without_backfill["coverage"])
+
+    def test_mixed_live_and_backfilled_evidence_coverage_intelligence_reconciles(self):
+        records = [
+            run_record(
+                "2026-07-06T10:00:00Z",
+                [evidence("e1", "AI data center investment surges", "2026-07-06T09:00:00Z")],
+            )
+        ]
+        fixture = [
+            backfill_evidence("b1", "Federal Reserve issues FOMC statement", "2026-07-06T19:00:00Z"),
+            backfill_evidence(
+                "b2",
+                "BLS releases CPI inflation data",
+                "2026-07-06T18:00:00Z",
+                backfill_id="backfill_2020-01-01_2020-01-31_macro_bls_cpi",
+                source_id="bls_cpi",
+                provider="BLS",
+            ),
+        ]
+
+        with patch.object(historical_replay.historical_backfill, "load_backfilled_evidence", return_value=fixture):
+            output = historical_replay.run_historical_replay(
+                historical_replay.build_replay_request("2026-07-06", include_backfilled_evidence=True),
+                historical_records=records,
+            )
+
+        coverage_intelligence = output["source_intelligence"]["coverage_intelligence"]
+        self.assertEqual(coverage_intelligence["accepted_evidence_count"], 3)
+        self.assertEqual(
+            sum(coverage_intelligence["evidence_count_by_source"].values()),
+            coverage_intelligence["accepted_evidence_count"],
+        )
+        self.assertEqual(
+            sorted(coverage_intelligence["evidence_origins_used"]),
+            ["historical_backfill", "live_persisted"],
+        )
+
+    def test_replay_persists_source_intelligence_coverage_intelligence(self):
+        with writable_temporary_mne_data_dir():
+            request = historical_replay.build_replay_request("2026-07-06", include_backfilled_evidence=True)
+            fixture = [backfill_evidence("b1", "Federal Reserve issues FOMC statement", "2026-07-06T19:00:00Z")]
+            with patch.object(historical_replay.historical_backfill, "load_backfilled_evidence", return_value=fixture):
+                output = historical_replay.run_historical_replay(request, historical_records=[])
+            path = historical_replay.persist_historical_replay(output)
+            with open(path, "r", encoding="utf-8") as fh:
+                persisted = json.load(fh)
+
+        self.assertIn("coverage_intelligence", persisted["source_intelligence"])
+        self.assertEqual(
+            persisted["source_intelligence"]["coverage_intelligence"]["breadth_state"],
+            "MINIMAL",
+        )
+
+    def test_live_source_registry_file_unchanged_after_backfill_replay(self):
+        from mne.source_registry import REGISTRY_PATH
+
+        before = REGISTRY_PATH.read_text(encoding="utf-8")
+        request = historical_replay.build_replay_request("2026-07-06", include_backfilled_evidence=True)
+        fixture = [backfill_evidence("b1", "Federal Reserve issues FOMC statement", "2026-07-06T19:00:00Z")]
+
+        with patch.object(historical_replay.historical_backfill, "load_backfilled_evidence", return_value=fixture):
+            historical_replay.run_historical_replay(request, historical_records=[])
+
+        after = REGISTRY_PATH.read_text(encoding="utf-8")
+        self.assertEqual(before, after)
 
     def test_backfill_evidence_files_are_not_modified_by_replay(self):
         with writable_temporary_mne_data_dir() as data_dir:

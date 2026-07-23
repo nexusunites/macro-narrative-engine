@@ -189,6 +189,8 @@
                 <tr><th>Live Evidence Count</th><td>{{ evidence.live_evidence_count_a if evidence.live_evidence_count_a is not none else "Unavailable" }}</td><td>{{ evidence.live_evidence_count_b if evidence.live_evidence_count_b is not none else "Unavailable" }}</td><td>Unavailable</td></tr>
                 <tr><th>Total Evidence Count</th><td>{{ evidence.total_evidence_count_a if evidence.total_evidence_count_a is not none else "Unavailable" }}</td><td>{{ evidence.total_evidence_count_b if evidence.total_evidence_count_b is not none else "Unavailable" }}</td><td>Unavailable</td></tr>
                 <tr><th>Evidence Sources Used</th><td>{{ evidence.evidence_sources_used_a | join(", ") if evidence.evidence_sources_used_a else "Unavailable" }}</td><td>{{ evidence.evidence_sources_used_b | join(", ") if evidence.evidence_sources_used_b else "Unavailable" }}</td><td>Unavailable</td></tr>
+                <tr><th>Coverage Breadth</th><td>{{ evidence.breadth_state_a if evidence.breadth_state_a else "Unavailable" }}</td><td>{{ evidence.breadth_state_b if evidence.breadth_state_b else "Unavailable" }}</td><td>Unavailable</td></tr>
+                <tr><th>Contributing Sources</th><td>{{ evidence.contributing_source_count_a if evidence.contributing_source_count_a is not none else "Unavailable" }}</td><td>{{ evidence.contributing_source_count_b if evidence.contributing_source_count_b is not none else "Unavailable" }}</td><td>Unavailable</td></tr>
               </tbody>
             </table>
             <article class="historical-rule-panel">

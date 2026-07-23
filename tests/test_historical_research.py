@@ -294,6 +294,68 @@ class HistoricalResearchTests(unittest.TestCase):
         self.assertIn("replays/replay_2026-07-06_macro.json", html)
         self.assertNotIn(str(data_dir), html)
 
+    def test_renders_historical_coverage_intelligence_calmly(self):
+        replay = sample_replay()
+        replay["source_intelligence"]["coverage_intelligence"] = {
+            "accepted_evidence_count": 2,
+            "contributing_source_count": 1,
+            "contributing_provider_count": 1,
+            "contributing_category_count": 1,
+            "evidence_count_by_source": {"fed_fomc": 2},
+            "evidence_count_by_provider": {"Federal Reserve": 2},
+            "evidence_count_by_category": {"Central Bank Communications": 2},
+            "source_concentration": 1.0,
+            "provider_concentration": 1.0,
+            "category_concentration": 1.0,
+            "breadth_state": "MINIMAL",
+            "evidence_origins_used": ["historical_backfill"],
+            "coverage_limitations": [
+                "Historical coverage reflects supported backfill sources only.",
+                "This is not complete historical market-news coverage.",
+                "Coverage breadth is measured within the evidence available to this replay.",
+            ],
+        }
+        with temporary_mne_data_dir() as data_dir:
+            write_replay(data_dir, replay=replay)
+            context = dashboard.build_historical_research_route_context(
+                object(),
+                "replay_2026-07-06_macro",
+            )
+            html = render_template("historical_research.html", **context)
+
+        self.assertIn("MINIMAL", html)
+        self.assertIn("This is not complete historical market-news coverage.", html)
+        self.assertNotIn("Traceback", html)
+
+    def test_missing_coverage_intelligence_renders_without_crash(self):
+        with temporary_mne_data_dir() as data_dir:
+            write_replay(data_dir)
+            context = dashboard.build_historical_research_route_context(
+                object(),
+                "replay_2026-07-06_macro",
+            )
+            html = render_template("historical_research.html", **context)
+
+        self.assertIn("Historical Research View", html)
+        self.assertNotIn("Traceback", html)
+
+    def test_build_historical_coverage_display_context_reads_source_intelligence(self):
+        replay = sample_replay()
+        replay["source_intelligence"]["coverage_intelligence"] = {
+            "breadth_state": "LIMITED",
+            "evidence_origins_used": ["historical_backfill"],
+            "coverage_limitations": ["This is not complete historical market-news coverage."],
+            "contributing_source_count": 2,
+            "contributing_provider_count": 2,
+            "contributing_category_count": 2,
+        }
+        coverage = historical_research.build_historical_coverage_display_context(replay)
+        self.assertEqual(coverage["breadth_state"], "LIMITED")
+        self.assertEqual(coverage["contributing_source_count"], 2)
+
+    def test_build_historical_coverage_display_context_returns_none_when_absent(self):
+        self.assertIsNone(historical_research.build_historical_coverage_display_context(sample_replay()))
+
     def test_historical_evidence_renders_and_future_evidence_is_excluded(self):
         with temporary_mne_data_dir() as data_dir:
             write_replay(data_dir)

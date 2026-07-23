@@ -2,11 +2,17 @@ import unittest
 
 from mne.coverage_intelligence import (
     accepted_deduped_evidence,
+    assign_breadth_state,
     assign_coverage_state,
     build_coverage_intelligence,
+    build_coverage_source_records,
+    build_historical_coverage_limitations,
+    build_historical_source_record_from_evidence,
+    build_replay_coverage_intelligence,
+    partition_evidence_by_origin,
 )
 from mne.evidence import EvidenceObject
-from mne.source_registry import SourceRegistry
+from mne.source_registry import SourceRegistry, SourceRegistryError
 
 
 THRESHOLDS = {
@@ -75,6 +81,28 @@ def make_registry():
         priority_tiers=({"tier": "TIER_1", "description": "Core sources."},),
         coverage_thresholds=THRESHOLDS,
     )
+
+
+def make_live_row(evidence_id, source_id, provider=None):
+    return {
+        "evidence_id": evidence_id,
+        "source_id": source_id,
+        "provider": provider,
+        "accepted": True,
+    }
+
+
+def make_historical_row(evidence_id, source_id, provider, category, backfill_id="backfill_1"):
+    return {
+        "evidence_id": evidence_id,
+        "source_id": source_id,
+        "provider": provider,
+        "category": category,
+        "connector_source_id": source_id,
+        "evidence_origin": "HISTORICAL_BACKFILL",
+        "backfill_id": backfill_id,
+        "accepted": True,
+    }
 
 
 def make_evidence(index, source_id="s1", accepted=True, rejection_reason=None, title=None):
@@ -210,6 +238,162 @@ class CoverageIntelligenceTests(unittest.TestCase):
         )
         summary_total = sum(coverage["overall"]["coverage_summary"].values())
         self.assertEqual(summary_total, len(coverage["per_narrative"]))
+
+    def test_partition_evidence_by_origin_splits_on_evidence_origin_key(self):
+        rows = [
+            make_live_row("e1", "s1", "Shared Provider"),
+            make_historical_row("e2", "fed_fomc", "Federal Reserve", "Central Bank Communications"),
+        ]
+        live_rows, historical_rows = partition_evidence_by_origin(rows)
+        self.assertEqual([row["evidence_id"] for row in live_rows], ["e1"])
+        self.assertEqual([row["evidence_id"] for row in historical_rows], ["e2"])
+
+    def test_build_historical_source_record_from_evidence_uses_persisted_fields_only(self):
+        row = make_historical_row("e1", "fed_fomc", "Federal Reserve", "Central Bank Communications")
+        record = build_historical_source_record_from_evidence(row)
+        self.assertEqual(record["source_id"], "fed_fomc")
+        self.assertEqual(record["provider"], "Federal Reserve")
+        self.assertEqual(record["category"], "Central Bank Communications")
+        self.assertEqual(record["connector_source_id"], "fed_fomc")
+        self.assertEqual(record["backfill_id"], "backfill_1")
+
+    def test_build_coverage_source_records_accepts_historical_source_without_registry_membership(self):
+        registry = make_registry()
+        rows = [make_historical_row("e1", "fed_fomc", "Federal Reserve", "Central Bank Communications")]
+        with self.assertRaises(SourceRegistryError):
+            registry.source_by_id("fed_fomc")
+        records = build_coverage_source_records(rows, registry)
+        self.assertEqual(records[0]["source_id"], "fed_fomc")
+        self.assertEqual(records[0]["origin"], "historical_backfill")
+
+    def test_build_coverage_source_records_resolves_live_rows_via_registry(self):
+        registry = make_registry()
+        rows = [make_live_row("e1", "s1")]
+        records = build_coverage_source_records(rows, registry)
+        self.assertEqual(records[0]["provider"], "Shared Provider")
+        self.assertEqual(records[0]["category"], "General Business")
+        self.assertEqual(records[0]["origin"], "live_persisted")
+
+    def test_build_replay_coverage_intelligence_historical_only_reconciles_counts(self):
+        registry = make_registry()
+        rows = [
+            make_historical_row("e1", "fed_fomc", "Federal Reserve", "Central Bank Communications"),
+            make_historical_row("e2", "fed_fomc", "Federal Reserve", "Central Bank Communications"),
+            make_historical_row("e3", "bls_cpi", "BLS", "Inflation / Economic Data"),
+        ]
+        coverage = build_replay_coverage_intelligence(rows, registry)
+        self.assertEqual(coverage["accepted_evidence_count"], 3)
+        self.assertEqual(coverage["contributing_source_count"], 2)
+        self.assertEqual(coverage["contributing_provider_count"], 2)
+        self.assertEqual(coverage["contributing_category_count"], 2)
+        self.assertEqual(coverage["evidence_count_by_source"], {"bls_cpi": 1, "fed_fomc": 2})
+        self.assertEqual(sum(coverage["evidence_count_by_source"].values()), coverage["accepted_evidence_count"])
+        self.assertEqual(sum(coverage["evidence_count_by_provider"].values()), coverage["accepted_evidence_count"])
+        self.assertEqual(sum(coverage["evidence_count_by_category"].values()), coverage["accepted_evidence_count"])
+        self.assertEqual(coverage["evidence_origins_used"], ["historical_backfill"])
+
+    def test_build_replay_coverage_intelligence_reconciles_fed_fomc_bls_cpi_bea_gdp_pce_eia_energy(self):
+        registry = make_registry()
+        rows = [
+            make_historical_row("e1", "fed_fomc", "Federal Reserve", "Central Bank Communications"),
+            make_historical_row("e2", "bls_cpi", "BLS", "Inflation / Economic Data"),
+            make_historical_row("e3", "bea_gdp_pce", "BEA", "Economic Data / Growth / Inflation"),
+            make_historical_row("e4", "eia_energy", "EIA", "Energy / Commodities"),
+        ]
+        coverage = build_replay_coverage_intelligence(rows, registry)
+        self.assertEqual(coverage["evidence_count_by_source"]["fed_fomc"], 1)
+        self.assertEqual(coverage["evidence_count_by_source"]["bls_cpi"], 1)
+        self.assertEqual(coverage["evidence_count_by_source"]["bea_gdp_pce"], 1)
+        self.assertEqual(coverage["evidence_count_by_source"]["eia_energy"], 1)
+        self.assertEqual(coverage["contributing_source_count"], 4)
+        self.assertEqual(coverage["breadth_state"], "BROAD")
+
+    def test_build_replay_coverage_intelligence_mixed_live_and_historical_reconciles(self):
+        registry = make_registry()
+        rows = [
+            make_live_row("e1", "s1"),
+            make_live_row("e2", "s2"),
+            make_historical_row("e3", "fed_fomc", "Federal Reserve", "Central Bank Communications"),
+        ]
+        coverage = build_replay_coverage_intelligence(rows, registry)
+        self.assertEqual(coverage["accepted_evidence_count"], 3)
+        self.assertEqual(coverage["contributing_source_count"], 3)
+        self.assertEqual(sorted(coverage["evidence_origins_used"]), ["historical_backfill", "live_persisted"])
+        self.assertEqual(
+            sum(coverage["evidence_count_by_source"].values()),
+            coverage["accepted_evidence_count"],
+        )
+
+    def test_concentration_metrics_are_deterministic(self):
+        registry = make_registry()
+        rows = [
+            make_historical_row("e1", "fed_fomc", "Federal Reserve", "Central Bank Communications"),
+            make_historical_row("e2", "fed_fomc", "Federal Reserve", "Central Bank Communications"),
+            make_historical_row("e3", "bls_cpi", "BLS", "Inflation / Economic Data"),
+        ]
+        first = build_replay_coverage_intelligence(rows, registry)
+        second = build_replay_coverage_intelligence(list(reversed(rows)), registry)
+        self.assertEqual(first["source_concentration"], round(2 / 3, 2))
+        self.assertEqual(first["provider_concentration"], round(2 / 3, 2))
+        self.assertEqual(first["category_concentration"], round(2 / 3, 2))
+        self.assertEqual(first["source_concentration"], second["source_concentration"])
+        self.assertEqual(first["evidence_count_by_source"], second["evidence_count_by_source"])
+
+    def test_breadth_state_fixtures(self):
+        registry = make_registry()
+        cases = [
+            (0, "UNKNOWN"),
+            (1, "MINIMAL"),
+            (2, "LIMITED"),
+            (3, "MODERATE"),
+            (4, "BROAD"),
+        ]
+        sources = [
+            ("fed_fomc", "Federal Reserve", "Central Bank Communications"),
+            ("bls_cpi", "BLS", "Inflation / Economic Data"),
+            ("bea_gdp_pce", "BEA", "Economic Data / Growth / Inflation"),
+            ("eia_energy", "EIA", "Energy / Commodities"),
+        ]
+        for source_count, expected_state in cases:
+            with self.subTest(expected=expected_state):
+                rows = [
+                    make_historical_row(f"e{index}", *sources[index])
+                    for index in range(source_count)
+                ]
+                coverage = build_replay_coverage_intelligence(rows, registry)
+                self.assertEqual(coverage["breadth_state"], expected_state)
+
+    def test_assign_breadth_state_matches_named_thresholds(self):
+        self.assertEqual(assign_breadth_state(0, 0), "UNKNOWN")
+        self.assertEqual(assign_breadth_state(1, 1), "MINIMAL")
+        self.assertEqual(assign_breadth_state(2, 2), "LIMITED")
+        self.assertEqual(assign_breadth_state(3, 3), "MODERATE")
+        self.assertEqual(assign_breadth_state(4, 3), "BROAD")
+        # Four sources but insufficient category diversity does not qualify as BROAD.
+        self.assertEqual(assign_breadth_state(4, 1), "MODERATE")
+
+    def test_historical_limitations_copy_present_and_no_complete_coverage_claim(self):
+        limitations = build_historical_coverage_limitations(["historical_backfill"])
+        self.assertIn("Historical coverage reflects supported backfill sources only.", limitations)
+        self.assertIn("This is not complete historical market-news coverage.", limitations)
+        self.assertIn("Coverage breadth is measured within the evidence available to this replay.", limitations)
+        for message in limitations:
+            if "complete" in message.lower():
+                self.assertIn("not", message.lower())
+
+    def test_historical_limitations_note_mixed_origins_when_both_present(self):
+        historical_only = build_historical_coverage_limitations(["historical_backfill"])
+        mixed = build_historical_coverage_limitations(["historical_backfill", "live_persisted"])
+        self.assertEqual(len(mixed), len(historical_only) + 1)
+
+    def test_live_source_registry_untouched_by_historical_evidence(self):
+        registry = make_registry()
+        source_ids_before = {source["source_id"] for source in registry.sources}
+        rows = [make_historical_row("e1", "fed_fomc", "Federal Reserve", "Central Bank Communications")]
+        build_replay_coverage_intelligence(rows, registry)
+        source_ids_after = {source["source_id"] for source in registry.sources}
+        self.assertEqual(source_ids_before, source_ids_after)
+        self.assertNotIn("fed_fomc", source_ids_after)
 
 
 if __name__ == "__main__":

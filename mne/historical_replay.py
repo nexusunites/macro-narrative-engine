@@ -9,7 +9,7 @@ from pathlib import Path
 
 import config
 from mne import historical_backfill, historical_backfill_admin
-from mne.coverage_intelligence import build_coverage_intelligence
+from mne.coverage_intelligence import build_coverage_intelligence, build_replay_coverage_intelligence
 from mne.evidence import persist_attributed_accepted_evidence
 from mne.narrative_signals import NARRATIVE_GROUPS, compute_group_scores, get_dominant_group
 from mne.source_registry import SourceRegistryError, load_source_registry
@@ -410,9 +410,21 @@ def run_historical_replay(replay_request, historical_records=None, generated_at=
         )
         source_intelligence["accepted_evidence_count"] = len(source_intelligence["accepted_evidence"])
 
+    source_intelligence["coverage_intelligence"] = build_replay_coverage_intelligence(
+        source_intelligence["accepted_evidence"],
+        source_registry,
+    )
+
+    # Scoped to live evidence only: build_coverage_intelligence is
+    # live-registry-bound (registry.source_by_id per source_id), and
+    # historical source ids such as fed_fomc are deliberately not registry
+    # members. Feeding it combined_evidence would raise SourceRegistryError
+    # and blank out coverage for the whole replay, including narratives with
+    # no backfilled evidence at all. source_intelligence.coverage_intelligence
+    # above is the source-agnostic replay-level counterpart.
     coverage = _build_coverage_if_available(
-        combined_evidence,
-        theme_attribution,
+        live_evidence,
+        live_theme_attribution,
         source_registry,
         warnings,
     )
@@ -700,6 +712,8 @@ def _backfill_attributed_records(backfilled_evidence, theme_attribution_slice):
                 ],
                 "evidence_origin": metadata.get("evidence_origin"),
                 "backfill_id": metadata.get("backfill_id"),
+                "category": metadata.get("category"),
+                "connector_source_id": metadata.get("connector_source_id"),
             }
         )
     return records

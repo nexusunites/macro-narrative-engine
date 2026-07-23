@@ -99,6 +99,10 @@ def compare_evidence_base(artifact_a, artifact_b):
     backfill_available = backfill_available_a and backfill_available_b
     backfilled_a = metadata_a.get("backfilled_evidence_count") if backfill_available_a else None
     backfilled_b = metadata_b.get("backfilled_evidence_count") if backfill_available_b else None
+    coverage_a = _coverage_intelligence(artifact_a)
+    coverage_b = _coverage_intelligence(artifact_b)
+    coverage_available_a = coverage_a is not None
+    coverage_available_b = coverage_b is not None
     result = {
         "evidence_count_a": evidence_count_a,
         "evidence_count_b": evidence_count_b,
@@ -123,6 +127,16 @@ def compare_evidence_base(artifact_a, artifact_b):
         "backfill_ids_used_b": metadata_b.get("backfill_ids_used") if backfill_available_b else None,
         "backfill_metadata_available_a": backfill_available_a,
         "backfill_metadata_available_b": backfill_available_b,
+        "coverage_available_a": coverage_available_a,
+        "coverage_available_b": coverage_available_b,
+        "breadth_state_a": coverage_a.get("breadth_state") if coverage_available_a else None,
+        "breadth_state_b": coverage_b.get("breadth_state") if coverage_available_b else None,
+        "contributing_source_count_a": coverage_a.get("contributing_source_count") if coverage_available_a else None,
+        "contributing_source_count_b": coverage_b.get("contributing_source_count") if coverage_available_b else None,
+        "contributing_provider_count_a": coverage_a.get("contributing_provider_count") if coverage_available_a else None,
+        "contributing_provider_count_b": coverage_b.get("contributing_provider_count") if coverage_available_b else None,
+        "contributing_category_count_a": coverage_a.get("contributing_category_count") if coverage_available_a else None,
+        "contributing_category_count_b": coverage_b.get("contributing_category_count") if coverage_available_b else None,
     }
     result["copy"] = _evidence_copy(result, backfill_available)
     return result
@@ -290,6 +304,16 @@ def _warnings(metadata):
     return list(warnings) if isinstance(warnings, list) else []
 
 
+def _coverage_intelligence(artifact):
+    source_intelligence = artifact.get("source_intelligence") if isinstance(artifact, dict) else None
+    coverage = (
+        source_intelligence.get("coverage_intelligence")
+        if isinstance(source_intelligence, dict)
+        else None
+    )
+    return coverage if isinstance(coverage, dict) else None
+
+
 def _has_backfill_metadata(metadata):
     return any(
         key in metadata
@@ -327,6 +351,16 @@ def _evidence_copy(result, backfill_available):
         copy.append("Replay B included backfilled evidence.")
     else:
         copy.append("Neither replay included backfilled evidence.")
+
+    if result.get("coverage_available_a") and result.get("coverage_available_b"):
+        state_a = result.get("breadth_state_a")
+        state_b = result.get("breadth_state_b")
+        if state_a == state_b:
+            copy.append(f"Coverage breadth remained {state_a}.")
+        else:
+            copy.append(f"Coverage breadth changed from {state_a} to {state_b}.")
+    elif result.get("coverage_available_a") or result.get("coverage_available_b"):
+        copy.append("Coverage breadth could not be compared because it is only available for one replay.")
     return copy
 
 
