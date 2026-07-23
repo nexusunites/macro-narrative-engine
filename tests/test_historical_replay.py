@@ -123,6 +123,22 @@ def directory_digest(path):
     return digest.hexdigest()
 
 
+def write_backfill(data_dir, backfill_id, evidence_payload, manifest=None):
+    backfill_dir = data_dir / "historical_evidence" / backfill_id
+    backfill_dir.mkdir(parents=True, exist_ok=True)
+    if manifest is None:
+        manifest = {
+            "backfill_id": backfill_id,
+            "requested_start_date": "2020-01-01",
+            "requested_end_date": "2020-01-31",
+            "status": "COMPLETE",
+            "generated_at": "2020-02-01T00:00:00Z",
+        }
+    (backfill_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (backfill_dir / "evidence.json").write_text(json.dumps(evidence_payload), encoding="utf-8")
+    return backfill_dir
+
+
 @contextmanager
 def writable_temporary_mne_data_dir():
     workspace_tmp = Path(".tmp_mne_data")
@@ -631,6 +647,429 @@ class HistoricalReplayTests(unittest.TestCase):
                 output = historical_replay.run_historical_replay(request, historical_records=[])
 
             self.assertEqual(output["evidence_count"], 1)
+
+
+class MultipleBackfillReplayTests(unittest.TestCase):
+    FED_ID = "backfill_2020-03-01_2020-03-31_macro_fed_fomc"
+    BLS_ID = "backfill_2020-03-01_2020-03-31_macro_bls_cpi"
+
+    # -- Normalization -----------------------------------------------------
+
+    def test_normalization_scalar_backfill_id(self):
+        request = historical_replay.ReplayRequest(
+            replay_date="2020-03-15",
+            mode="macro",
+            evidence_cutoff="2020-03-15T23:59:59Z",
+            replay_id="replay_2020-03-15_macro",
+            backfill_id="x",
+        )
+        self.assertEqual(request.backfill_ids, ("x",))
+        self.assertEqual(request.backfill_id, "x")
+        self.assertTrue(request.include_backfilled_evidence)
+
+    def test_normalization_backfill_ids_list(self):
+        request = historical_replay.build_replay_request(
+            "2020-03-15", backfill_ids=["x", "y"]
+        )
+        self.assertEqual(request.backfill_ids, ("x", "y"))
+        self.assertEqual(request.backfill_id, "x")
+        self.assertTrue(request.include_backfilled_evidence)
+
+    def test_normalization_both_given_merges_id_first(self):
+        request = historical_replay.build_replay_request(
+            "2020-03-15", backfill_id="y", backfill_ids=["x", "y"]
+        )
+        self.assertEqual(request.backfill_ids, ("y", "x"))
+        self.assertEqual(request.backfill_id, "y")
+
+    def test_normalization_dedupes_repeats_preserving_order(self):
+        request = historical_replay.build_replay_request(
+            "2020-03-15", backfill_ids=["y", "x", "y"]
+        )
+        self.assertEqual(request.backfill_ids, ("y", "x"))
+        self.assertEqual(request.backfill_id, "y")
+
+    def test_normalization_empty_input(self):
+        request = historical_replay.build_replay_request("2020-03-15")
+        self.assertEqual(request.backfill_ids, ())
+        self.assertIsNone(request.backfill_id)
+        self.assertFalse(request.include_backfilled_evidence)
+
+    def test_normalization_runs_for_coerced_dict_path(self):
+        # _coerce_request builds ReplayRequest(**dict); __post_init__ must still run.
+        request = historical_replay._coerce_request(
+            {
+                "replay_date": "2020-03-15",
+                "mode": "macro",
+                "evidence_cutoff": "2020-03-15T23:59:59Z",
+                "replay_id": "replay_2020-03-15_macro",
+                "backfill_ids": ("a", "b", "a"),
+            }
+        )
+        self.assertEqual(request.backfill_ids, ("a", "b"))
+        self.assertEqual(request.backfill_id, "a")
+        self.assertTrue(request.include_backfilled_evidence)
+
+    # -- Multi-id load / combine ------------------------------------------
+
+    def test_multiple_valid_backfills_load_and_combine(self):
+        with writable_temporary_mne_data_dir() as data_dir:
+            write_backfill(
+                data_dir,
+                self.FED_ID,
+                [backfill_evidence("f1", "FOMC statement", "2020-03-15T19:00:00Z", backfill_id=self.FED_ID)],
+            )
+            write_backfill(
+                data_dir,
+                self.BLS_ID,
+                [
+                    backfill_evidence(
+                        "c1", "CPI report", "2020-03-11T13:30:00Z",
+                        backfill_id=self.BLS_ID, source_id="bls_cpi", provider="BLS",
+                    )
+                ],
+            )
+            request = historical_replay.build_replay_request(
+                "2020-03-31", backfill_ids=[self.FED_ID, self.BLS_ID]
+            )
+            output = historical_replay.run_historical_replay(request, historical_records=[])
+
+        self.assertEqual(output["evidence_count"], 2)
+        metadata = output["replay_metadata"]
+        self.assertEqual(metadata["backfill_ids_requested"], [self.FED_ID, self.BLS_ID])
+        self.assertEqual(sorted(metadata["backfill_ids_used"]), sorted([self.FED_ID, self.BLS_ID]))
+        accepted_ids = {row["evidence_id"] for row in output["source_intelligence"]["accepted_evidence"]}
+        self.assertEqual(accepted_ids, {"f1", "c1"})
+
+    def test_missing_backfill_in_multi_id_raises_naming_failed_id(self):
+        missing = "backfill_2020-03-01_2020-03-31_macro_missing_source"
+        with writable_temporary_mne_data_dir() as data_dir:
+            write_backfill(
+                data_dir,
+                self.FED_ID,
+                [backfill_evidence("f1", "FOMC statement", "2020-03-15T19:00:00Z", backfill_id=self.FED_ID)],
+            )
+            request = historical_replay.build_replay_request(
+                "2020-03-31", backfill_ids=[self.FED_ID, missing]
+            )
+            with self.assertRaises(historical_replay.HistoricalReplayError) as ctx:
+                historical_replay.run_historical_replay(request, historical_records=[])
+
+        self.assertIn(missing, str(ctx.exception))
+        self.assertIn(missing, ctx.exception.missing_or_failed)
+        self.assertNotIn(self.FED_ID, ctx.exception.missing_or_failed)
+
+    def test_malformed_evidence_json_in_multi_id_raises(self):
+        with writable_temporary_mne_data_dir() as data_dir:
+            write_backfill(
+                data_dir,
+                self.FED_ID,
+                [backfill_evidence("f1", "FOMC statement", "2020-03-15T19:00:00Z", backfill_id=self.FED_ID)],
+            )
+            # Second backfill has a manifest but corrupt evidence.json.
+            bad_dir = data_dir / "historical_evidence" / self.BLS_ID
+            bad_dir.mkdir(parents=True)
+            (bad_dir / "manifest.json").write_text(json.dumps({"backfill_id": self.BLS_ID}), encoding="utf-8")
+            (bad_dir / "evidence.json").write_text("{not valid json", encoding="utf-8")
+            request = historical_replay.build_replay_request(
+                "2020-03-31", backfill_ids=[self.FED_ID, self.BLS_ID]
+            )
+            with self.assertRaises(historical_replay.HistoricalReplayError) as ctx:
+                historical_replay.run_historical_replay(request, historical_records=[])
+
+        self.assertIn(self.BLS_ID, ctx.exception.missing_or_failed)
+
+    def test_path_traversal_id_single_is_calm(self):
+        request = historical_replay.build_replay_request("2020-03-31", backfill_id="../evil")
+        # Loader should not be called for an invalid id in the single path.
+        with patch.object(
+            historical_replay.historical_backfill, "load_backfilled_evidence"
+        ) as loader:
+            output = historical_replay.run_historical_replay(request, historical_records=[])
+        loader.assert_not_called()
+        self.assertFalse(output["replay_metadata"]["backfilled_evidence_included"])
+        self.assertIn(
+            "No eligible backfilled evidence was available for this replay.",
+            output["replay_metadata"]["warnings"],
+        )
+
+    def test_path_traversal_id_multi_raises(self):
+        with writable_temporary_mne_data_dir() as data_dir:
+            write_backfill(
+                data_dir,
+                self.FED_ID,
+                [backfill_evidence("f1", "FOMC statement", "2020-03-15T19:00:00Z", backfill_id=self.FED_ID)],
+            )
+            request = historical_replay.build_replay_request(
+                "2020-03-31", backfill_ids=[self.FED_ID, "../evil"]
+            )
+            with self.assertRaises(historical_replay.HistoricalReplayError) as ctx:
+                historical_replay.run_historical_replay(request, historical_records=[])
+        self.assertIn("../evil", ctx.exception.missing_or_failed)
+
+    def test_cutoff_exclusion_across_combined_backfills(self):
+        with writable_temporary_mne_data_dir() as data_dir:
+            write_backfill(
+                data_dir,
+                self.FED_ID,
+                [
+                    backfill_evidence("f1", "FOMC statement", "2020-03-15T19:00:00Z", backfill_id=self.FED_ID),
+                    backfill_evidence("f_future", "Future FOMC", "2020-04-15T19:00:00Z", backfill_id=self.FED_ID),
+                ],
+            )
+            write_backfill(
+                data_dir,
+                self.BLS_ID,
+                [
+                    backfill_evidence(
+                        "c1", "CPI report", "2020-03-11T13:30:00Z",
+                        backfill_id=self.BLS_ID, source_id="bls_cpi", provider="BLS",
+                    ),
+                    backfill_evidence(
+                        "c_future", "Future CPI", "2020-04-11T13:30:00Z",
+                        backfill_id=self.BLS_ID, source_id="bls_cpi", provider="BLS",
+                    ),
+                ],
+            )
+            request = historical_replay.build_replay_request(
+                "2020-03-31", backfill_ids=[self.FED_ID, self.BLS_ID]
+            )
+            output = historical_replay.run_historical_replay(request, historical_records=[])
+
+        accepted_ids = {row["evidence_id"] for row in output["source_intelligence"]["accepted_evidence"]}
+        self.assertEqual(accepted_ids, {"f1", "c1"})
+        self.assertNotIn("f_future", accepted_ids)
+        self.assertNotIn("c_future", accepted_ids)
+
+    def test_cross_backfill_duplicate_evidence_id_first_selected_wins(self):
+        with writable_temporary_mne_data_dir() as data_dir:
+            write_backfill(
+                data_dir,
+                self.FED_ID,
+                [backfill_evidence("dup", "Fed copy wins", "2020-03-15T19:00:00Z", backfill_id=self.FED_ID)],
+            )
+            write_backfill(
+                data_dir,
+                self.BLS_ID,
+                [
+                    backfill_evidence(
+                        "dup", "BLS copy loses", "2020-03-11T13:30:00Z",
+                        backfill_id=self.BLS_ID, source_id="bls_cpi", provider="BLS",
+                    )
+                ],
+            )
+            request = historical_replay.build_replay_request(
+                "2020-03-31", backfill_ids=[self.FED_ID, self.BLS_ID]
+            )
+            output = historical_replay.run_historical_replay(request, historical_records=[])
+
+        matching = [
+            row for row in output["source_intelligence"]["accepted_evidence"] if row["evidence_id"] == "dup"
+        ]
+        self.assertEqual(len(matching), 1)
+        self.assertEqual(matching[0]["title"], "Fed copy wins")
+        self.assertEqual(matching[0]["backfill_id"], self.FED_ID)
+        self.assertEqual(output["replay_metadata"]["backfilled_evidence_counts_by_id"], {self.FED_ID: 1})
+
+    def test_live_wins_live_vs_backfill_collision_in_multi_id(self):
+        with writable_temporary_mne_data_dir() as data_dir:
+            write_backfill(
+                data_dir,
+                self.FED_ID,
+                [backfill_evidence("shared", "Backfilled version", "2020-03-15T19:00:00Z", backfill_id=self.FED_ID)],
+            )
+            write_backfill(
+                data_dir,
+                self.BLS_ID,
+                [
+                    backfill_evidence(
+                        "c1", "CPI report", "2020-03-11T13:30:00Z",
+                        backfill_id=self.BLS_ID, source_id="bls_cpi", provider="BLS",
+                    )
+                ],
+            )
+            records = [
+                run_record(
+                    "2020-03-16T10:00:00Z",
+                    [evidence("shared", "Live version wins", "2020-03-15T09:00:00Z")],
+                )
+            ]
+            request = historical_replay.build_replay_request(
+                "2020-03-31", backfill_ids=[self.FED_ID, self.BLS_ID]
+            )
+            output = historical_replay.run_historical_replay(request, historical_records=records)
+
+        matching = [
+            row for row in output["source_intelligence"]["accepted_evidence"] if row["evidence_id"] == "shared"
+        ]
+        self.assertEqual(len(matching), 1)
+        self.assertEqual(matching[0]["title"], "Live version wins")
+        # backfill "shared" deduped away; only c1 survives from backfills.
+        self.assertEqual(output["replay_metadata"]["backfilled_evidence_counts_by_id"], {self.BLS_ID: 1})
+
+    def test_provenance_preserved_per_record_from_either_backfill(self):
+        with writable_temporary_mne_data_dir() as data_dir:
+            write_backfill(
+                data_dir,
+                self.FED_ID,
+                [backfill_evidence("f1", "FOMC statement", "2020-03-15T19:00:00Z", backfill_id=self.FED_ID)],
+            )
+            bls_ev = backfill_evidence(
+                "c1", "CPI report", "2020-03-11T13:30:00Z",
+                backfill_id=self.BLS_ID, source_id="bls_cpi", provider="BLS",
+            )
+            bls_ev["metadata"]["category"] = "Economic Data / Inflation"
+            write_backfill(data_dir, self.BLS_ID, [bls_ev])
+            request = historical_replay.build_replay_request(
+                "2020-03-31", backfill_ids=[self.FED_ID, self.BLS_ID]
+            )
+            output = historical_replay.run_historical_replay(request, historical_records=[])
+
+        by_id = {row["evidence_id"]: row for row in output["source_intelligence"]["accepted_evidence"]}
+        self.assertEqual(by_id["f1"]["backfill_id"], self.FED_ID)
+        self.assertEqual(by_id["f1"]["provider"], "Federal Reserve")
+        self.assertEqual(by_id["c1"]["backfill_id"], self.BLS_ID)
+        self.assertEqual(by_id["c1"]["provider"], "BLS")
+        self.assertEqual(by_id["f1"]["evidence_origin"], "HISTORICAL_BACKFILL")
+        self.assertEqual(by_id["c1"]["evidence_origin"], "HISTORICAL_BACKFILL")
+
+    def test_metadata_counts_and_invariants(self):
+        with writable_temporary_mne_data_dir() as data_dir:
+            write_backfill(
+                data_dir,
+                self.FED_ID,
+                [
+                    backfill_evidence("f1", "FOMC one", "2020-03-14T19:00:00Z", backfill_id=self.FED_ID),
+                    backfill_evidence("f2", "FOMC two", "2020-03-15T19:00:00Z", backfill_id=self.FED_ID),
+                ],
+            )
+            write_backfill(
+                data_dir,
+                self.BLS_ID,
+                [
+                    backfill_evidence(
+                        "c1", "CPI one", "2020-03-11T13:30:00Z",
+                        backfill_id=self.BLS_ID, source_id="bls_cpi", provider="BLS",
+                    )
+                ],
+            )
+            records = [
+                run_record(
+                    "2020-03-16T10:00:00Z",
+                    [evidence("live1", "Live headline", "2020-03-15T09:00:00Z")],
+                )
+            ]
+            request = historical_replay.build_replay_request(
+                "2020-03-31", backfill_ids=[self.FED_ID, self.BLS_ID]
+            )
+            output = historical_replay.run_historical_replay(request, historical_records=records)
+
+        metadata = output["replay_metadata"]
+        self.assertEqual(metadata["backfill_ids_requested"], [self.FED_ID, self.BLS_ID])
+        self.assertEqual(sorted(metadata["backfill_ids_used"]), sorted([self.FED_ID, self.BLS_ID]))
+        counts = metadata["backfilled_evidence_counts_by_id"]
+        self.assertEqual(counts, {self.FED_ID: 2, self.BLS_ID: 1})
+        self.assertEqual(sum(counts.values()), metadata["backfilled_evidence_count"])
+        self.assertEqual(metadata["backfilled_evidence_count"], 3)
+        self.assertEqual(metadata["live_evidence_count"], 1)
+        self.assertEqual(
+            metadata["backfilled_evidence_count"] + metadata["live_evidence_count"],
+            metadata["total_evidence_count"],
+        )
+        self.assertEqual(metadata["total_evidence_count"], output["evidence_count"])
+
+    def test_multi_backfill_files_are_not_modified_by_replay(self):
+        with writable_temporary_mne_data_dir() as data_dir:
+            write_backfill(
+                data_dir,
+                self.FED_ID,
+                [backfill_evidence("f1", "FOMC statement", "2020-03-15T19:00:00Z", backfill_id=self.FED_ID)],
+            )
+            write_backfill(
+                data_dir,
+                self.BLS_ID,
+                [
+                    backfill_evidence(
+                        "c1", "CPI report", "2020-03-11T13:30:00Z",
+                        backfill_id=self.BLS_ID, source_id="bls_cpi", provider="BLS",
+                    )
+                ],
+            )
+            before = directory_digest(data_dir / "historical_evidence")
+            results_before = directory_digest(data_dir / "results")
+
+            request = historical_replay.build_replay_request(
+                "2020-03-31", backfill_ids=[self.FED_ID, self.BLS_ID]
+            )
+            output = historical_replay.run_historical_replay(request, historical_records=[])
+            after = directory_digest(data_dir / "historical_evidence")
+            results_after = directory_digest(data_dir / "results")
+
+        self.assertEqual(before, after)
+        self.assertEqual(results_before, results_after)
+        self.assertEqual(output["evidence_count"], 2)
+
+    def test_no_network_or_connector_calls_during_multi_backfill_replay(self):
+        with writable_temporary_mne_data_dir() as data_dir:
+            write_backfill(
+                data_dir,
+                self.FED_ID,
+                [backfill_evidence("f1", "FOMC statement", "2020-03-15T19:00:00Z", backfill_id=self.FED_ID)],
+            )
+            write_backfill(
+                data_dir,
+                self.BLS_ID,
+                [
+                    backfill_evidence(
+                        "c1", "CPI report", "2020-03-11T13:30:00Z",
+                        backfill_id=self.BLS_ID, source_id="bls_cpi", provider="BLS",
+                    )
+                ],
+            )
+            request = historical_replay.build_replay_request(
+                "2020-03-31", backfill_ids=[self.FED_ID, self.BLS_ID]
+            )
+            with patch(
+                "mne.backfill_sources.fed_fomc.fetch_fed_fomc_records",
+                side_effect=AssertionError("connector fetch called during replay"),
+            ), patch(
+                "mne.rss_fetch.fetch_headlines_from_rss",
+                side_effect=AssertionError("live RSS fetch called during replay"),
+            ):
+                output = historical_replay.run_historical_replay(request, historical_records=[])
+
+        self.assertEqual(output["evidence_count"], 2)
+
+    # -- CLI ---------------------------------------------------------------
+
+    def test_cli_repeated_backfill_id_flags_parsed(self):
+        with patch.object(
+            historical_replay, "run_and_persist_historical_replay",
+            return_value=(Path("x.json"), {"evidence_count": 0, "replay_metadata": {}}),
+        ) as runner:
+            historical_replay.main(
+                ["--date", "2020-03-15", "--backfill-id", "A", "--backfill-id", "B", "--backfill-id", "C"]
+            )
+        _, kwargs = runner.call_args
+        self.assertEqual(kwargs["backfill_ids"], ["A", "B", "C"])
+
+    def test_cli_single_backfill_id_flag_still_works(self):
+        with patch.object(
+            historical_replay, "run_and_persist_historical_replay",
+            return_value=(Path("x.json"), {"evidence_count": 0, "replay_metadata": {}}),
+        ) as runner:
+            historical_replay.main(["--date", "2020-03-15", "--backfill-id", "A"])
+        _, kwargs = runner.call_args
+        self.assertEqual(kwargs["backfill_ids"], ["A"])
+
+    def test_cli_no_backfill_id_yields_empty_list(self):
+        with patch.object(
+            historical_replay, "run_and_persist_historical_replay",
+            return_value=(Path("x.json"), {"evidence_count": 0, "replay_metadata": {}}),
+        ) as runner:
+            historical_replay.main(["--date", "2020-03-15"])
+        _, kwargs = runner.call_args
+        self.assertEqual(kwargs["backfill_ids"], [])
 
 
 if __name__ == "__main__":

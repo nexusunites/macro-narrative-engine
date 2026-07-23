@@ -2,12 +2,13 @@ import argparse
 import copy
 import json
 import logging
+from collections import Counter
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
 from pathlib import Path
 
 import config
-from mne import historical_backfill
+from mne import historical_backfill, historical_backfill_admin
 from mne.coverage_intelligence import build_coverage_intelligence
 from mne.evidence import persist_attributed_accepted_evidence
 from mne.narrative_signals import NARRATIVE_GROUPS, compute_group_scores, get_dominant_group
@@ -26,6 +27,17 @@ EVIDENCE_SELECTION_RULE = (
 LOGGER = logging.getLogger(__name__)
 
 
+class HistoricalReplayError(Exception):
+    """Raised when a historical replay cannot be produced for a well-formed
+    request (e.g. one of several explicitly requested backfill_ids is missing,
+    malformed, or fails path-safety validation)."""
+
+    def __init__(self, message, *, missing_or_failed=None, requested=None):
+        super().__init__(message)
+        self.missing_or_failed = list(missing_or_failed or [])
+        self.requested = list(requested or [])
+
+
 @dataclass(frozen=True)
 class ReplayRequest:
     replay_date: str
@@ -33,7 +45,25 @@ class ReplayRequest:
     evidence_cutoff: str
     replay_id: str
     backfill_id: str | None = None
+    backfill_ids: tuple[str, ...] = ()
     include_backfilled_evidence: bool = False
+
+    def __post_init__(self):
+        ordered, seen = [], set()
+        if self.backfill_id:
+            ordered.append(self.backfill_id)
+            seen.add(self.backfill_id)
+        for bid in self.backfill_ids or ():
+            if bid and bid not in seen:
+                ordered.append(bid)
+                seen.add(bid)
+        object.__setattr__(self, "backfill_ids", tuple(ordered))
+        object.__setattr__(self, "backfill_id", ordered[0] if ordered else None)
+        object.__setattr__(
+            self,
+            "include_backfilled_evidence",
+            bool(self.include_backfilled_evidence or ordered),
+        )
 
 
 def build_replay_request(
@@ -41,6 +71,7 @@ def build_replay_request(
     mode=SUPPORTED_MODE,
     evidence_cutoff=None,
     backfill_id=None,
+    backfill_ids=None,
     include_backfilled_evidence=False,
 ):
     replay_day = _parse_replay_date(replay_date)
@@ -60,7 +91,8 @@ def build_replay_request(
         evidence_cutoff=_format_utc(cutoff),
         replay_id=replay_id,
         backfill_id=backfill_id,
-        include_backfilled_evidence=bool(include_backfilled_evidence or backfill_id),
+        backfill_ids=tuple(backfill_ids or ()),
+        include_backfilled_evidence=bool(include_backfilled_evidence),
     )
 
 
@@ -166,7 +198,9 @@ def build_replay_metadata(
     warnings=None,
     *,
     backfilled_evidence_included=False,
+    backfill_ids_requested=None,
     backfill_ids_used=None,
+    backfilled_evidence_counts_by_id=None,
     live_persisted_evidence_included=True,
     live_evidence_count=0,
     backfilled_evidence_count=0,
@@ -187,7 +221,9 @@ def build_replay_metadata(
         "replay_engine_version": REPLAY_ENGINE_VERSION,
         "warnings": list(warnings or _thin_evidence_warnings(evidence_count)),
         "backfilled_evidence_included": bool(backfilled_evidence_included),
+        "backfill_ids_requested": list(backfill_ids_requested or []),
         "backfill_ids_used": list(backfill_ids_used or []),
+        "backfilled_evidence_counts_by_id": dict(backfilled_evidence_counts_by_id or {}),
         "live_persisted_evidence_included": bool(live_persisted_evidence_included),
         "evidence_sources_used": evidence_sources_used,
         "backfilled_evidence_count": backfilled_evidence_count,
@@ -236,6 +272,68 @@ def select_backfilled_evidence(backfill_evidence, replay_request):
     )
 
 
+def _load_backfill_evidence_for_replay(request):
+    """Loads raw (un-cutoff-filtered) backfilled evidence for a replay request.
+
+    Three cases, per the multiple-backfill design:
+    - No explicit ids (include flag only): resolve by date, exact legacy path.
+    - Exactly one requested id: exact legacy single-id behavior; an invalid or
+      path-unsafe id is treated as missing (empty evidence, calm warning
+      downstream), never raised.
+    - Two or more requested ids: any missing, malformed, path-unsafe, or
+      unreadable id raises HistoricalReplayError before any replay artifact is
+      produced. Per-id evidence lists are concatenated in request order so the
+      first-listed backfill wins evidence_id collisions during dedup.
+    """
+    backfill_ids = request.backfill_ids
+
+    if not backfill_ids:
+        return historical_backfill.load_backfilled_evidence(
+            backfill_id=None,
+            requested_date=request.replay_date,
+        )
+
+    if len(backfill_ids) == 1:
+        backfill_id = backfill_ids[0]
+        if not historical_backfill_admin.is_valid_backfill_id(backfill_id):
+            return []
+        return historical_backfill.load_backfilled_evidence(
+            backfill_id=backfill_id,
+            requested_date=None,
+        )
+
+    per_id_evidence = {}
+    missing_or_failed = []
+    for backfill_id in backfill_ids:
+        if not historical_backfill_admin.is_valid_backfill_id(backfill_id):
+            missing_or_failed.append(backfill_id)
+            continue
+        if historical_backfill.load_backfill_manifest(backfill_id) is None:
+            missing_or_failed.append(backfill_id)
+            continue
+        try:
+            per_id_evidence[backfill_id] = historical_backfill.load_backfilled_evidence(
+                backfill_id=backfill_id,
+                requested_date=None,
+            )
+        except (OSError, json.JSONDecodeError):
+            missing_or_failed.append(backfill_id)
+
+    if missing_or_failed:
+        raise HistoricalReplayError(
+            "Historical replay could not load requested backfill(s): "
+            f"{', '.join(missing_or_failed)}. "
+            f"Requested: {', '.join(backfill_ids)}.",
+            missing_or_failed=missing_or_failed,
+            requested=list(backfill_ids),
+        )
+
+    combined = []
+    for backfill_id in backfill_ids:
+        combined.extend(per_id_evidence.get(backfill_id) or [])
+    return combined
+
+
 def run_historical_replay(replay_request, historical_records=None, generated_at=None):
     request = _coerce_request(replay_request)
     records = historical_records if historical_records is not None else load_historical_run_records()
@@ -243,12 +341,10 @@ def run_historical_replay(replay_request, historical_records=None, generated_at=
 
     backfilled_evidence = []
     backfill_ids_used = []
+    backfilled_evidence_counts_by_id = {}
     backfill_warning = None
     if request.include_backfilled_evidence:
-        raw_backfill_evidence = historical_backfill.load_backfilled_evidence(
-            backfill_id=request.backfill_id,
-            requested_date=request.replay_date if not request.backfill_id else None,
-        )
+        raw_backfill_evidence = _load_backfill_evidence_for_replay(request)
         selected_backfill_evidence = select_backfilled_evidence(raw_backfill_evidence, request)
         combined_evidence, backfilled_evidence = _merge_live_and_backfilled_evidence(
             live_evidence, selected_backfill_evidence
@@ -262,6 +358,13 @@ def run_historical_replay(replay_request, historical_records=None, generated_at=
                     for evidence in backfilled_evidence
                     if (evidence.get("metadata") or {}).get("backfill_id")
                 }
+            )
+            backfilled_evidence_counts_by_id = dict(
+                Counter(
+                    (evidence.get("metadata") or {}).get("backfill_id")
+                    for evidence in backfilled_evidence
+                    if (evidence.get("metadata") or {}).get("backfill_id")
+                )
             )
     else:
         combined_evidence = list(live_evidence)
@@ -339,7 +442,9 @@ def run_historical_replay(replay_request, historical_records=None, generated_at=
             len(combined_evidence),
             warnings,
             backfilled_evidence_included=bool(backfilled_evidence),
+            backfill_ids_requested=list(request.backfill_ids),
             backfill_ids_used=backfill_ids_used,
+            backfilled_evidence_counts_by_id=backfilled_evidence_counts_by_id,
             live_persisted_evidence_included=True,
             live_evidence_count=len(live_evidence),
             backfilled_evidence_count=len(backfilled_evidence),
@@ -370,6 +475,7 @@ def run_and_persist_historical_replay(
     mode=SUPPORTED_MODE,
     evidence_cutoff=None,
     backfill_id=None,
+    backfill_ids=None,
     include_backfilled_evidence=False,
 ):
     request = build_replay_request(
@@ -377,6 +483,7 @@ def run_and_persist_historical_replay(
         mode=mode,
         evidence_cutoff=evidence_cutoff,
         backfill_id=backfill_id,
+        backfill_ids=backfill_ids,
         include_backfilled_evidence=include_backfilled_evidence,
     )
     output = run_historical_replay(request)
@@ -396,15 +503,17 @@ def main(args=None):
     )
     parser.add_argument(
         "--backfill-id",
+        dest="backfill_ids",
+        action="append",
         default=None,
-        help="Specific backfill_id to include; implies --include-backfilled.",
+        help="Backfill ID to include; may be repeated. Implies --include-backfilled.",
     )
     parsed = parser.parse_args(args)
     path, output = run_and_persist_historical_replay(
         parsed.date,
         mode=parsed.mode,
         evidence_cutoff=parsed.evidence_cutoff,
-        backfill_id=parsed.backfill_id,
+        backfill_ids=parsed.backfill_ids or [],
         include_backfilled_evidence=parsed.include_backfilled,
     )
     print(f"Historical replay saved to {path}")

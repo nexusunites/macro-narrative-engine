@@ -303,6 +303,43 @@ class HistoricalComparisonTests(unittest.TestCase):
             historical_comparison.compare_evidence_base(replay_a, replay_b)["copy"],
         )
 
+    def test_multiple_backfill_ids_used_carry_through_comparison(self):
+        replay_a, replay_b = sample_replay_pair()
+        replay_b["replay_metadata"]["backfill_ids_used"] = [
+            "backfill_2020-01-01_2020-01-31_macro_fed_fomc",
+            "backfill_2020-01-01_2020-01-31_macro_bls_cpi",
+        ]
+
+        evidence = historical_comparison.compare_evidence_base(replay_a, replay_b)
+
+        # The full multi-element list carries through unchanged, in order.
+        self.assertEqual(evidence["backfill_ids_used_a"], [])
+        self.assertEqual(
+            evidence["backfill_ids_used_b"],
+            [
+                "backfill_2020-01-01_2020-01-31_macro_fed_fomc",
+                "backfill_2020-01-01_2020-01-31_macro_bls_cpi",
+            ],
+        )
+        # Inclusion copy still keys off backfilled_evidence_included/count, not ids.
+        self.assertIn("Replay B included backfilled evidence.", evidence["copy"])
+
+        # Route-level render: template joins the multi-id list with ", ".
+        with temporary_mne_data_dir() as data_dir:
+            write_replay(data_dir, replay_a)
+            write_replay(data_dir, replay_b)
+            context = dashboard.build_historical_comparison_route_context(
+                object(), replay_a["replay_id"], replay_b["replay_id"]
+            )
+            html = render_template("historical_comparison.html", **context)
+
+        self.assertIsNone(context["message"])
+        self.assertIn(
+            "backfill_2020-01-01_2020-01-31_macro_fed_fomc, "
+            "backfill_2020-01-01_2020-01-31_macro_bls_cpi",
+            html,
+        )
+
     def test_warnings_optional_fields_and_confidence_rendering(self):
         replay_a, replay_b = sample_replay_pair()
         replay_a.pop("replay_metadata")
