@@ -6,6 +6,20 @@ It ingests headlines, removes duplicates, scores recurring themes, measures narr
 
 > MNE is an analysis and research system. It is not a trading bot and does not generate trade recommendations.
 
+## Dashboard Preview
+
+### Overview Dashboard
+
+![Macro Narrative Engine overview dashboard](assets/screenshots/overview.png)
+
+### Research Workspace
+
+![Macro Narrative Engine research workspace](assets/screenshots/research.png)
+
+### Narrative Investigation
+
+![Macro Narrative Engine narrative investigation](assets/screenshots/narrative%20investigation.png)
+
 ## Why I Built It
 
 Financial markets produce more information than most people can review consistently. Important shifts are often distributed across headlines, sectors, macro events, and market data.
