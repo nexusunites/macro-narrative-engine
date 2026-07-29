@@ -18,6 +18,7 @@ from mne.event_lifecycle import load_event_definitions
 from mne import historical_backfill, historical_backfill_admin
 from mne import historical_replay, historical_workflow
 from mne.historical_comparison import build_historical_comparison
+from mne.historical_comparison_view import build_user_historical_comparison
 from mne.historical_research import (
     HistoricalResearchError,
     build_historical_research_context,
@@ -1867,6 +1868,35 @@ def build_user_historical_route_context(request: Request, replay_id: str):
     return context
 
 
+def build_user_historical_comparison_context(
+    request: Request,
+    replay_a: str = "",
+    replay_b: str = "",
+):
+    replays = list_user_replays()
+    context = {
+        "request": request,
+        "replays": replays,
+        "comparison": None,
+        "invalid": False,
+        "copy": HISTORICAL_COPY,
+    }
+    replay_a = (replay_a or "").strip()
+    replay_b = (replay_b or "").strip()
+    if not replay_a and not replay_b:
+        return context
+    if not replay_a or not replay_b:
+        context["invalid"] = True
+        return context
+    try:
+        context["comparison"] = build_user_historical_comparison(replay_a, replay_b)
+    except (HistoricalResearchError, ValueError, TypeError):
+        context["invalid"] = True
+    except Exception:
+        context["invalid"] = True
+    return context
+
+
 def build_historical_comparison_route_context(request: Request, replay_a: str, replay_b: str):
     context = {
         "request": request,
@@ -1916,6 +1946,18 @@ def historical_selector(request: Request):
     return templates.TemplateResponse(
         "historical_selector.html",
         build_historical_selector_context(request),
+    )
+
+
+@app.get("/history/compare", response_class=HTMLResponse)
+def user_historical_comparison(
+    request: Request,
+    replay_a: str = Query(default=""),
+    replay_b: str = Query(default=""),
+):
+    return templates.TemplateResponse(
+        "historical_comparison_user.html",
+        build_user_historical_comparison_context(request, replay_a, replay_b),
     )
 
 

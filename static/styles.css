@@ -1986,6 +1986,173 @@ button:hover {
   padding: 18px 0 4px;
 }
 
+.historical-comparison-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--tier-historical);
+  padding: 12px 16px;
+  color: var(--muted-strong);
+  font-size: 12px;
+}
+
+.historical-comparison-banner strong {
+  color: var(--text);
+}
+
+.historical-compare-form,
+.historical-period-grid,
+.historical-evidence-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.historical-compare-form {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.historical-compare-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.historical-compare-form select,
+.historical-compare-form button {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 10px;
+  font: inherit;
+}
+
+.historical-compare-form button {
+  grid-column: 1 / -1;
+  cursor: pointer;
+  background: var(--brand-accent);
+  color: var(--surface);
+  font-weight: 760;
+}
+
+.historical-period-card,
+.historical-evidence-comparison article {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-soft);
+  padding: 16px;
+}
+
+.historical-period-card h3,
+.historical-evidence-comparison h3 {
+  margin: 6px 0 14px;
+}
+
+.historical-period-card dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.historical-period-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.historical-period-card dd {
+  margin: 0;
+  text-align: right;
+}
+
+.historical-comparison-summary {
+  margin: 16px 0 0;
+  color: var(--muted-strong);
+  line-height: 1.55;
+}
+
+.historical-change-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historical-change-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(130px, auto);
+  align-items: center;
+  gap: 18px;
+  border-top: 1px solid var(--border);
+  padding: 14px 0;
+}
+
+.historical-change-list li:first-child {
+  border-top: 0;
+}
+
+.historical-change-list h3 {
+  margin: 0 0 4px;
+}
+
+.historical-change-list span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.historical-score-pair,
+.historical-change-value,
+.historical-explore-links {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.historical-change-value {
+  justify-content: space-between;
+}
+
+.historical-change-value.positive strong {
+  color: var(--up);
+}
+
+.historical-change-value.negative strong {
+  color: var(--down);
+}
+
+.historical-evidence-comparison p {
+  color: var(--muted-strong);
+  font-size: 13px;
+}
+
+@media (max-width: 680px) {
+  .historical-compare-form,
+  .historical-period-grid,
+  .historical-evidence-comparison {
+    grid-template-columns: 1fr;
+  }
+
+  .historical-change-list li {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .historical-change-value {
+    justify-content: flex-start;
+  }
+}
+
 .two-column {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

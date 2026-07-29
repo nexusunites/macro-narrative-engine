@@ -80,6 +80,46 @@ HISTORICAL_COPY = {
     "origin_bea_gdp_pce": "From the official Bureau of Economic Analysis release archive",
     "origin_eia_energy": "From the official U.S. Energy Information Administration release archive",
     "origin_default": "From evidence collected by Macro Narrative Engine",
+    "compare_entry": "Compare historical narratives →",
+    "compare_label": "Historical Comparison",
+    "compare_intro": "Choose two historical reconstructions to see how the market narrative changed.",
+    "compare_needs_two_title": "Two historical reconstructions are needed",
+    "compare_needs_two_body": "Once at least two completed reconstructions are available, you can compare narrative change across periods.",
+    "compare_period_a": "Earlier selection",
+    "compare_period_b": "Later selection",
+    "compare_submit": "Compare narratives",
+    "compare_invalid_title": "This historical comparison isn't available",
+    "compare_invalid_body": "Choose two available historical reconstructions and try again.",
+    "compare_banner": "Historical comparison",
+    "compare_not_current": "This is not current market intelligence.",
+    "compare_persisted": "Based on persisted historical reconstructions.",
+    "compare_snapshot": "Comparison Snapshot",
+    "compare_snapshot_question": "What changed from the earlier period to the later period?",
+    "compare_dominance": "Dominance Changes",
+    "compare_theme_changes": "Theme Changes",
+    "compare_group_changes": "Narrative Group Changes",
+    "compare_evidence": "Evidence Base Changes",
+    "compare_coverage": "Historical Coverage and Limitations",
+    "compare_explore": "Explore Each Period",
+    "compare_same_title": "These are the same reconstruction — nothing to compare",
+    "compare_same_body": "Choose a different historical period to see narrative change.",
+    "compare_no_changes": "No scored narrative changes were available for this comparison.",
+    "compare_earlier": "Earlier period",
+    "compare_later": "Later period",
+    "compare_dominant_theme": "Dominant theme",
+    "compare_dominant_group": "Dominant narrative group",
+    "compare_evidence_label": "Evidence",
+    "compare_sources_label": "Sources",
+    "compare_coverage_label": "Coverage",
+    "compare_score": "Score",
+    "compare_change": "Change",
+    "compare_rank": "Rank",
+    "compare_explore_earlier": "Explore earlier period →",
+    "compare_explore_later": "Explore later period →",
+    "compare_coverage_supported": "Historical coverage reflects supported sources available for each reconstruction.",
+    "compare_coverage_incomplete": "This is not complete historical market-news coverage.",
+    "compare_coverage_difference": "Differences may partly reflect differences in available historical evidence.",
+    "compare_evidence_neutral": "Evidence counts describe the available historical record; they do not measure truth or predict what came next.",
 }
 
 HISTORICAL_BREADTH = {
@@ -114,6 +154,24 @@ def historical_origin(origin: Any = None, source_id: Any = None) -> str:
     if origin_key and f"origin_{origin_key}" in HISTORICAL_COPY:
         return HISTORICAL_COPY[f"origin_{origin_key}"]
     return HISTORICAL_COPY["origin_default"]
+
+
+HISTORICAL_DIRECTIONS = {
+    "INCREASED": _entry("Increased"),
+    "DECREASED": _entry("Decreased"),
+    "UNCHANGED": _entry("Unchanged"),
+    "NEW": _entry("New"),
+    "DROPPED": _entry("No longer present"),
+}
+
+
+def historical_direction(value: Any) -> dict[str, Any]:
+    """Translate historical score movement without attaching judgment."""
+    raw = "" if value in (None, "") else str(value).upper()
+    translated = HISTORICAL_DIRECTIONS.get(raw)
+    if translated is None:
+        return {"label": "", "meaning": "", "tone": "neutral", "raw": raw, "untranslated": bool(raw)}
+    return {**translated, "raw": raw, "untranslated": False}
 
 
 STATES = {

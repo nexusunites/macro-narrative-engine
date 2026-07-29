@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ copy.compare_label }} · MNE</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body class="user-historical-page">
+  {% set active_tier = "historical" %}
+  {% include "_partials/app_rail.html" %}
+  <header class="site-header investigation-header-static">
+    <div class="brand-row"><a class="brand" href="/">Macro Narrative Engine</a></div>
+  </header>
+  <main class="page-shell historical-user-shell comparison-user-shell">
+    <section class="historical-comparison-banner">
+      <strong>{{ copy.compare_banner }}</strong>
+      <span>{{ copy.read_only }}</span>
+      <span>{{ copy.compare_not_current }}</span>
+      <span>{{ copy.compare_persisted }}</span>
+    </section>
+
+    <section class="historical-user-hero">
+      <p class="eyebrow">{{ copy.compare_label }}</p>
+      <h1>{{ copy.compare_snapshot_question }}</h1>
+      <p>{{ copy.compare_intro }}</p>
+    </section>
+
+    {% if replays|length >= 2 %}
+      <form class="historical-compare-form" method="get" action="/history/compare">
+        <label>{{ copy.compare_period_a }}
+          <select name="replay_a" required>
+            {% for replay in replays %}<option value="{{ replay.url_id }}">{{ replay.date }} · {{ replay.dominant_group or replay.dominant_theme }} · {{ replay.evidence_label or "" }}{% if replay.breadth.label %} · {{ replay.breadth.label }}{% endif %}{% if replay.summary %} · {{ replay.summary }}{% endif %}</option>{% endfor %}
+          </select>
+        </label>
+        <label>{{ copy.compare_period_b }}
+          <select name="replay_b" required>
+            {% for replay in replays %}<option value="{{ replay.url_id }}" {% if loop.index == 2 %}selected{% endif %}>{{ replay.date }} · {{ replay.dominant_group or replay.dominant_theme }} · {{ replay.evidence_label or "" }}{% if replay.breadth.label %} · {{ replay.breadth.label }}{% endif %}{% if replay.summary %} · {{ replay.summary }}{% endif %}</option>{% endfor %}
+          </select>
+        </label>
+        <button type="submit">{{ copy.compare_submit }}</button>
+      </form>
+    {% else %}
+      <section class="empty-state historical-user-empty">
+        <h2>{{ copy.compare_needs_two_title }}</h2>
+        <p>{{ copy.compare_needs_two_body }}</p>
+      </section>
+    {% endif %}
+
+    {% if invalid %}
+      <section class="empty-state historical-user-empty">
+        <h2>{{ copy.compare_invalid_title }}</h2>
+        <p>{{ copy.compare_invalid_body }}</p>
+      </section>
+    {% elif comparison %}
+      {% if comparison.same_reconstruction %}
+        <section class="empty-state historical-user-empty">
+          <h2>{{ copy.compare_same_title }}</h2>
+          <p>{{ copy.compare_same_body }}</p>
+        </section>
+      {% else %}
+        <section class="content-section historical-user-zone">
+          <div class="investigation-zone-heading"><p class="eyebrow">{{ copy.compare_snapshot }}</p><h2>{{ comparison.period_a.date }} → {{ comparison.period_b.date }}</h2></div>
+          <div class="historical-period-grid">
+            {% for period, label in [(comparison.period_a, copy.compare_earlier), (comparison.period_b, copy.compare_later)] %}
+              <article class="historical-period-card">
+                <p class="eyebrow">{{ label }}</p><h3>{{ period.date }}</h3>
+                <dl>
+                  {% if period.dominant_theme %}<div><dt>{{ copy.compare_dominant_theme }}</dt><dd>{{ period.dominant_theme }}</dd></div>{% endif %}
+                  {% if period.dominant_group %}<div><dt>{{ copy.compare_dominant_group }}</dt><dd>{{ period.dominant_group }}</dd></div>{% endif %}
+                  {% if period.evidence_label %}<div><dt>{{ copy.compare_evidence_label }}</dt><dd>{{ period.evidence_label }}</dd></div>{% endif %}
+                  {% if period.source_label %}<div><dt>{{ copy.compare_sources_label }}</dt><dd>{{ period.source_label }}</dd></div>{% endif %}
+                  {% if period.breadth.label %}<div><dt>{{ copy.compare_coverage_label }}</dt><dd>{{ period.breadth.label }}</dd></div>{% endif %}
+                </dl>
+              </article>
+            {% endfor %}
+          </div>
+          {% if comparison.summary %}<p class="historical-comparison-summary">{{ comparison.summary }}</p>{% endif %}
+        </section>
+
+        <section class="content-section historical-user-zone">
+          <div class="investigation-zone-heading"><p class="eyebrow">{{ copy.compare_dominance }}</p><h2>{{ copy.compare_dominance }}</h2></div>
+          {% for sentence in comparison.dominance_sentences %}<p>{{ sentence }}</p>{% endfor %}
+          {% for sentence in comparison.rank_sentences %}<p>{{ sentence }}</p>{% endfor %}
+        </section>
+
+        {% for title, rows in [(copy.compare_theme_changes, comparison.theme_changes), (copy.compare_group_changes, comparison.group_changes)] %}
+          <section class="content-section historical-user-zone">
+            <div class="investigation-zone-heading"><p class="eyebrow">{{ title }}</p><h2>{{ title }}</h2></div>
+            {% if rows %}
+              <ul class="historical-change-list">
+                {% for row in rows %}
+                  <li>
+                    <div><h3>{{ row.name }}</h3><span>{{ copy.compare_rank }} {{ row.rank_label }}</span></div>
+                    <div class="historical-score-pair"><span>{{ row.score_a }}</span><span>→</span><span>{{ row.score_b }}</span></div>
+                    <div class="historical-change-value {% if row.delta > 0 %}positive{% elif row.delta < 0 %}negative{% endif %}"><strong>{{ row.arrow }} {{ row.delta_label }}</strong><span>{{ row.direction.label }}</span></div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}<p>{{ copy.compare_no_changes }}</p>{% endif %}
+          </section>
+        {% endfor %}
+
+        <section class="content-section historical-user-zone">
+          <div class="investigation-zone-heading"><p class="eyebrow">{{ copy.compare_evidence }}</p><h2>{{ copy.compare_evidence }}</h2></div>
+          <div class="historical-evidence-comparison">
+            {% for period, count, sources, providers, categories, origins in [(comparison.period_a, comparison.evidence.count_a, comparison.evidence.source_count_a, comparison.evidence.provider_label_a, comparison.evidence.category_label_a, comparison.evidence.origins_a), (comparison.period_b, comparison.evidence.count_b, comparison.evidence.source_count_b, comparison.evidence.provider_label_b, comparison.evidence.category_label_b, comparison.evidence.origins_b)] %}
+              <article><h3>{{ period.date }}</h3>
+                {% if period.evidence_label %}<p>{{ period.evidence_label }}</p>{% endif %}
+                {% if period.source_label %}<p>{{ period.source_label }}</p>{% endif %}
+                {% if providers %}<p>{{ providers }}</p>{% endif %}
+                {% if categories %}<p>{{ categories }}</p>{% endif %}
+                {% if period.breadth.label %}<p>{{ period.breadth.label }}</p>{% endif %}
+                {% for origin in origins %}<p>{{ origin.count_label }} · {{ origin.label }}</p>{% endfor %}
+              </article>
+            {% endfor %}
+          </div>
+          <p>{{ copy.compare_evidence_neutral }}</p>
+        </section>
+
+        <section class="content-section historical-user-zone">
+          <div class="investigation-zone-heading"><p class="eyebrow">{{ copy.compare_coverage }}</p><h2>{{ copy.compare_coverage }}</h2></div>
+          {% if comparison.coverage_available %}
+            {% if comparison.period_a.breadth.label %}<p>{{ comparison.period_a.date }} · {{ comparison.period_a.breadth.label }} · {{ comparison.period_a.breadth.meaning }}</p>{% endif %}
+            {% if comparison.period_b.breadth.label %}<p>{{ comparison.period_b.date }} · {{ comparison.period_b.breadth.label }} · {{ comparison.period_b.breadth.meaning }}</p>{% endif %}
+          {% endif %}
+          <ul class="historical-limitations">
+            <li>{{ copy.compare_coverage_supported }}</li><li>{{ copy.compare_coverage_incomplete }}</li><li>{{ copy.compare_coverage_difference }}</li>
+          </ul>
+        </section>
+
+        <section class="content-section historical-user-zone">
+          <div class="investigation-zone-heading"><p class="eyebrow">{{ copy.compare_explore }}</p><h2>{{ copy.compare_explore }}</h2></div>
+          <div class="historical-explore-links"><a class="accent-link" href="{{ comparison.earlier_url }}">{{ copy.compare_explore_earlier }}</a><a class="accent-link" href="{{ comparison.later_url }}">{{ copy.compare_explore_later }}</a></div>
+        </section>
+      {% endif %}
+    {% endif %}
+  </main>
+</body>
+</html>
