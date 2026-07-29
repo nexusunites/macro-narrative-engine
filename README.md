@@ -139,27 +139,64 @@ pip install -r requirements.txt
 
 ### 4. Configure runtime storage
 
-MNE stores generated headlines, JSON results, and reports outside the source-code repository. Set `MNE_DATA_DIR` to the directory where runtime history should be saved.
+MNE stores generated headlines, JSON results, and reports outside the source-code repository. `MNE_DATA_DIR` is the active datastore and should point to a fast local directory. The optional `MNE_SYNC_DIR` points to a shared Google Drive directory used only by the explicit sync commands; the engine and dashboard never read it directly.
 
 macOS/Linux:
 
 ```bash
-export MNE_DATA_DIR="/path/to/MNE-data"
+export MNE_DATA_DIR="$HOME/MNE-data"
+export MNE_SYNC_DIR="$HOME/Library/CloudStorage/GoogleDrive-macronarrativeengine@gmail.com/My Drive/MNE-data"
 ```
 
-Windows PowerShell:
+Add these exports to your own shell profile if you want them to persist. MNE does not edit shell configuration.
 
-```powershell
-setx MNE_DATA_DIR "G:\My Drive\MNE-data"
+Windows PowerShell or Command Prompt:
+
+```text
+setx MNE_DATA_DIR "%USERPROFILE%\MNE-data"
+setx MNE_SYNC_DIR "G:\My Drive\MNE-data"
 ```
 
-Restart the terminal after using `setx`.
+Adjust the Drive path for your installation, then restart the terminal after using `setx`. The same variables can instead be configured through Windows System Environment Variables.
+
+For an existing Drive-backed installation, set `MNE_DATA_DIR` to the new local directory and `MNE_SYNC_DIR` to the existing Drive directory, then perform the one-time migration:
+
+```bash
+python scripts/sync_data.py status
+python scripts/sync_data.py pull
+```
+
+Sync is non-destructive: it copies new or changed files and never deletes files from either directory. This version assumes one writer. Concurrent edits on multiple machines between syncs are unsupported and resolve by last writer in the chosen direction.
 
 ### 5. Run the engine
+
+Run the engine directly without sync:
 
 ```bash
 python main.py
 ```
+
+Or use the wrapper to pull first, run locally, and push only after a successful run:
+
+```bash
+python scripts/run_mne.py --pull
+```
+
+Engine arguments pass through the wrapper:
+
+```bash
+python scripts/run_mne.py --pull --mode macro
+```
+
+The safe cross-device workflow is: pull before working, run against local data, then push after success. You can also sync manually:
+
+```bash
+python scripts/sync_data.py status
+python scripts/sync_data.py pull
+python scripts/sync_data.py push
+```
+
+If the engine fails, the wrapper returns its exit code and does not push. Without `--pull`, the wrapper runs immediately; after a successful run it pushes when `MNE_SYNC_DIR` is configured, or reports that sync was skipped when it is not.
 
 ### 6. Start the dashboard
 
@@ -180,7 +217,7 @@ MNE-data/
 └── results/
 ```
 
-Generated runtime data is intentionally separated from source code so the project can run across different devices without committing private or machine-specific history to GitHub.
+Generated runtime data is intentionally separated from source code so the project can run across different devices without committing private or machine-specific history to GitHub. The local active datastore avoids cloud-streaming latency, while the optional shared directory provides explicit backup and cross-device transfer.
 
 ## Project Status
 
