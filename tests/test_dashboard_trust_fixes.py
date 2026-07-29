@@ -42,7 +42,7 @@ class DashboardTrustFixTests(unittest.TestCase):
         self.assertEqual(
             options,
             [
-                {"filename": "2026-07-07_114250.json", "label": "07/07 11:42"},
+                {"filename": "2026-07-07_114250.json", "label": "Jul 7"},
                 {
                     "filename": "manual_run.json",
                     "label": "manual_run (modified 2026-07-07 12:00)",
@@ -76,7 +76,7 @@ class DashboardTrustFixTests(unittest.TestCase):
 
         self.assertEqual(
             history["summary"],
-            "Alignment higher over the recent window; latest move down.",
+            "Support is higher over the recent window; latest move down.",
         )
 
     def test_admin_renders_evidence_network_section_neutrally(self):

@@ -155,6 +155,49 @@ def _extract_event_lifecycle(run_data: dict) -> dict | None:
     return None
 
 
+def _extract_regime_alignment(run_data: dict) -> dict:
+    regime = run_data.get("regime_alignment")
+    if not isinstance(regime, dict):
+        return {"score": None, "state": None}
+
+    score = regime.get("score")
+    try:
+        score = int(round(float(score))) if score is not None else None
+    except (TypeError, ValueError):
+        score = None
+    state = regime.get("state")
+    return {
+        "score": score,
+        "state": str(state) if state is not None else None,
+    }
+
+
+def _representative_regime_alignment(raw_runs: list[dict]) -> dict:
+    qualifying = [
+        raw_run
+        for raw_run in raw_runs
+        if isinstance(raw_run, dict)
+        and isinstance(raw_run.get("regime_alignment"), dict)
+        and raw_run["regime_alignment"].get("score") is not None
+    ]
+    if not qualifying:
+        return {"score": None, "state": None, "source_run_id": None}
+
+    representative = max(
+        qualifying,
+        key=lambda raw_run: (
+            str(raw_run.get("timestamp") or ""),
+            str(raw_run.get("run_id") or ""),
+        ),
+    )
+    regime = representative["regime_alignment"]
+    return {
+        "score": regime.get("score"),
+        "state": regime.get("state"),
+        "source_run_id": representative.get("run_id"),
+    }
+
+
 def _share_points(value) -> float | None:
     if value is None:
         return None
@@ -265,6 +308,7 @@ def _aggregate_raw_runs(raw_runs: list[dict], snapshot_date: str) -> dict:
         "date": snapshot_date,
         "narratives": _rank_narratives(narratives),
         "raw_runs": raw_runs,
+        "regime_alignment": _representative_regime_alignment(raw_runs),
     }
 
     lifecycle_runs = [
@@ -316,6 +360,7 @@ def _snapshot_from_runs(snapshot_date: str, runs: list[dict]) -> dict:
             "timestamp": _extract_timestamp(run),
             "narratives": _run_narratives(run),
             "event_lifecycle": _extract_event_lifecycle(run),
+            "regime_alignment": _extract_regime_alignment(run),
         }
         for run in runs
     ]
@@ -334,8 +379,18 @@ def build_daily_snapshot_preview(run_data: dict, snapshot_date: str | None = Non
                 "timestamp": _extract_timestamp(run_data),
                 "narratives": narratives,
                 "event_lifecycle": _extract_event_lifecycle(run_data),
+                "regime_alignment": _extract_regime_alignment(run_data),
             }
         ],
+        "regime_alignment": _representative_regime_alignment(
+            [
+                {
+                    "run_id": _extract_run_id(run_data),
+                    "timestamp": _extract_timestamp(run_data),
+                    "regime_alignment": _extract_regime_alignment(run_data),
+                }
+            ]
+        ),
     }
 
 
@@ -352,6 +407,7 @@ def write_daily_snapshot(run_data: dict) -> None:
         "timestamp": _extract_timestamp(run_data),
         "narratives": _run_narratives(run_data),
         "event_lifecycle": _extract_event_lifecycle(run_data),
+        "regime_alignment": _extract_regime_alignment(run_data),
     }
 
     raw_runs = []
@@ -393,6 +449,54 @@ def backfill_daily_snapshots() -> int:
         created += 1
 
     return created
+
+
+def repair_snapshot_support_scores() -> int:
+    """Repair missing/null snapshot support scores from persisted result files."""
+    if not SNAPSHOTS_DIR.exists():
+        return 0
+
+    result_runs_by_date = {}
+    for result_path in sorted(RESULTS_DIR.glob("*.json")):
+        try:
+            run = load_json(result_path)
+        except (OSError, json.JSONDecodeError):
+            continue
+        run_date = _extract_run_date(run, result_path)
+        if not run_date:
+            continue
+        result_runs_by_date.setdefault(run_date, []).append(
+            {
+                "run_id": _extract_run_id(run) or result_path.stem,
+                "timestamp": _extract_timestamp(run),
+                "regime_alignment": _extract_regime_alignment(run),
+            }
+        )
+
+    repaired = 0
+    for snapshot_path in sorted(SNAPSHOTS_DIR.glob("*.json")):
+        try:
+            date.fromisoformat(snapshot_path.stem)
+            snapshot = load_json(snapshot_path)
+        except (ValueError, OSError, json.JSONDecodeError):
+            continue
+        existing = snapshot.get("regime_alignment")
+        if isinstance(existing, dict) and existing.get("score") is not None:
+            continue
+
+        representative = _representative_regime_alignment(
+            result_runs_by_date.get(snapshot_path.stem, [])
+        )
+        if representative["score"] is None:
+            continue
+
+        snapshot["regime_alignment"] = representative
+        with open(snapshot_path, "w", encoding="utf-8") as file_handle:
+            json.dump(snapshot, file_handle, ensure_ascii=False, indent=2)
+        repaired += 1
+        LOGGER.info("Repaired snapshot support score: %s", snapshot_path)
+
+    return repaired
 
 
 def load_daily_snapshots(limit: int = 7) -> list[dict]:

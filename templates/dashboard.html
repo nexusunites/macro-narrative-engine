@@ -5,496 +5,326 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MNE Overview</title>
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+  <script src="{{ url_for('static', path='chart.js') }}" defer></script>
 </head>
-<body>
+<body class="user-dashboard">
   {% set active_tier = "live" %}
   {% include "_partials/app_rail.html" %}
-  <header class="site-header">
+
+  <header class="site-header user-header">
     <div class="brand-row">
       <a class="brand" href="/">Macro Narrative Engine</a>
-      <nav class="page-subnav">
-        <a href="#narratives">Narratives</a>
-        <a href="#market">Market</a>
-        <a href="#catalysts">Catalysts</a>
-        <a href="#trends">Trends</a>
+      <nav class="page-subnav" aria-label="Dashboard sections">
+        <a href="#stories">Stories</a>
+        <a href="#markets">Markets</a>
+        <a href="#events">Events</a>
+        <a href="#evidence">Headlines</a>
       </nav>
     </div>
 
     <div class="utility-row">
+      {% if view and view.dashboard_trust_summary %}
+        <details class="data-quality-pill {% if view.dashboard_trust_summary.state in ['Strong', 'Usable'] %}quality-healthy{% else %}quality-degraded{% endif %}">
+          <summary>
+            <span class="quality-dot" aria-hidden="true"></span>
+            Data Quality
+          </summary>
+          <div class="data-quality-popover">
+            <strong>{{ view.dashboard_trust_summary.state }}</strong>
+            <span>{{ view.dashboard_trust_summary.presentation_confidence.label }}</span>
+            <p>{{ view.dashboard_trust_summary.reason }}</p>
+            {% if view.dashboard_trust_summary.facts %}
+              <ul>
+                {% for fact in view.dashboard_trust_summary.facts %}<li>{{ fact }}</li>{% endfor %}
+              </ul>
+            {% endif %}
+            <small>Engine signal: Data Quality · {{ view.dashboard_trust_summary.state }} · Confidence: {{ view.dashboard_trust_summary.confidence }}</small>
+            {% if view.dashboard_trust_summary.admin_link_visible %}
+              <a href="/admin{% if selected_file %}?run={{ selected_file }}{% endif %}">View operational details in Admin →</a>
+            {% endif %}
+          </div>
+        </details>
+      {% endif %}
+
       <form method="get" action="/" class="run-selector compact">
-        <label for="run">Run</label>
+        <label for="run">View</label>
         <select id="run" name="run" onchange="this.form.submit()">
           {% for run in recent_runs %}
             <option value="{{ run.filename }}" {% if run.filename == selected_file %}selected{% endif %}>{{ run.label }}</option>
           {% endfor %}
         </select>
       </form>
-      {% if view %}
-        <p class="last-updated">Last updated: {{ view.last_updated or "Unavailable" }}</p>
-      {% endif %}
     </div>
   </header>
 
-  <main class="page-shell">
+  <main class="page-shell dashboard-shell">
     {% if message %}
       <section class="empty-state">
-        <p class="eyebrow">No Results</p>
+        <p class="eyebrow">No results yet</p>
         <h1>{{ message }}</h1>
         <p>Results directory: {{ results_dir }}</p>
       </section>
     {% endif %}
 
     {% if view %}
-      {% if notice %}
-        <section class="run-notice">
-          <p>{{ notice }}</p>
-        </section>
-      {% endif %}
+      {% if notice %}<aside class="run-notice">{{ notice }}</aside>{% endif %}
 
-      <div class="dashboard-top-band">
-        {% if view.dashboard_trust_summary %}
-          <section class="dashboard-trust-summary trust-summary-{{ view.dashboard_trust_summary.state|lower|replace(' ', '-') }}">
-            <div class="trust-summary-copy">
-              <p class="eyebrow">Data Quality</p>
-              <div class="trust-summary-heading">
-                <h2>{{ view.dashboard_trust_summary.state }}</h2>
-                <span>Summary confidence: {{ view.dashboard_trust_summary.confidence }}</span>
-              </div>
-              <p>{{ view.dashboard_trust_summary.reason }}</p>
+      <section id="overview" class="support-hero">
+        <div class="support-hero-copy">
+          <p class="eyebrow">{{ view.presentation.metrics["Regime Alignment"].label }}</p>
+          <div class="support-value-row">
+            <strong class="support-score">{% if view.regime.score is defined and view.regime.score is not none %}{{ view.regime.score }}{% else %}—{% endif %}</strong>
+            <div class="support-state">
+              <span class="{% if view.presentation.regime.untranslated %}untranslated{% endif %}">{{ view.presentation.regime.label }}</span>
+              {% if view.support_delta %}
+                <span class="direction-chip direction-{{ view.support_delta.direction }}">{{ view.support_delta.label }}</span>
+              {% endif %}
             </div>
-            {% if view.dashboard_trust_summary.facts %}
-              <ul class="trust-summary-facts">
-                {% for fact in view.dashboard_trust_summary.facts %}
-                  <li>{{ fact }}</li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-            {% if view.dashboard_trust_summary.admin_link_visible %}
-              <a class="trust-summary-admin-link" href="/admin{% if selected_file %}?run={{ selected_file }}{% endif %}">View operational details in Admin</a>
-            {% endif %}
-          </section>
-        {% endif %}
-
-        <section id="overview" class="hero-section">
-          <div class="hero-copy">
-            <div class="hero-meta">
-              <span>Macro Narrative Engine</span>
-              <span>{{ view.run.operating_mode|title if view.run.operating_mode else "Macro" }} Mode</span>
-              <span>Last Updated: {{ view.last_updated or "Unavailable" }}</span>
-            </div>
-            <h1>{{ view.mode_context.state or "Market Context Unavailable" }}</h1>
-            <p class="hero-read">{{ view.mode_context.read or view.regime.reason or "Market narrative context is unavailable for this run." }}</p>
-            <p class="hero-confidence">Confidence: <strong>{{ view.mode_context.confidence or "Unavailable" }}</strong></p>
           </div>
-        </section>
-      </div>
+          <p class="support-subtitle {% if view.presentation.mode_context.untranslated %}untranslated{% endif %}">{{ view.presentation.mode_context.label }}</p>
+          <p class="support-caption">{{ view.presentation.metrics["Regime Alignment"].question }}</p>
+          <details class="why-expander">
+            <summary>Why?</summary>
+            <p>{{ view.mode_context.read or view.regime.reason or "Market context is unavailable for this run." }}</p>
+            <small>Engine signals: Regime Alignment · {{ view.regime.state or "Unavailable" }}; Operating Mode · {{ view.mode_context.state or "Unavailable" }}</small>
+          </details>
+        </div>
 
-      {% if view.narrative_brief %}
-        <section class="narrative-brief-section">
-          <article class="narrative-brief">
-            <div class="brief-header">
-              <div>
-                <p class="eyebrow">Narrative Brief</p>
-                <h2>{{ view.narrative_brief.headline }}</h2>
-              </div>
-              <span class="data-completeness completeness-{{ view.narrative_brief.confidence|lower }}">
-                Data Completeness: {{ view.narrative_brief.confidence }}
-              </span>
-            </div>
-            <div class="brief-summary">
-              {% for row in view.narrative_brief_evidence_rows %}
-                {% if row.section.text %}
-                  <p title="{{ row.module_names | join(', ') }}">
-                    {{ row.section.text }}
-                  </p>
-                {% endif %}
-              {% endfor %}
-            </div>
-            {% if view.narrative_brief.key_points %}
-              <ul class="brief-key-points">
-                {% for point in view.narrative_brief.key_points %}
-                  <li>{{ point }}</li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-          </article>
-        </section>
-      {% elif view.narrative_brief_error %}
-        <section class="narrative-brief-section">
-          <article class="narrative-brief brief-unavailable">
-            <p class="eyebrow">Narrative Brief</p>
-            <h2>Narrative brief unavailable for this run.</h2>
-          </article>
-        </section>
-      {% endif %}
-
-      {% if view.change_summary %}
-        <section class="change-summary-section">
-          <article class="card change-summary-card">
-            <div class="change-summary-header">
-              <div>
-                <p class="eyebrow">What Changed Since Last Run</p>
-                <h2>Latest Delta</h2>
-              </div>
-              <p class="change-compared">Compared with: <strong>{{ view.change_summary.compared_with }}</strong></p>
-            </div>
-
-            {% if view.change_summary.has_changes %}
-              <div class="change-summary-grid">
-                {% for key, label in [
-                  ("major", "Major"),
-                  ("narratives", "Narratives"),
-                  ("market", "Market"),
-                  ("catalysts", "Catalysts")
-                ] %}
-                  {% set items = view.change_summary.changes[key] %}
-                  {% if items %}
-                    <div class="change-group change-group-{{ key }}">
-                      <h3>{{ label }}</h3>
-                      <ul>
-                        {% for item in items %}
-                          <li>{{ item.text }}</li>
-                        {% endfor %}
-                      </ul>
-                    </div>
-                  {% endif %}
-                {% endfor %}
-              </div>
-            {% else %}
-              <p class="muted change-empty">No major changes since previous run.</p>
-            {% endif %}
-          </article>
-        </section>
-      {% endif %}
-
-      <section class="metric-grid">
-        <article class="card metric-card">
-          <span>Regime Alignment</span>
-          <strong>{% if view.regime.score is not none %}{{ view.regime.score }} / 100{% else %}Unavailable{% endif %}</strong>
-          {% if view.regime.state %}<small>{{ view.regime.state }}</small>{% endif %}
-        </article>
-        <article class="card metric-card">
-          <span>Dominant Narrative</span>
-          <strong>{{ view.run.dominant_group or view.run.dominant_theme or "Unavailable" }}</strong>
-          {% if view.run.dominant_theme %}<small>{{ view.run.dominant_theme }}</small>{% endif %}
-        </article>
-        <article class="card metric-card">
-          <span>Market Environment</span>
-          <strong>{{ view.market_environment_card.state or "Unavailable" }}</strong>
-        </article>
-        <article class="card metric-card">
-          <span>Catalyst Environment</span>
-          <strong>{{ view.catalyst_environment_card.state or "Unavailable" }}</strong>
-        </article>
-        <article class="card metric-card">
-          <span>Positioning</span>
-          <strong>{{ view.positioning_environment_card.state or "Unavailable" }}</strong>
-        </article>
-      </section>
-
-      <section class="content-section regime-history-section">
-        <article class="card regime-history-card">
-          <div class="regime-history-header">
-            <div>
-              <p class="eyebrow">Regime Alignment History</p>
-              <h2>Recent Alignment Scores</h2>
-            </div>
-            <p class="trend-summary">{{ regime_history.summary }}</p>
+        <div class="support-chart-panel" data-support-chart>
+          <div class="chart-heading">
+            <span>{{ view.presentation.metrics["Regime Alignment History"].label }}</span>
+            {% if regime_history.has_chart %}<span>{{ regime_history.summary }}</span>{% endif %}
           </div>
           {% if regime_history.has_chart %}
-            <div class="regime-chart-wrap" aria-label="Recent Regime Alignment score history">
-              <svg class="regime-chart" viewBox="0 0 640 180" role="img">
-                <title>Recent Regime Alignment scores</title>
-                <line class="chart-grid" x1="34" y1="22" x2="606" y2="22"></line>
-                <line class="chart-grid" x1="34" y1="90" x2="606" y2="90"></line>
-                <line class="chart-grid" x1="34" y1="158" x2="606" y2="158"></line>
-                <text class="chart-axis-label" x="6" y="27">100</text>
-                <text class="chart-axis-label" x="15" y="95">50</text>
-                <text class="chart-axis-label" x="21" y="163">0</text>
-                <polyline class="regime-line" points="{{ regime_history.polyline }}"></polyline>
-                {% for point in regime_history.points %}
-                  <circle class="regime-point" cx="{{ point.x }}" cy="{{ point.y }}" r="3">
-                    <title>{{ point.label }}: {{ point.score }}</title>
-                  </circle>
-                {% endfor %}
-                <text class="chart-date-label" x="34" y="177">{{ regime_history.first.label }}</text>
-                <text class="chart-date-label chart-date-label-end" x="606" y="177">{{ regime_history.latest.label }}</text>
-                <text class="chart-score-label" x="{{ regime_history.latest.x }}" y="{{ regime_history.latest.y - 10 }}">{{ regime_history.latest.score }}</text>
+            <div class="chart-readout" aria-live="polite">
+              <strong data-chart-score>{{ regime_history.latest.score }}</strong>
+              <span data-chart-date>{{ regime_history.latest.label }}</span>
+            </div>
+            <div class="chart-stage" data-chart-stage>
+              <svg class="support-chart" viewBox="0 0 640 180" role="img" aria-label="Daily market support history">
+                <title>Daily market support history</title>
+                <defs>
+                  <linearGradient id="support-area-gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="currentColor" stop-opacity="0.16"></stop>
+                    <stop offset="100%" stop-color="currentColor" stop-opacity="0"></stop>
+                  </linearGradient>
+                </defs>
+                <text class="chart-bound-label chart-bound-max" x="8" y="27" data-chart-max>{{ regime_history.max_score }}</text>
+                <text class="chart-bound-label chart-bound-min" x="8" y="162" data-chart-min>{{ regime_history.min_score }}</text>
+                <polygon class="support-area" points="{{ regime_history.area_polygon }}" data-chart-area></polygon>
+                <polyline class="regime-line" points="{{ regime_history.polyline }}" data-chart-line></polyline>
+                <line class="chart-crosshair" x1="{{ regime_history.latest.x }}" y1="22" x2="{{ regime_history.latest.x }}" y2="158" data-chart-crosshair></line>
+                <circle class="chart-active-point" cx="{{ regime_history.latest.x }}" cy="{{ regime_history.latest.y }}" r="4" data-chart-active-point></circle>
+              {% for point in regime_history.points %}
+                <circle class="regime-point fallback-chart-point" cx="{{ point.x }}" cy="{{ point.y }}" r="2">
+                  <title>{{ point.label }}: {{ point.score }}</title>
+                </circle>
+              {% endfor %}
               </svg>
             </div>
+            <div class="chart-ranges" aria-label="Chart range">
+              {% for value, label in [("14", "2W"), ("30", "1M"), ("90", "3M"), ("all", "All")] %}
+                <button type="button" class="chart-range{% if value == "all" %} active{% endif %}" data-chart-range="{{ value }}" aria-pressed="{{ "true" if value == "all" else "false" }}">{{ label }}</button>
+              {% endfor %}
+            </div>
+            <script type="application/json" data-chart-points>{{ regime_history.chart_points | tojson }}</script>
           {% else %}
-            <p class="muted history-empty">Not enough Regime Alignment history yet.</p>
+            <div class="chart-empty">
+              <p>History starts today — the chart fills in as daily updates accrue.</p>
+            </div>
           {% endif %}
-        </article>
+        </div>
       </section>
 
-      <section id="narratives" class="content-section narrative-leadership-section">
-        <div class="section-heading leadership-heading">
-          <div>
-            <p class="eyebrow">Narratives</p>
-            <h2>Narrative Leadership</h2>
-          </div>
-          <p class="leadership-read">Ranked by existing narrative group scores for this run.</p>
+      <section class="change-strip" aria-labelledby="changes-heading">
+        <div class="change-strip-heading">
+          <p class="eyebrow">{{ view.presentation.metrics["Change Summary"].question }}</p>
+          <h2 id="changes-heading">{{ view.presentation.metrics["Change Summary"].label }}</h2>
         </div>
+        <div class="change-chips">
+          {% if view.change_summary and view.change_summary.has_changes %}
+            {% for key in ["major", "narratives", "market", "catalysts"] %}
+              {% for item in view.change_summary.changes[key] %}
+                <span class="change-chip">
+                  <i class="change-arrow direction-{{ item.direction }}" aria-hidden="true">{{ "▲" if item.direction == "up" else "▼" if item.direction == "down" else "→" }}</i>
+                  {{ item.text }}
+                </span>
+              {% endfor %}
+            {% endfor %}
+          {% else %}
+            <p>No major changes since the last update.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section id="stories" class="dashboard-section">
+        <header class="dashboard-section-heading">
+          <div>
+            <p class="eyebrow">{{ view.presentation.metrics["Narrative Leadership"].question }}</p>
+            <h2>{{ view.presentation.metrics["Narrative Leadership"].label }}</h2>
+          </div>
+        </header>
+
         {% if view.narrative_leadership %}
-          <div class="leadership-grid">
+          <div class="story-grid">
             {% for item in view.narrative_leadership %}
-              <article class="card leadership-card rank-{{ item.rank }}{% if item.is_close_challenger %} close-challenger{% endif %}">
-                <div class="leadership-topline">
-                  <span class="rank-badge">#{{ item.rank }}</span>
-                  <span class="leadership-label">{{ item.label }}</span>
-                </div>
+              <article class="story-card{% if item.rank == 1 %} story-card-leader{% endif %}">
+                <span class="story-rank">0{{ item.rank }}</span>
                 <h3>{{ item.group }}</h3>
-                {% if item.rotation_state %}
-                <div class="rotation-row">
-                  <span class="rotation-badge rotation-{{ item.rotation_state|lower }}">{{ item.rotation_state }}</span>
-                  {% if item.share_delta is not none %}
-                    <span class="rotation-delta {% if item.share_delta > 0 %}delta-up{% elif item.share_delta < 0 %}delta-down{% else %}delta-flat{% endif %}">
-                      {% if item.share_delta > 0 %}+{% endif %}{{ item.share_delta }} pts
+                <p class="story-summary">{{ item.presentation.summary }}</p>
+
+                <dl class="story-stats">
+                  <div>
+                    <dt>{{ view.presentation.metrics["Narrative Pulse"].label }}</dt>
+                    <dd class="tone-{{ item.presentation.pulse.tone }}{% if item.presentation.pulse.untranslated %} untranslated{% endif %}">{{ item.presentation.pulse.label }}</dd>
+                  </div>
+                  <div>
+                    <dt>{{ view.presentation.metrics["Acceleration"].label }}</dt>
+                    <dd class="tone-{{ item.presentation.acceleration.tone }}{% if item.presentation.acceleration.untranslated %} untranslated{% endif %}">{{ item.presentation.acceleration.label }}</dd>
+                  </div>
+                  {% if item.crowding %}
+                    <div>
+                      <dt>{{ view.presentation.metrics["Crowding"].label }}</dt>
+                      <dd class="tone-{{ item.presentation.crowding.tone }}{% if item.presentation.crowding.untranslated %} untranslated{% endif %}">{{ item.presentation.crowding.label }}</dd>
+                    </div>
+                  {% endif %}
+                </dl>
+
+                <div class="story-movement">
+                  {% if item.presentation.rotation %}
+                    <span class="rotation-chip tone-{{ item.presentation.rotation.tone }}">
+                      {% if item.share_delta is not none and item.share_delta > 0 %}<i class="direction-up">↑</i>{% elif item.share_delta is not none and item.share_delta < 0 %}<i class="direction-down">↓</i>{% endif %}
+                      {{ item.presentation.rotation.label }}
                     </span>
                   {% endif %}
-                  {% if item.rotation_streak and item.rotation_streak > 1 %}
-                    <span class="rotation-streak">· {{ item.rotation_streak }}-day streak</span>
+                  {% if item.share_delta is not none %}
+                    <span class="rotation-delta direction-{{ "up" if item.share_delta > 0 else "down" if item.share_delta < 0 else "flat" }}">
+                      {% if item.share_delta > 0 %}+{% endif %}{{ item.share_delta }} pts of coverage share
+                    </span>
                   {% endif %}
+                  {% if item.rotation_streak and item.rotation_streak > 1 %}<span>{{ item.rotation_streak }}-day streak</span>{% endif %}
                 </div>
-                {% endif %}
-                <div class="pulse-block">
-                  <div class="pulse-primary">
-                    <span>Pulse</span>
-                    <strong>{{ item.pulse_state or "Unavailable" }}</strong>
-                  </div>
-                  <dl class="signal-list">
-                    <div>
-                      <dt>Acceleration</dt>
-                      <dd>{{ item.acceleration }}</dd>
-                    </div>
-                    <div>
-                      <dt>Crowding</dt>
-                      <dd>{{ item.crowding }}</dd>
-                    </div>
-                  </dl>
-                  {% if item.pulse_confidence %}
-                    <p class="pulse-confidence">Confidence: {{ item.pulse_confidence }}</p>
-                  {% endif %}
+
+                <div class="story-volume">
+                  <span>{{ item.story_count_label }} today</span>
+                  <span>{% if item.rank == 1 %}Current leader{% else %}{{ item.leader_gap_label }} behind #1{% endif %}</span>
                 </div>
-                <div class="leadership-score-row">
-                  <strong>{{ item.score }}</strong>
-                  <span>mentions</span>
+                <div class="story-meter" aria-hidden="true"><span style="--meter-width: {{ item.relative_width }}%"></span></div>
+
+                <div class="story-actions">
+                  <details class="why-expander">
+                    <summary>Why?</summary>
+                    <p>{{ item.pulse_reason or item.presentation.pulse.meaning }}</p>
+                    {% if item.rotation_reason %}<p>{{ item.rotation_reason }}</p>{% endif %}
+                    {% if not item.crowding %}<p>Attention is measured for the leading story only.</p>{% endif %}
+                    <small>Engine signals: Narrative Pulse · {{ item.pulse_state or "Unavailable" }}; Acceleration · {{ item.acceleration or "Unavailable" }}; Crowding · {{ item.crowding or "Unavailable" }}{% if item.rotation_state %}; Rotation · {{ item.rotation_state }}{% endif %}</small>
+                  </details>
+                  <a class="investigate-link" href="{{ url_for('narrative_investigation', key=item.investigation_key) }}">Investigate narrative →</a>
                 </div>
-                <div class="leadership-meter" aria-hidden="true">
-                  <span style="--meter-width: {{ item.relative_width }}%"></span>
-                </div>
-                {% if item.rank == 1 %}
-                  <p class="leadership-note">Current narrative leader</p>
-                {% elif item.is_close_challenger %}
-                  <p class="leadership-note">Within {{ item.leader_gap }} mentions of the leader</p>
-                {% else %}
-                  <p class="leadership-note">{{ item.leader_gap }} mentions behind the leader</p>
-                {% endif %}
-                <a class="investigate-link" href="{{ url_for('narrative_investigation', key=item.investigation_key) }}">Investigate narrative</a>
               </article>
             {% endfor %}
           </div>
         {% else %}
-          <article class="card">
-            <p class="muted">No narrative group scores found in this run.</p>
-          </article>
+          <div class="section-empty">No leading market stories were found in this update.</div>
         {% endif %}
       </section>
 
-      <section class="content-section leadership-history-section">
-        <article class="card leadership-history-card">
-          <div class="leadership-history-header">
-            <div>
-              <p class="eyebrow">Narrative Leadership History</p>
-              <h2>Daily Leadership</h2>
-            </div>
-            <p class="trend-summary">{{ narrative_leadership_history.summary }}</p>
-          </div>
-
-          {% if narrative_leadership_history.has_history %}
-            <div class="leadership-history-table-wrap">
-              <table class="leadership-history-table">
-                <thead>
-                  <tr>
-                    <th>Day</th>
-                    <th>Dominant Group</th>
-                    <th>Theme</th>
-                    <th>Dominant Share</th>
-                    <th>Gap</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for point in narrative_leadership_history.points %}
-                    <tr>
-                      <th>{{ point.label }}</th>
-                      <td>
-                        <strong>{{ point.dominant_group }}</strong>
-                        {% if point.leader_score is not none %}<span>{{ point.leader_score }} score</span>{% endif %}
-                      </td>
-                      <td>{{ point.dominant_theme }}</td>
-                      <td>
-                        <div class="history-meter-row">
-                          <span class="history-meter share-meter" style="--meter-width: {{ point.share_width }}%"><i></i></span>
-                          <strong>{{ point.dominant_share_label or "Unavailable" }}</strong>
-                        </div>
-                      </td>
-                      <td>
-                        <div class="history-meter-row">
-                          <span class="history-meter gap-meter" style="--meter-width: {{ point.gap_width }}%"><i></i></span>
-                          <strong>{{ point.concentration_gap_label }}</strong>
-                        </div>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          {% else %}
-            <p class="muted history-empty">Not enough daily leadership history yet.</p>
-          {% endif %}
-        </article>
-      </section>
-
-      <section class="content-section details-section two-column">
-        <div>
-          <div class="section-heading">
-            <p class="eyebrow">Details</p>
-            <h2>Narrative Scores</h2>
-          </div>
-          <article class="card details-card">
-            {% if view.theme_scores %}
-              <table>
-                <tbody>
-                  {% for theme, score in view.theme_scores %}
-                    <tr><th>{{ theme }}</th><td>{{ score }}</td></tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            {% else %}
-              <p class="muted">No narrative scores found in this run.</p>
-            {% endif %}
-          </article>
-        </div>
-        <div>
-          <div class="section-heading">
-            <p class="eyebrow">Details</p>
-            <h2>Narrative Group Scores</h2>
-          </div>
-          <article class="card details-card">
-            {% if view.group_scores %}
-              <table>
-                <tbody>
-                  {% for group, score in view.group_scores %}
-                    <tr><th>{{ group }}</th><td>{{ score }}</td></tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            {% else %}
-              <p class="muted">No group scores found in this run.</p>
-            {% endif %}
-          </article>
-        </div>
-      </section>
-
-      <section id="market" class="content-section">
-        <div class="section-heading">
-          <p class="eyebrow">Nasdaq / Market Context</p>
-          <h2>Market Snapshot</h2>
-        </div>
-        <article class="card">
+      <section id="markets" class="dashboard-section">
+        <header class="dashboard-section-heading">
+          <h2>{{ view.presentation.metrics["Market Snapshot"].label }}</h2>
+        </header>
+        <div class="market-list">
           {% if view.market_context %}
-            <table>
-              <thead>
-                <tr><th>Symbol</th><th>Ticker</th><th>Last</th><th>Change</th></tr>
-              </thead>
-              <tbody>
-                {% for row in view.market_context %}
-                  <tr>
-                    <th>{{ row.symbol }}</th>
-                    <td>{{ row.ticker }}</td>
-                    <td>{{ row.latest_close if row.latest_close is not none else "Unavailable" }}</td>
-                    <td>{{ row.pct_change if row.pct_change is not none else "Unavailable" }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          {% else %}
-            <p class="muted">Market snapshot data was not found in this JSON file.</p>
-          {% endif %}
-        </article>
-      </section>
-
-      <section id="catalysts" class="content-section card-grid">
-        <article class="card environment-card">
-          <span>Market</span>
-          <strong>{{ view.market_environment_card.state or "Unavailable" }}</strong>
-          {% if view.market_environment_card.reason %}<p>{{ view.market_environment_card.reason }}</p>{% endif %}
-        </article>
-        <article class="card environment-card">
-          <span>Catalysts</span>
-          <strong>{{ view.catalyst_environment_card.state or "Unavailable" }}</strong>
-          {% if view.catalyst_environment_card.reason %}<p>{{ view.catalyst_environment_card.reason }}</p>{% endif %}
-          {% if view.event_lifecycle.events %}
-          <div class="event-lifecycle-list">
-            {% for event in view.event_lifecycle.events %}
-            <div class="event-lifecycle-item" title="{{ event.reason or '' }}">
-              <div class="event-lifecycle-topline">
-                <span class="event-lifecycle-name">{{ event.event_name }}</span>
-                <span class="event-lifecycle-badge state-{{ event.state_class }}">
-                  {{ event.lifecycle_state }}
-                </span>
+            {% for row in view.market_context %}
+              <div class="market-row">
+                <strong class="market-symbol">{{ row.symbol }}</strong>
+                <span class="market-name">{{ row.name }}</span>
+                <span class="market-price">{{ row.latest_close if row.latest_close is not none else "—" }}</span>
+                <span class="market-change direction-chip direction-{{ row.direction }}">{{ row.change_label }}</span>
               </div>
-              <div class="event-lifecycle-meta">
-                {% if event.countdown %}<span>{{ event.countdown }}</span>{% endif %}
-                {% if event.next_label %}<span>{{ event.next_label }}</span>{% endif %}
-                {% if event.confidence %}<span>{{ event.confidence }} confidence</span>{% endif %}
-              </div>
-            </div>
             {% endfor %}
-          </div>
+          {% else %}
+            <div class="section-empty">Market prices were not available in this update.</div>
           {% endif %}
-          {% if view.catalyst_environment_card.macro_calendar_warning %}
-          <div class="catalyst-calendar-warning">
-            <p class="warning-label">Calendar Notice</p>
-            <p class="warning-message">
-              {{ view.catalyst_environment_card.macro_calendar_message }}
-            </p>
-            <p class="warning-subtext">
-              Scheduled macro events may be unavailable.
-            </p>
-          </div>
-          {% endif %}
-        </article>
-        <article class="card environment-card">
-          <span>Positioning</span>
-          <strong>{{ view.positioning_environment_card.state or "Unavailable" }}</strong>
-          {% if view.positioning_environment_card.reason %}<p>{{ view.positioning_environment_card.reason }}</p>{% endif %}
-        </article>
+          <footer class="market-footer">
+            <details class="why-expander section-why">
+              <summary>Why?</summary>
+              <p>{{ view.market_environment_card.reason or view.presentation.market_environment.meaning }}</p>
+              <small>Engine signal: Market Environment · {{ view.market_environment_card.state or "Unavailable" }}</small>
+            </details>
+          </footer>
+        </div>
       </section>
 
-      <section id="trends" class="content-section">
-        <div class="section-heading">
-          <p class="eyebrow">Example Headlines</p>
-          <h2>Top Theme Evidence</h2>
+      <section id="events" class="dashboard-section">
+        <header class="dashboard-section-heading split-heading">
+          <div>
+            <h2>{{ view.presentation.metrics["Catalyst Environment"].label }}</h2>
+            {% if view.event_lifecycle.events %}<p class="section-read">{{ view.presentation.catalyst_environment.label }}</p>{% endif %}
+          </div>
+          {% if view.event_lifecycle.events %}<span class="confidence-copy">{{ view.presentation.catalyst_confidence.label }}</span>{% endif %}
+        </header>
+
+        <div class="event-list">
+          {% if view.event_lifecycle.events %}
+            {% for event in view.event_lifecycle.events %}
+              <article class="event-row">
+                <div>
+                  <strong>{{ event.event_name }}</strong>
+                  <span class="tone-{{ event.presentation_state.tone }}{% if event.presentation_state.untranslated %} untranslated{% endif %}">{{ event.presentation_state.label }}</span>
+                </div>
+                <div class="event-meta">
+                  {% if event.countdown %}<span class="countdown-chip">{{ event.countdown }}</span>{% endif %}
+                  {% if event.next_label %}<span>{{ event.next_label }}</span>{% endif %}
+                  {% if event.confidence %}<span>{{ event.presentation_confidence.label }}</span>{% endif %}
+                </div>
+                <details class="why-expander">
+                  <summary>Why?</summary>
+                  <p>{{ event.reason or event.presentation_state.meaning }}</p>
+                  <small>Engine signal: Event Lifecycle · {{ event.lifecycle_state }}</small>
+                </details>
+              </article>
+            {% endfor %}
+          {% else %}
+            <div class="event-sparse-state">
+              {{ view.presentation.catalyst_environment.label if view.presentation.catalyst_environment.raw not in ["", "Unavailable"] else "No scheduled events this run" }}{% if view.catalyst_environment_card.macro_calendar_warning %} — but the schedule feed was partial this run, so listings may be incomplete{% endif %}.
+            </div>
+          {% endif %}
         </div>
+        <details class="why-expander section-why">
+          <summary>Why?</summary>
+          <p>{{ view.catalyst_environment_card.reason or view.presentation.catalyst_environment.meaning }}</p>
+          <p>{{ view.positioning_environment_card.reason or view.presentation.positioning_environment.meaning }}</p>
+          {% if view.catalyst_environment_card.macro_calendar_warning %}<p>{{ view.catalyst_environment_card.macro_calendar_message }} Scheduled event listings may be incomplete.</p>{% endif %}
+          <small>Engine signals: Catalyst Environment · {{ view.catalyst_environment_card.state or "Unavailable" }}; Positioning · {{ view.positioning_environment_card.state or "Unavailable" }}</small>
+        </details>
+      </section>
+
+      <section id="evidence" class="dashboard-section">
+        <header class="dashboard-section-heading">
+          <div>
+            <p class="eyebrow">{{ view.presentation.metrics["Example Headlines / Top Theme Evidence"].question }}</p>
+            <h2>{{ view.presentation.metrics["Example Headlines / Top Theme Evidence"].label }}</h2>
+          </div>
+        </header>
         {% if view.examples %}
-          <div class="card-grid">
+          <div class="evidence-grid">
             {% for theme, headlines in view.examples.items() %}
-              <article class="card headline-card">
+              <article class="evidence-group">
                 <h3>{{ theme|title }}</h3>
                 <ul>
-                  {% for headline in headlines %}
-                    <li>{{ headline }}</li>
-                  {% endfor %}
+                  {% for headline in headlines %}<li>{{ headline }}</li>{% endfor %}
                 </ul>
+                <details class="why-expander">
+                  <summary>Why?</summary>
+                  <p>These headlines contributed to today's read of this story.</p>
+                  <small>Engine signal: Top Theme Evidence · {{ theme }}</small>
+                </details>
               </article>
             {% endfor %}
           </div>
         {% else %}
-          <article class="card">
-            <p class="muted">No example headlines were stored for the top themes in this run.</p>
-          </article>
+          <div class="section-empty">No supporting headlines were stored for the top stories in this update.</div>
         {% endif %}
       </section>
     {% endif %}

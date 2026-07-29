@@ -273,7 +273,8 @@ class MacroCalendarStatusTests(unittest.TestCase):
         }
 
         dashboard_html = environment.get_template("dashboard.html").render(view=view)
-        self.assertIn("Calendar Notice", dashboard_html)
+        self.assertNotIn("Calendar Notice", dashboard_html)
+        self.assertIn("schedule feed was partial", dashboard_html)
         self.assertIn(catalyst["macro_calendar_message"], dashboard_html)
 
         view["catalyst_environment_card"]["macro_calendar_warning"] = False

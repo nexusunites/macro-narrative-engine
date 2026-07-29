@@ -32,6 +32,13 @@ from mne.historical_replay_admin import (
     validate_replay_backfill_ids,
 )
 from mne.narrative_signals import compute_group_scores
+from mne.presentation_language import confidence as present_confidence
+from mne.presentation_language import compose_sentence
+from mne.presentation_language import metric as present_metric
+from mne.presentation_language import pluralize
+from mne.presentation_language import present_change_summary
+from mne.presentation_language import state as present_state
+from mne.presentation_language import support as present_support
 from mne.operations_center import build_operations_center
 from mne.platform_observability import stage_by_name
 from mne.research_workspace import (
@@ -42,7 +49,7 @@ from mne.research_workspace import (
     split_narrative_key,
 )
 from mne.source_registry import SourceRegistryError, load_source_registry
-from mne.storage import get_recent_daily_runs
+from mne.storage import get_recent_daily_runs, load_daily_snapshots
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -51,6 +58,12 @@ REGIME_HISTORY_LIMIT = 30
 LEADERSHIP_HISTORY_LIMIT = 10
 RECENT_REPLAY_LIMIT = 10
 MARKET_SYMBOLS = ("QQQ", "NVDA", "VIX", "DXY")
+MARKET_NAMES = {
+    "QQQ": "Nasdaq 100",
+    "NVDA": "Nvidia",
+    "VIX": "Volatility Index",
+    "DXY": "U.S. Dollar Index",
+}
 SCORE_DELTA_THRESHOLD = 2
 SHARE_DELTA_THRESHOLD = 0.03
 REGIME_SCORE_DELTA_THRESHOLD = 5
@@ -216,9 +229,20 @@ def fmt_file_timestamp(path):
 
 
 def fmt_run_label(path):
-    label = fmt_history_label(None, path)
-    if label != path.stem:
-        return label
+    parsed = None
+    for fmt in ("%Y-%m-%d_%H%M%S", "%Y-%m-%d_%H%M"):
+        try:
+            parsed = datetime.strptime(path.stem, fmt)
+            break
+        except ValueError:
+            pass
+    if parsed:
+        now = datetime.now()
+        if parsed.date() == now.date():
+            return f"Today {parsed.strftime('%-I:%M %p')}"
+        if parsed.year == now.year:
+            return parsed.strftime("%b %-d")
+        return parsed.strftime("%b %-d, %Y")
 
     modified = fmt_file_timestamp(path)
     if modified:
@@ -1023,8 +1047,8 @@ def build_narrative_leadership(group_scores, narrative_pulse=None, dynamics=None
                 "pulse_state": pulse.get("pulse_state"),
                 "pulse_confidence": pulse.get("confidence"),
                 "pulse_reason": pulse.get("reason"),
-                "acceleration": display_state(group_dynamics.get("acceleration")),
-                "crowding": display_state(crowding_state),
+                "acceleration": group_dynamics.get("acceleration"),
+                "crowding": crowding_state,
                 "is_close_challenger": (
                     index == 1
                     and leader_score > 0
@@ -1035,26 +1059,51 @@ def build_narrative_leadership(group_scores, narrative_pulse=None, dynamics=None
     return leadership
 
 
-def build_regime_history():
+def _snapshot_support_score(snapshot):
+    if not isinstance(snapshot, dict):
+        return None
+    candidates = (
+        get_nested_state(snapshot, "regime_alignment", "score"),
+        get_nested_state(snapshot, "market_support", "score"),
+        snapshot.get("market_support_score"),
+        snapshot.get("support_score"),
+    )
+    for candidate in candidates:
+        score = valid_regime_score(candidate)
+        if score is not None:
+            return score
+    return None
+
+
+def build_daily_support_history(as_of=None):
+    """Build chart data exclusively from persisted daily snapshots."""
+    try:
+        snapshots = load_daily_snapshots(limit=3660)
+    except (OSError, json.JSONDecodeError):
+        snapshots = []
+
     history = []
-    for path in reversed(list_regime_history_files()):
-        try:
-            result = load_result(path)
-        except (OSError, json.JSONDecodeError):
+    cutoff = str(as_of or "")[:10]
+    for snapshot in snapshots:
+        if not isinstance(snapshot, dict):
             continue
-
-        regime = result.get("regime_alignment")
-        if not isinstance(regime, dict):
-            continue
-
-        score = valid_regime_score(regime.get("score"))
+        score = _snapshot_support_score(snapshot)
         if score is None:
             continue
-
+        day = str(snapshot.get("date") or "")
+        if cutoff and day and day > cutoff:
+            continue
+        try:
+            parsed_day = datetime.fromisoformat(day)
+            label = parsed_day.strftime("%b %-d")
+            iso_date = parsed_day.date().isoformat()
+        except ValueError:
+            label = day or "Unavailable"
+            iso_date = day
         history.append(
             {
-                "file": path.name,
-                "label": fmt_history_label(result.get("timestamp"), path),
+                "date": iso_date,
+                "label": label,
                 "score": round(score, 1),
                 "plot_score": max(0, min(100, score)),
             }
@@ -1064,8 +1113,10 @@ def build_regime_history():
         return {
             "points": history,
             "has_chart": False,
-            "summary": "Not enough Regime Alignment history yet.",
+            "summary": "Not enough market support history yet.",
             "polyline": "",
+            "area_polygon": "",
+            "chart_points": history,
         }
 
     width = 640
@@ -1075,11 +1126,24 @@ def build_regime_history():
     plot_width = width - (pad_x * 2)
     plot_height = height - (pad_y * 2)
     x_step = plot_width / (len(history) - 1)
+    plot_scores = [item["plot_score"] for item in history]
+    chart_min = min(plot_scores)
+    chart_max = max(plot_scores)
+    domain_padding = max(5, (chart_max - chart_min) * 0.15)
+    domain_min = max(0, chart_min - domain_padding)
+    domain_max = min(100, chart_max + domain_padding)
+    if domain_max == domain_min:
+        domain_min = max(0, domain_min - 5)
+        domain_max = min(100, domain_max + 5)
 
     coordinates = []
     for index, item in enumerate(history):
         x = pad_x + (x_step * index)
-        y = pad_y + ((100 - item["plot_score"]) / 100 * plot_height)
+        y = pad_y + (
+            (domain_max - item["plot_score"])
+            / (domain_max - domain_min)
+            * plot_height
+        )
         item["x"] = round(x, 2)
         item["y"] = round(y, 2)
         coordinates.append(f"{item['x']},{item['y']}")
@@ -1101,12 +1165,93 @@ def build_regime_history():
     else:
         latest_summary = "latest move stable"
 
-    summary = f"Alignment {window_summary}; {latest_summary}."
+    summary = f"Support is {window_summary}; {latest_summary}."
 
     return {
         "points": history,
         "has_chart": True,
         "summary": summary,
+        "polyline": " ".join(coordinates),
+        "area_polygon": (
+            f"{history[0]['x']},{height - pad_y} "
+            + " ".join(coordinates)
+            + f" {history[-1]['x']},{height - pad_y}"
+        ),
+        "chart_points": [
+            {"date": item["date"], "label": item["label"], "score": item["score"]}
+            for item in history
+        ],
+        "min_score": round(chart_min, 1),
+        "max_score": round(chart_max, 1),
+        "domain_min": domain_min,
+        "domain_max": domain_max,
+        "latest": history[-1],
+        "first": history[0],
+    }
+
+
+def build_regime_history():
+    """Preserve the existing per-run history used by shared Admin context."""
+    history = []
+    for path in reversed(list_regime_history_files()):
+        try:
+            result = load_result(path)
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        regime = result.get("regime_alignment")
+        if not isinstance(regime, dict):
+            continue
+        score = valid_regime_score(regime.get("score"))
+        if score is None:
+            continue
+        history.append(
+            {
+                "file": path.name,
+                "label": fmt_history_label(result.get("timestamp"), path),
+                "score": round(score, 1),
+                "plot_score": max(0, min(100, score)),
+            }
+        )
+
+    if len(history) < 2:
+        return {
+            "points": history,
+            "has_chart": False,
+            "summary": "Not enough market support history yet.",
+            "polyline": "",
+        }
+
+    width, height, pad_x, pad_y = 640, 180, 34, 22
+    plot_width = width - (pad_x * 2)
+    plot_height = height - (pad_y * 2)
+    x_step = plot_width / (len(history) - 1)
+    coordinates = []
+    for index, item in enumerate(history):
+        item["x"] = round(pad_x + (x_step * index), 2)
+        item["y"] = round(
+            pad_y + ((100 - item["plot_score"]) / 100 * plot_height),
+            2,
+        )
+        coordinates.append(f"{item['x']},{item['y']}")
+
+    comparison_index = -4 if len(history) >= 4 else 0
+    window_delta = history[-1]["score"] - history[comparison_index]["score"]
+    latest_delta = history[-1]["score"] - history[-2]["score"]
+    window_summary = (
+        "higher over the recent window" if window_delta >= 5
+        else "lower over the recent window" if window_delta <= -5
+        else "broadly stable over the recent window"
+    )
+    latest_summary = (
+        "latest move up" if latest_delta >= 5
+        else "latest move down" if latest_delta <= -5
+        else "latest move stable"
+    )
+    return {
+        "points": history,
+        "has_chart": True,
+        "summary": f"Support is {window_summary}; {latest_summary}.",
         "polyline": " ".join(coordinates),
         "latest": history[-1],
         "first": history[0],
@@ -1137,12 +1282,22 @@ def get_market_context(run):
     for symbol in MARKET_SYMBOLS:
         data = market_data.get(symbol)
         if isinstance(data, dict):
+            change = numeric_or_none(data.get("pct_change"))
             rows.append(
                 {
                     "symbol": symbol,
                     "ticker": data.get("ticker") or symbol,
+                    "name": MARKET_NAMES.get(symbol, symbol),
                     "latest_close": data.get("latest_close"),
                     "pct_change": data.get("pct_change"),
+                    "change_label": (
+                        f"{change:+.2f}%" if change is not None else "Unavailable"
+                    ),
+                    "direction": (
+                        "up" if change is not None and change > 0
+                        else "down" if change is not None and change < 0
+                        else "flat"
+                    ),
                 }
             )
         elif data is not None:
@@ -1150,8 +1305,11 @@ def get_market_context(run):
                 {
                     "symbol": symbol,
                     "ticker": symbol,
+                    "name": MARKET_NAMES.get(symbol, symbol),
                     "latest_close": data,
                     "pct_change": None,
+                    "change_label": "Unavailable",
+                    "direction": "flat",
                 }
             )
     return rows
@@ -1203,16 +1361,27 @@ def format_lifecycle_event(event):
             f"in {next_transition.get('minutes_away')} min"
         )
 
+    translated_state = present_state(state)
+    next_state = next_transition.get("next_state")
+    translated_next_state = present_state(next_state) if next_state else None
+    if translated_next_state and next_transition.get("minutes_away") is not None:
+        next_label = (
+            f"Next: {translated_next_state['label']} "
+            f"in {next_transition.get('minutes_away')} min"
+        )
+
     return {
         "event_id": event.get("event_id"),
         "event_name": event.get("event_name") or "Unnamed event",
         "event_importance": event.get("event_importance"),
         "lifecycle_state": state,
+        "presentation_state": translated_state,
         "state_class": str(state).lower().replace(" ", "-"),
         "countdown": countdown,
         "next_label": next_label,
         "reason": event.get("reason"),
         "confidence": event.get("confidence"),
+        "presentation_confidence": present_confidence(event.get("confidence")),
     }
 
 
@@ -1322,6 +1491,24 @@ def build_view_model(run, current_file):
             item["share_delta"] = None
             item["rotation_streak"] = None
             item["rotation_reason"] = None
+        item["presentation"] = {
+            "pulse": present_state(item["pulse_state"], category="Pulse"),
+            "acceleration": present_state(item["acceleration"], category="Acceleration"),
+            "crowding": present_state(item["crowding"], category="Crowding"),
+            "confidence": present_confidence(item["pulse_confidence"]),
+            "rotation": (
+                present_state(item["rotation_state"], category="Rotation")
+                if item["rotation_state"]
+                else None
+            ),
+        }
+        item["presentation"]["summary"] = compose_sentence(
+            item["presentation"]["pulse"],
+            item["presentation"]["acceleration"],
+            item["presentation"]["crowding"] if item["crowding"] else None,
+        )
+        item["story_count_label"] = pluralize(item["score"], "story")
+        item["leader_gap_label"] = pluralize(item["leader_gap"], "story")
 
     configuration_report = build_configuration_report().to_dict()
     source_registry = build_source_registry_diagnostics()
@@ -1332,6 +1519,27 @@ def build_view_model(run, current_file):
             "source_registry": source_registry,
         },
     )
+
+    market_environment_card = compact_environment(market_environment)
+    positioning_environment_card = compact_environment(positioning_environment)
+    presentation = {
+        "metrics": {name: present_metric(name) for name in (
+            "Regime Alignment", "Dominant Narrative", "Narrative Leadership",
+            "Narrative Pulse", "Acceleration", "Crowding", "Market Environment",
+            "Catalyst Environment", "Positioning", "Change Summary",
+            "Market Snapshot", "Example Headlines / Top Theme Evidence",
+            "Regime Alignment History", "Data Quality",
+        )},
+        "regime": present_support(regime.get("score"), regime.get("state")),
+        "mode_context": present_state(mode_context.get("state")),
+        "mode_confidence": present_confidence(mode_context.get("confidence")),
+        "market_environment": present_state(market_environment_card.get("state")),
+        "catalyst_environment": present_state(catalyst_environment_card.get("state")),
+        "catalyst_confidence": present_confidence(
+            catalyst_environment_card.get("confidence")
+        ),
+        "positioning_environment": present_state(positioning_environment_card.get("state")),
+    }
 
     return {
         "run": run,
@@ -1349,11 +1557,12 @@ def build_view_model(run, current_file):
         },
         "regime": regime,
         "mode_context": mode_context,
-        "market_environment_card": compact_environment(market_environment),
+        "presentation": presentation,
+        "market_environment_card": market_environment_card,
         "market_expression": market_expression if isinstance(market_expression, dict) else None,
         "catalyst_environment_card": catalyst_environment_card,
         "event_lifecycle": event_lifecycle,
-        "positioning_environment_card": compact_environment(positioning_environment),
+        "positioning_environment_card": positioning_environment_card,
         "environment": {
             "Market Environment": market_environment,
             "Narrative / Market Relationship": run.get("narrative_market_relationship"),
@@ -1498,20 +1707,54 @@ def build_template_context(
         result,
         latest_meaningful_fallback_active=bool(selection and selection.notice),
     )
+    trust_summary = view["dashboard_trust_summary"]
+    if trust_summary:
+        trust_summary["presentation_confidence"] = present_confidence(
+            trust_summary.get("confidence")
+        )
+    prior_file = get_prior_result_file(current_file)
+    prior_result = None
+    if prior_file:
+        try:
+            prior_result = load_result(prior_file)
+        except (OSError, json.JSONDecodeError):
+            prior_result = None
+
+    current_support = valid_regime_score(
+        get_nested_state(result, "regime_alignment", "score")
+    )
+    prior_support = valid_regime_score(
+        get_nested_state(prior_result, "regime_alignment", "score")
+    )
+    view["support_delta"] = None
+    if current_support is not None and prior_support is not None:
+        delta = round(current_support - prior_support, 1)
+        if float(delta).is_integer():
+            delta = int(delta)
+        current_day = str(result.get("timestamp") or "")[:10]
+        prior_day = str(prior_result.get("timestamp") or "")[:10]
+        comparison = "since the last update"
+        try:
+            if (
+                datetime.fromisoformat(current_day)
+                - datetime.fromisoformat(prior_day)
+            ).days == 1:
+                comparison = "since yesterday"
+        except ValueError:
+            pass
+        view["support_delta"] = {
+            "value": delta,
+            "label": f"{delta:+g} {comparison}",
+            "direction": "up" if delta > 0 else "down" if delta < 0 else "flat",
+        }
+
     if isinstance(result.get("change_summary"), dict):
-        view["change_summary"] = result["change_summary"]
+        view["change_summary"] = present_change_summary(result["change_summary"])
     else:
-        prior_file = get_prior_result_file(current_file)
-        if prior_file:
-            try:
-                prior_result = load_result(prior_file)
-                view["change_summary"] = build_change_summary(
-                    result,
-                    prior_result,
-                    prior_file,
-                )
-            except (OSError, json.JSONDecodeError):
-                view["change_summary"] = None
+        if prior_file and prior_result:
+            view["change_summary"] = present_change_summary(
+                build_change_summary(result, prior_result, prior_file)
+            )
         else:
             view["change_summary"] = None
 
@@ -1617,6 +1860,12 @@ def build_historical_comparison_route_context(request: Request, replay_a: str, r
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, run: Optional[str] = Query(default=None)):
     context = build_template_context(request, run, meaningful_default=True)
+    selected_timestamp = (
+        context["view"]["run"].get("timestamp")
+        if context.get("view")
+        else None
+    )
+    context["regime_history"] = build_daily_support_history(selected_timestamp)
     return templates.TemplateResponse("dashboard.html", context)
 
 

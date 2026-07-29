@@ -33,15 +33,18 @@ Macro Narrative Engine (MNE) is a lightweight macro narrative intelligence syste
 
 ### Dashboard
 
-- User Dashboard for current-run narrative and market reads.
-- Admin Dashboard for diagnostics, scoring detail, raw JSON, catalyst detail, and audit metadata.
-- Market Snapshot.
-- Regime Alignment History.
-- Narrative Leadership cards.
-- Narrative Pulse display.
-- Dashboard UX refinements for hierarchy, readability, and workflow separation.
+- User Dashboard reworked (Dashboard Experience Rework, July 2026): Robinhood-inspired presentation with a Market Support hero (large score, delta chip, interactive snapshot-history chart with scrubbing and range selection), plain-language narrative cards, Robinhood-style market rows, Upcoming Events, and What We Read evidence sections.
+- Plain-language presentation layer (`mne/presentation_language.py`): deterministic dictionary translating all engine metric names and state strings into everyday language; engine terminology appears only inside Why-expanders.
+- Strict color budget on the user dashboard: neutral base plus the `--up`/`--down` directional pair only; states convey meaning through typography.
+- Data Quality trust summary rendered as a compact expandable header pill.
+- Detail score tables, Daily Leadership table, and duplicate environment grids removed from the user surface (available via Admin/Research).
+- Admin Dashboard for diagnostics, scoring detail, raw JSON, catalyst detail, and audit metadata (unchanged by the rework).
+- Daily snapshots now persist a representative Regime Alignment score/state (latest scored run of the day, explicit nulls otherwise), feeding the hero chart from snapshots only.
 
 ## Recent Major Additions
+
+- **Dashboard Experience Rework (four sprints, July 2026)** — plain-language presentation layer, new page architecture with Market Support hero and interactive chart, Robinhood-grade visual system under a strict color budget, progressive disclosure of engine terminology via Why-expanders, and a data-completeness/visual-energy pass (change-chip translation and dedupe, unavailable-state suppression, green promoted to dual up/brand accent). Specifications: `docs/dashboard_rework_handoff.md`, `docs/handoffs/dashboard_sprint_d_handoff.md`.
+- **Snapshot Support Score Persistence** — daily snapshots persist `regime_alignment` (score/state/source_run_id) using a latest-scored-run representative rule with explicit nulls; idempotent repair backfill added (`scripts/repair_snapshot_support_scores.py`). Null-day recovery is deferred to Historical Replay. Specification: `docs/handoffs/snapshot_support_score_handoff.md`.
 
 - Dashboard V1 has matured into user and admin surfaces with clearer hierarchy and scanability.
 - Regime Alignment History is now exposed for reviewing state changes over time.
@@ -56,6 +59,7 @@ The current focus is expanding the product surface beyond the latest-run dashboa
 
 ## Known Limitations
 
+- Daily snapshots created before Snapshot Support Score Persistence carry null support scores; the hero chart renders these as gaps. Historical recovery is a designated future Historical Replay use case.
 - Leadership Rotation is not yet a dedicated workflow for showing narrative handoffs and changes in leadership over time.
 - Several dashboard areas still share the same main surface instead of having dedicated navigation pages.
 - Market Expression Map is not yet available as a first-class view linking narratives to market instruments or expressions.
