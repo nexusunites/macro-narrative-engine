@@ -5,6 +5,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from config import DATA_DIR, HEADLINES_DIR, REPORTS_DIR, RESULTS_DIR
+from mne.render_cache import get_or_load
 
 
 SNAPSHOTS_DIR = DATA_DIR / "snapshots"
@@ -515,4 +516,4 @@ def load_daily_snapshots(limit: int = 7) -> list[dict]:
         return []
 
     selected = sorted(snapshot_files, key=lambda path: path.stem)[-limit:]
-    return [load_json(path) for path in selected]
+    return [get_or_load(path, load_json) for path in selected]

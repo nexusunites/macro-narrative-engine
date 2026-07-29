@@ -13,6 +13,7 @@ from mne.historical_replay_admin import (
     normalize_replay_display_path,
     sorted_scores,
 )
+from mne.render_cache import get_or_load
 
 
 class HistoricalResearchError(Exception):
@@ -65,8 +66,7 @@ def resolve_replay_artifact_path(replay_id, replay_dir=None):
 def load_replay_for_historical_research(replay_id, replay_dir=None):
     replay_path = resolve_replay_artifact_path(replay_id, replay_dir=replay_dir)
     try:
-        with open(replay_path, "r", encoding="utf-8") as fh:
-            artifact = json.load(fh)
+        artifact = get_or_load(replay_path, _load_json_artifact)
     except json.JSONDecodeError as error:
         raise ReplayArtifactLoadError() from error
     except OSError as error:
@@ -77,6 +77,11 @@ def load_replay_for_historical_research(replay_id, replay_dir=None):
     if artifact.get("replay_id") and artifact.get("replay_id") != validate_replay_id(replay_id):
         raise ReplayArtifactUnsupported()
     return artifact, replay_path
+
+
+def _load_json_artifact(path):
+    with open(path, "r", encoding="utf-8") as fh:
+        return json.load(fh)
 
 
 def build_historical_research_context(replay_artifact, replay_path=None, replay_dir=None):

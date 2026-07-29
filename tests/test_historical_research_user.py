@@ -4,7 +4,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 import dashboard
-from mne.historical_research_view import build_user_historical_view
+from mne.historical_research_view import (
+    build_user_historical_view,
+    list_user_replays,
+    load_replay_card_summary,
+)
 from mne.presentation_language import historical_breadth, historical_copy, historical_origin
 from tests.test_historical_research import (
     render_template,
@@ -24,6 +28,22 @@ def render_investigation(replay_id="replay_2026-07-06_macro"):
 
 
 class HistoricalResearchUserTests(unittest.TestCase):
+    def test_00_card_summary_matches_full_view_fields(self):
+        with temporary_mne_data_dir() as data_dir:
+            path = write_replay(data_dir)
+            summary = load_replay_card_summary(path)
+            full = build_user_historical_view(sample_replay())
+            for field in (
+                "date",
+                "dominant_group",
+                "dominant_theme",
+                "evidence_label",
+                "breadth",
+                "summary",
+                "evidence_count",
+            ):
+                self.assertEqual(summary[field], full[field])
+
     def test_01_selector_route_registered(self):
         self.assertIn("/history", {getattr(route, "path", None) for route in dashboard.app.routes})
 
@@ -123,6 +143,16 @@ class HistoricalResearchUserTests(unittest.TestCase):
             write_replay(data_dir, replay=replay)
             self.assertIn(historical_copy("limited_badge"), render_selector())
             _, html = render_investigation(); self.assertIn(historical_copy("zero_evidence_title"), html)
+
+    def test_21b_zero_evidence_card_is_limited(self):
+        replay = sample_replay(evidence_count=0, source_count=0)
+        replay["source_intelligence"] = {
+            "accepted_evidence_count": 0,
+            "accepted_evidence": [],
+        }
+        with temporary_mne_data_dir() as data_dir:
+            write_replay(data_dir, replay=replay)
+            self.assertTrue(list_user_replays()[0]["limited"])
 
     def test_22_dashboard_entry_point(self):
         self.assertIn("Explore historical narratives", Path("templates/dashboard.html").read_text(encoding="utf-8"))

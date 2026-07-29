@@ -32,8 +32,7 @@ def list_user_replays(replay_dir=None):
     cards = []
     for path in sorted(base.glob("*.json"), key=lambda item: item.name, reverse=True):
         try:
-            artifact, _ = load_replay_for_historical_research(path.stem, replay_dir=base)
-            view = build_user_historical_view(artifact)
+            view = load_replay_card_summary(path)
         except (HistoricalResearchError, ValueError, TypeError) as error:
             LOGGER.warning("Excluded historical reconstruction %s: %s", path.name, type(error).__name__)
             continue
@@ -50,12 +49,58 @@ def list_user_replays(replay_dir=None):
     return cards
 
 
+def load_replay_card_summary(path):
+    """Load and validate only the fields required by replay selector cards."""
+    replay_path = Path(path)
+    artifact, _ = load_replay_for_historical_research(
+        replay_path.stem,
+        replay_dir=replay_path.parent,
+    )
+    _validate_user_historical_artifact(artifact)
+
+    coverage = _coverage(artifact)
+    evidence_count = _number(
+        artifact.get("evidence_count"),
+        default=_number(
+            _source_intelligence(artifact).get("accepted_evidence_count"),
+            _lightweight_evidence_count(artifact),
+        ),
+    )
+    dominant_group = _plain_group(artifact.get("dominant_group"))
+    dominant_theme = _plain_theme(artifact.get("dominant_theme"))
+    breadth = historical_breadth(coverage.get("breadth_state"))
+    summary_parts = []
+    if dominant_group:
+        summary_parts.append(f"{dominant_group} led the historical narrative")
+    elif dominant_theme:
+        summary_parts.append(f"{dominant_theme} led the historical narrative")
+    if evidence_count is not None:
+        summary_parts.append(
+            f"based on {pluralize(evidence_count, historical_copy('evidence_singular'), historical_copy('evidence_plural'))}"
+        )
+    if breadth["label"]:
+        summary_parts.append(f"with {breadth['label'].lower()}")
+    summary = " ".join(summary_parts).strip()
+    if summary:
+        summary += "."
+
+    return {
+        "date": str(artifact["replay_date"]),
+        "dominant_group": dominant_group,
+        "dominant_theme": dominant_theme,
+        "evidence_label": pluralize(
+            evidence_count,
+            historical_copy("evidence_singular"),
+            historical_copy("evidence_plural"),
+        ) if evidence_count is not None else None,
+        "breadth": breadth,
+        "summary": summary,
+        "evidence_count": evidence_count,
+    }
+
+
 def build_user_historical_view(artifact):
-    if not isinstance(artifact, dict) or not _minimum_snapshot_present(artifact):
-        raise ValueError("missing minimum historical snapshot")
-    status = str(artifact.get("status") or "completed").lower()
-    if status not in {"complete", "completed", "success"}:
-        raise ValueError("historical reconstruction is not complete")
+    _validate_user_historical_artifact(artifact)
 
     evidence = [
         _safe_evidence(row)
@@ -118,6 +163,14 @@ def build_user_historical_view(artifact):
     }
 
 
+def _validate_user_historical_artifact(artifact):
+    if not isinstance(artifact, dict) or not _minimum_snapshot_present(artifact):
+        raise ValueError("missing minimum historical snapshot")
+    status = str(artifact.get("status") or "completed").lower()
+    if status not in {"complete", "completed", "success"}:
+        raise ValueError("historical reconstruction is not complete")
+
+
 def _minimum_snapshot_present(artifact):
     return bool(
         artifact.get("replay_id")
@@ -132,6 +185,25 @@ def _minimum_snapshot_present(artifact):
 def _source_intelligence(artifact):
     value = artifact.get("source_intelligence")
     return value if isinstance(value, dict) else {}
+
+
+def _lightweight_evidence_count(artifact):
+    source_intelligence = _source_intelligence(artifact)
+    evidence = source_intelligence.get("accepted_evidence")
+    if not isinstance(evidence, list):
+        evidence = source_intelligence.get("evidence_objects")
+    if not isinstance(evidence, list):
+        evidence = artifact.get("evidence")
+    if not isinstance(evidence, list):
+        return 0
+    return sum(
+        1
+        for row in evidence
+        if isinstance(row, dict)
+        and row.get("accepted", True) is True
+        and not row.get("rejection_state")
+        and not row.get("rejection_reason")
+    )
 
 
 def _coverage(artifact):
