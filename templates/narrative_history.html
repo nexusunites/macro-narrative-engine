@@ -1,0 +1,115 @@
+{% from "_partials/narrative_history_summary.html" import history_summary -%}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MNE {{ copy.page_label }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body>
+  {% set active_tier = "research" %}
+  {% include "_partials/app_rail.html" %}
+  <header class="site-header investigation-header-static">
+    <div class="brand-row"><a class="brand" href="/">Macro Narrative Engine</a></div>
+  </header>
+  <main class="page-shell research-shell narrative-history-page">
+    {% if message %}
+      <section class="empty-state">
+        <p class="eyebrow">{{ copy.page_label }}</p>
+        <h1>{{ message }}</h1>
+        <a href="/research">{{ copy.back }}</a>
+      </section>
+    {% elif history %}
+      <section class="research-hero">
+        <p class="eyebrow">{{ copy.page_label }}</p>
+        <h1>{{ history.group_key }}</h1>
+        <p>{{ copy.page_intro }}</p>
+        <a class="history-back-link" href="{{ url_for('narrative_investigation', key=narrative_key) }}">← {{ copy.back }}</a>
+      </section>
+
+      {{ history_summary(history, copy) }}
+
+      {% if history.has_chart_history %}
+        {% for chart_key, title, suffix in [
+          ("score_chart", copy.score, ""),
+          ("share_chart", copy.share, "%")
+        ] %}
+          {% set chart = history[chart_key] %}
+          {% if chart.available %}
+            <section class="narrative-history-chart" data-history-chart data-value-key="{{ 'share' if chart_key == 'share_chart' else 'score' }}" data-suffix="{{ suffix }}">
+              <div class="chart-heading">
+                <div><p class="eyebrow">{{ title }}</p><p class="history-gap-note">{{ copy.gap_note }}</p></div>
+                <div class="chart-readout"><strong data-history-value>{{ chart.segments[-1][-1].value }}{{ suffix }}</strong><span data-history-date>{{ chart.segments[-1][-1].label }}</span><small data-history-state>{{ chart.segments[-1][-1].pulse_state }}</small></div>
+              </div>
+              <div class="chart-stage" data-history-stage>
+                <svg class="support-chart" viewBox="0 0 640 180" role="img" aria-label="{{ title }}">
+                  <defs><linearGradient id="history-gradient-{{ chart_key }}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity=".2"/><stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+                  {% for segment in chart.segments %}
+                    {% if segment|length > 1 %}
+                      <polygon class="history-area" fill="url(#history-gradient-{{ chart_key }})" points="{{ segment[0].x }},158 {% for point in segment %}{{ point.x }},{{ point.y }} {% endfor %}{{ segment[-1].x }},158"/>
+                      <polyline class="regime-line" points="{% for point in segment %}{{ point.x }},{{ point.y }} {% endfor %}"/>
+                    {% else %}
+                      <circle class="regime-point history-static-point" cx="{{ segment[0].x }}" cy="{{ segment[0].y }}" r="3"/>
+                    {% endif %}
+                  {% endfor %}
+                  <line class="chart-crosshair" data-history-crosshair x1="0" x2="0" y1="22" y2="158"/>
+                  <circle class="chart-active-point" data-history-active r="4"/>
+                  <text class="chart-bound-label" x="4" y="26">{{ chart.maximum }}{{ suffix }}</text>
+                  <text class="chart-bound-label" x="4" y="158">{{ chart.minimum }}{{ suffix }}</text>
+                </svg>
+              </div>
+              <script type="application/json" data-history-points>{{ history.points | tojson }}</script>
+            </section>
+          {% endif %}
+        {% endfor %}
+
+        {% if history.rank_chart.available %}
+          {% set chart = history.rank_chart %}
+          <section class="narrative-history-chart narrative-rank-chart" data-history-chart data-value-key="rank" data-suffix="">
+            <div class="chart-heading">
+              <div><p class="eyebrow">{{ copy.rank }}</p><p class="history-gap-note">{{ copy.gap_note }}</p></div>
+              <div class="chart-readout"><strong data-history-value>{{ chart.segments[-1][-1].value }}</strong><span data-history-date>{{ chart.segments[-1][-1].label }}</span><small data-history-state>{{ chart.segments[-1][-1].pulse_state }}</small></div>
+            </div>
+            <div class="chart-stage" data-history-stage>
+              <svg class="support-chart" viewBox="0 0 640 180" role="img" aria-label="{{ copy.rank }}">
+                {% for segment in chart.segments %}
+                  {% if segment|length > 1 %}<polyline class="regime-line history-step-line" points="{% for point in segment %}{{ point.x }},{{ point.y }} {% endfor %}"/>
+                  {% else %}<circle class="regime-point history-static-point" cx="{{ segment[0].x }}" cy="{{ segment[0].y }}" r="3"/>{% endif %}
+                {% endfor %}
+                <line class="chart-crosshair" data-history-crosshair x1="0" x2="0" y1="22" y2="158"/>
+                <circle class="chart-active-point" data-history-active r="4"/>
+              </svg>
+            </div>
+            <script type="application/json" data-history-points>{{ history.points | tojson }}</script>
+          </section>
+        {% endif %}
+      {% elif history.has_history %}
+        <section class="chart-empty"><p>{{ copy.thin }}</p></section>
+      {% else %}
+        <section class="chart-empty"><p>{{ copy.empty }}</p></section>
+      {% endif %}
+
+      {% if history.has_history %}
+        <section class="narrative-lifecycle-section">
+          <div class="subsection-heading"><p class="eyebrow">{{ copy.timeline }}</p><h3>{{ copy.timeline_note }}</h3></div>
+          <ol class="narrative-lifecycle-strip">
+            {% for point in history.points %}
+              <li title="{{ point.label }} — {{ point.pulse_state }}{% if point.memory_state %} · {{ point.memory_state }}{% endif %}" class="{% if point.pulse_state == 'Absent' %}lifecycle-absent{% endif %}">
+                <span>{{ point.pulse_state }}</span>{% if point.memory_state %}<small>{{ point.memory_state }}</small>{% endif %}
+              </li>
+            {% endfor %}
+          </ol>
+          <p class="lifecycle-state-legend">{{ history.timeline_legend | join(" · ") }}</p>
+        </section>
+      {% endif %}
+
+      <section class="history-integrity">
+        <p>{{ copy.history_reflects }}</p><p>{{ copy.missing_dates }}</p><p>{{ copy.lifecycle_integrity }}</p>
+        <details><summary>{{ copy.why_title }}</summary><p>{{ copy.why_body }}</p></details>
+      </section>
+    {% endif %}
+  </main>
+  <script src="{{ url_for('static', path='narrative_history.js') }}" defer></script>
+</body>
+</html>

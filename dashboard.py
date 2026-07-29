@@ -28,7 +28,7 @@ from mne.historical_research_view import (
     build_user_historical_view,
     list_user_replays,
 )
-from mne.presentation_language import HISTORICAL_COPY
+from mne.presentation_language import HISTORICAL_COPY, NARRATIVE_HISTORY_COPY
 from mne.presentation_language import historical_request_category
 from mne.presentation_language import historical_request_outcome
 from mne.historical_replay_admin import (
@@ -40,6 +40,7 @@ from mne.historical_replay_admin import (
     validate_replay_backfill_ids,
 )
 from mne.narrative_signals import compute_group_scores
+from mne.narrative_history import build_narrative_history
 from mne.presentation_language import confidence as present_confidence
 from mne.presentation_language import compose_sentence
 from mne.presentation_language import metric as present_metric
@@ -1829,6 +1830,33 @@ def build_investigation_context(request: Request, key: str, admin: bool = False)
         admin=admin,
         event_definitions=event_definitions,
     )
+    context["history"] = (
+        build_narrative_history(narrative_id)
+        if narrative_level == "group"
+        else None
+    )
+    context["history_copy"] = NARRATIVE_HISTORY_COPY
+    context["narrative_key"] = key
+    return context
+
+
+def build_narrative_history_context(request: Request, key: str):
+    context = {
+        "request": request,
+        "message": None,
+        "history": None,
+        "copy": NARRATIVE_HISTORY_COPY,
+        "narrative_key": key,
+    }
+    narrative_level, narrative_id = split_narrative_key(key)
+    if narrative_level != "group" or not narrative_id:
+        context["message"] = (
+            NARRATIVE_HISTORY_COPY["groups_only"]
+            if narrative_level == "theme"
+            else NARRATIVE_HISTORY_COPY["not_found"]
+        )
+        return context
+    context["history"] = build_narrative_history(narrative_id)
     return context
 
 
@@ -2000,6 +2028,12 @@ def dashboard(request: Request, run: Optional[str] = Query(default=None)):
 def research_selector(request: Request):
     context = build_research_context(request)
     return templates.TemplateResponse("research_selector.html", context)
+
+
+@app.get("/research/{key:path}/history", response_class=HTMLResponse)
+def narrative_history(request: Request, key: str):
+    context = build_narrative_history_context(request, key)
+    return templates.TemplateResponse("narrative_history.html", context)
 
 
 @app.get("/research/{key:path}", response_class=HTMLResponse)

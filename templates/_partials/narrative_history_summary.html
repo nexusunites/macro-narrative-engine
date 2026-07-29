@@ -1,0 +1,33 @@
+{% macro history_summary(history, copy, compact=false) -%}
+  <article class="narrative-history-summary{% if compact %} narrative-history-summary-compact{% endif %}">
+    <div class="subsection-heading">
+      <p class="eyebrow">{{ copy.preview_label if compact else copy.summary_title }}</p>
+      <h3>{{ copy.preview_title if compact else copy.summary_question }}</h3>
+    </div>
+    {% if history.has_history %}
+      <dl class="narrative-history-facts">
+        <div><dt>{{ copy.current_stage }}</dt><dd>{{ history.summary.current_stage or copy.unavailable }}</dd></div>
+        <div><dt>{{ copy.previous_stage }}</dt><dd>{{ history.summary.previous_stage or copy.unavailable }}</dd></div>
+        <div><dt>{{ copy.current_streak }}</dt><dd>{{ history.summary.current_streak }} {{ copy.day if history.summary.current_streak == 1 else copy.days }}</dd></div>
+        <div><dt>{{ copy.appearances }}</dt><dd>{{ history.summary.appearances }} / {{ history.days_in_window }} {{ copy.days }}</dd></div>
+        <div><dt>{{ copy.dominance }}</dt><dd>{{ history.summary.dominance_count }} {{ copy.day if history.summary.dominance_count == 1 else copy.days }}</dd></div>
+        {% if not compact %}
+          <div>
+            <dt>{{ copy.peak_score }}</dt>
+            <dd>{% if history.summary.peak_score %}{{ history.summary.peak_score.value }} <small>{{ history.summary.peak_score.date }}</small>{% else %}{{ copy.unavailable }}{% endif %}</dd>
+          </div>
+          <div>
+            <dt>{{ copy.peak_share }}</dt>
+            <dd>{% if history.summary.peak_share %}{{ history.summary.peak_share.value }}% <small>{{ history.summary.peak_share.date }}</small>{% else %}{{ copy.unavailable }}{% endif %}</dd>
+          </div>
+          <div>
+            <dt>{{ copy.latest_memory_event }}</dt>
+            <dd>{% if history.summary.latest_memory_event %}{{ history.summary.latest_memory_event.state }} <small>{{ history.summary.latest_memory_event.date }}</small>{% else %}{{ copy.unavailable }}{% endif %}</dd>
+          </div>
+        {% endif %}
+      </dl>
+    {% else %}
+      <p class="muted">{{ copy.empty }}</p>
+    {% endif %}
+  </article>
+{%- endmacro %}

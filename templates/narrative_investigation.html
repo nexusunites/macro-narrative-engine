@@ -1,4 +1,5 @@
 {% from "_partials/evidence_macros.html" import evidence_list, evidence_reader -%}
+{% from "_partials/narrative_history_summary.html" import history_summary -%}
 <!doctype html>
 <html lang="en">
 <head>
@@ -158,6 +159,22 @@
           {% endif %}
         </article>
       </section>
+
+      {% if history %}
+        <section class="content-section investigation-history-preview">
+          {{ history_summary(history, history_copy, true) }}
+          {% if history.score_chart.available %}
+            <svg class="history-preview-sparkline" viewBox="0 0 640 180" role="img" aria-label="{{ history_copy.score }}">
+              {% for segment in history.score_chart.segments %}
+                {% if segment|length > 1 %}<polyline class="regime-line" points="{% for point in segment %}{{ point.x }},{{ point.y }} {% endfor %}"/>{% endif %}
+              {% endfor %}
+            </svg>
+          {% elif history.has_history %}
+            <p class="muted">{{ history_copy.thin }}</p>
+          {% endif %}
+          <a class="history-full-link" href="{{ url_for('narrative_history', key=narrative_key) }}">{{ history_copy.view_full }}</a>
+        </section>
+      {% endif %}
 
       <section class="content-section investigation-zone investigation-zone-evidence" id="supporting-evidence">
         <div class="investigation-zone-heading">
