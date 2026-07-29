@@ -2990,11 +2990,107 @@ pre {
   padding-bottom: 4rem;
 }
 
+.historical-request-shell {
+  max-width: 58rem;
+}
+
+.historical-request-form,
+.historical-request-coverage {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.historical-request-dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.historical-request-form label,
+.historical-request-form legend {
+  font-weight: 650;
+}
+
+.historical-request-form input[type="date"] {
+  width: 100%;
+  margin-top: .45rem;
+  padding: .7rem;
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
+}
+
+.historical-request-form fieldset {
+  margin: 1.25rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.historical-request-categories {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem;
+  margin-top: .75rem;
+}
+
+.historical-request-category {
+  display: flex;
+  gap: .7rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+}
+
+.historical-request-category input {
+  margin-top: .2rem;
+}
+
+.historical-request-category small {
+  display: block;
+  margin-top: .3rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.historical-request-pacing,
+.historical-request-coverage,
+.historical-request-error {
+  color: var(--muted);
+}
+
+.historical-request-form button {
+  width: auto;
+  padding: .7rem 1rem;
+}
+
+.historical-request-error {
+  padding: .9rem 1rem;
+  border: 1px solid var(--border-strong);
+}
+
+.historical-request-coverage p {
+  margin: .35rem 0;
+}
+
+.historical-request-outcomes {
+  display: grid;
+  gap: .6rem;
+  margin: 1.25rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.historical-request-actions {
+  margin-top: 1.25rem;
+}
+
 @media (max-width: 700px) {
   .historical-card-grid,
   .historical-user-snapshot,
   .historical-user-facts,
-  .historical-user-evidence-layout {
+  .historical-user-evidence-layout,
+  .historical-request-dates,
+  .historical-request-categories {
     grid-template-columns: 1fr;
   }
 

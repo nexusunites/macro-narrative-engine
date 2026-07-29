@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ copy.request_label }} · MNE</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body class="user-historical-page">
+  {% set active_tier = "historical" %}
+  {% set hide_admin_nav = true %}
+  {% include "_partials/app_rail.html" %}
+  <header class="site-header investigation-header-static">
+    <div class="brand-row"><a class="brand" href="/">Macro Narrative Engine</a></div>
+  </header>
+  <main class="page-shell historical-user-shell historical-request-shell">
+    <section class="historical-user-hero">
+      <p class="eyebrow">{{ copy.request_label }}</p>
+      <h1>{{ copy.request_title }}</h1>
+      <p>{{ copy.request_intro }}</p>
+    </section>
+
+    {% if error %}<p class="historical-request-error" role="alert">{{ error }}</p>{% endif %}
+
+    <form class="historical-request-form" method="post" action="/history/request">
+      <div class="historical-request-dates">
+        <label>{{ copy.request_start_date }}
+          <input type="date" name="start_date" required>
+        </label>
+        <label>{{ copy.request_end_date }}
+          <input type="date" name="end_date" required>
+        </label>
+      </div>
+      <fieldset>
+        <legend>{{ copy.request_categories }}</legend>
+        <div class="historical-request-categories">
+          {% for category in categories %}
+            <label class="historical-request-category">
+              <input type="checkbox" name="category" value="{{ category.token }}">
+              <span><strong>{{ category.label }}</strong><small>{{ category.description }}</small></span>
+            </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <p class="historical-request-pacing">{{ copy.request_pacing }}</p>
+      <button type="submit">{{ copy.request_submit }}</button>
+    </form>
+
+    <section class="historical-request-coverage">
+      <p>{{ copy.request_coverage_supported }}</p>
+      <p>{{ copy.request_coverage_partial }}</p>
+      <p>{{ copy.request_coverage_incomplete }}</p>
+      <p>{{ copy.request_coverage_cutoff }}</p>
+    </section>
+  </main>
+</body>
+</html>

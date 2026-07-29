@@ -17,7 +17,10 @@
       <p class="eyebrow">{{ copy.archive_label }}</p>
       <h1>Explore earlier market narratives</h1>
       <p>{{ copy.archive_intro }}</p>
-      <a class="accent-link" href="/history/compare">{{ copy.compare_entry }}</a>
+      <div class="historical-explore-links">
+        <a class="accent-link" href="/history/request">{{ copy.request_entry }}</a>
+        <a class="accent-link" href="/history/compare">{{ copy.compare_entry }}</a>
+      </div>
     </section>
 
     {% if replays %}
@@ -42,6 +45,7 @@
       <section class="empty-state historical-user-empty">
         <h2>{{ copy.archive_empty_title }}</h2>
         <p>{{ copy.archive_empty_body }}</p>
+        <a class="accent-link" href="/history/request">{{ copy.request_empty_entry }}</a>
       </section>
     {% endif %}
   </main>

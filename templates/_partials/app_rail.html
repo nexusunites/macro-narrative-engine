@@ -16,11 +16,13 @@
         <span class="app-rail-label">History</span>
       </a>
     </li>
-    <li>
-      <a class="app-rail-item{% if active_tier == 'admin' %} active{% endif %}" href="/admin">
-        <span class="app-rail-label">Admin</span>
-      </a>
-    </li>
+    {% if not hide_admin_nav %}
+      <li>
+        <a class="app-rail-item{% if active_tier == 'admin' %} active{% endif %}" href="/admin">
+          <span class="app-rail-label">Admin</span>
+        </a>
+      </li>
+    {% endif %}
   </ul>
   <p class="app-rail-tier app-rail-tier-{{ active_tier }}">
     {% if active_tier == 'live' %}Live

@@ -120,6 +120,65 @@ HISTORICAL_COPY = {
     "compare_coverage_incomplete": "This is not complete historical market-news coverage.",
     "compare_coverage_difference": "Differences may partly reflect differences in available historical evidence.",
     "compare_evidence_neutral": "Evidence counts describe the available historical record; they do not measure truth or predict what came next.",
+    "request_entry": "Request a historical reconstruction →",
+    "request_empty_entry": "None exist yet — request one",
+    "request_label": "Historical Reconstruction",
+    "request_title": "Reconstruct an earlier market period",
+    "request_intro": "Choose a period and the official historical coverage to include.",
+    "request_start_date": "Start date",
+    "request_end_date": "End date",
+    "request_categories": "Coverage to include",
+    "request_submit": "Start reconstruction",
+    "request_pacing": "Reconstruction runs while you wait — this may take a minute.",
+    "request_coverage_supported": "Reconstruction uses supported official historical sources.",
+    "request_coverage_partial": "Coverage may be partial.",
+    "request_coverage_incomplete": "This is not complete historical market-news coverage.",
+    "request_coverage_cutoff": "Evidence after the historical cutoff is excluded.",
+    "request_invalid_dates": "Enter a valid historical start and end date.",
+    "request_empty_categories": "Choose at least one coverage category.",
+    "request_invalid_categories": "Choose only the available coverage categories.",
+    "request_invalid_submission": "This request could not be accepted. Check the form and try again.",
+    "request_range_too_large": "Choose a period of 92 days or fewer. Larger historical periods are handled separately.",
+    "request_status_label": "Reconstruction Status",
+    "request_period": "Historical period",
+    "request_selected_coverage": "Requested coverage",
+    "request_state_complete": "Reconstruction complete",
+    "request_state_partial": "Reconstruction complete with partial coverage",
+    "request_state_failed": "Reconstruction unavailable",
+    "request_state_working": "Reconstruction is being prepared",
+    "request_complete_body": "The requested official sources were reconstructed for this period.",
+    "request_partial_body": "A historical reconstruction is available, but some requested sources had no records or could not be reconstructed.",
+    "request_failed_body": "No requested source was available for a historical reconstruction.",
+    "request_no_records_note": "Official releases are periodic, so no records in a short period can be a correct result.",
+    "request_view_result": "View this reconstruction →",
+    "request_compare_result": "Compare historical narratives →",
+    "request_unavailable_title": "This reconstruction request isn't available",
+    "request_unavailable_body": "It may have been removed or could not be opened safely.",
+}
+
+HISTORICAL_REQUEST_CATEGORIES = {
+    "monetary_policy": {
+        "label": "Monetary policy",
+        "description": "Official central-bank statements and policy decisions.",
+    },
+    "inflation": {
+        "label": "Inflation",
+        "description": "Official consumer-price releases.",
+    },
+    "growth_consumer": {
+        "label": "Growth and consumer activity",
+        "description": "Official economic-growth and consumer-spending releases.",
+    },
+    "energy_commodities": {
+        "label": "Energy and commodities",
+        "description": "Official energy-market releases.",
+    },
+}
+
+HISTORICAL_REQUEST_OUTCOMES = {
+    "RECONSTRUCTED": "reconstructed from {count} official {record_word}",
+    "NO_RECORDS": "no records available in this period",
+    "FAILED": "could not be reconstructed",
 }
 
 HISTORICAL_BREADTH = {
@@ -134,6 +193,20 @@ HISTORICAL_BREADTH = {
 def historical_copy(key: str) -> str:
     """Return fixed user-facing historical vocabulary."""
     return HISTORICAL_COPY[key]
+
+
+def historical_request_category(token: str) -> dict[str, str]:
+    """Return product copy for a whitelisted historical request category."""
+    return HISTORICAL_REQUEST_CATEGORIES[token]
+
+
+def historical_request_outcome(outcome: str, count: int = 0) -> str:
+    """Compose a user-safe, deterministic per-category outcome."""
+    template = HISTORICAL_REQUEST_OUTCOMES[outcome]
+    return template.format(
+        count=max(0, int(count or 0)),
+        record_word="record" if int(count or 0) == 1 else "records",
+    )
 
 
 def historical_breadth(value: Any) -> dict[str, Any]:

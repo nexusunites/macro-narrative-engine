@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ copy.request_status_label }} · MNE</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body class="user-historical-page">
+  {% set active_tier = "historical" %}
+  {% set hide_admin_nav = true %}
+  {% include "_partials/app_rail.html" %}
+  <header class="site-header investigation-header-static">
+    <div class="brand-row"><a class="brand" href="/">Macro Narrative Engine</a></div>
+  </header>
+  <main class="page-shell historical-user-shell historical-request-shell">
+    {% if not_found %}
+      <section class="empty-state historical-user-empty">
+        <h1>{{ copy.request_unavailable_title }}</h1>
+        <p>{{ copy.request_unavailable_body }}</p>
+      </section>
+    {% else %}
+      <section class="historical-user-hero">
+        <p class="eyebrow">{{ copy.request_status_label }}</p>
+        {% if historical_request.state == "COMPLETE" %}
+          <h1>{{ copy.request_state_complete }}</h1><p>{{ copy.request_complete_body }}</p>
+        {% elif historical_request.state == "PARTIAL" %}
+          <h1>{{ copy.request_state_partial }}</h1><p>{{ copy.request_partial_body }}</p>
+        {% elif historical_request.state == "FAILED" %}
+          <h1>{{ copy.request_state_failed }}</h1><p>{{ copy.request_failed_body }}</p>
+        {% else %}
+          <h1>{{ copy.request_state_working }}</h1>
+        {% endif %}
+      </section>
+
+      <section class="content-section historical-user-zone">
+        <dl class="historical-user-facts">
+          <div><dt>{{ copy.request_period }}</dt><dd>{{ historical_request.start_date }}{% if historical_request.end_date != historical_request.start_date %} – {{ historical_request.end_date }}{% endif %}</dd></div>
+          <div><dt>{{ copy.request_selected_coverage }}</dt><dd>{{ historical_request.category_labels|join(", ") }}</dd></div>
+        </dl>
+        {% if historical_request.outcomes %}
+          <ul class="historical-request-outcomes">
+            {% for outcome in historical_request.outcomes %}
+              <li><strong>{{ outcome.category_label }}:</strong> {{ outcome.message }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        {% if historical_request.state == "PARTIAL" %}<p>{{ copy.request_no_records_note }}</p>{% endif %}
+      </section>
+
+      <section class="historical-request-coverage">
+        <p>{{ copy.request_coverage_supported }}</p>
+        <p>{{ copy.request_coverage_partial }}</p>
+        <p>{{ copy.request_coverage_incomplete }}</p>
+        <p>{{ copy.request_coverage_cutoff }}</p>
+      </section>
+
+      {% if historical_request.investigation_url %}
+        <div class="historical-explore-links historical-request-actions">
+          <a class="accent-link" href="{{ historical_request.investigation_url }}">{{ copy.request_view_result }}</a>
+          <a class="accent-link" href="{{ historical_request.comparison_url }}">{{ copy.request_compare_result }}</a>
+        </div>
+      {% endif %}
+    {% endif %}
+  </main>
+</body>
+</html>

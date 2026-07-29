@@ -16,7 +16,7 @@ from mne.config_diagnostics import build_configuration_report, format_startup_re
 from mne.dashboard_trust_summary import build_dashboard_trust_summary
 from mne.event_lifecycle import load_event_definitions
 from mne import historical_backfill, historical_backfill_admin
-from mne import historical_replay, historical_workflow
+from mne import historical_replay, historical_request, historical_workflow
 from mne.historical_comparison import build_historical_comparison
 from mne.historical_comparison_view import build_user_historical_comparison
 from mne.historical_research import (
@@ -29,6 +29,8 @@ from mne.historical_research_view import (
     list_user_replays,
 )
 from mne.presentation_language import HISTORICAL_COPY
+from mne.presentation_language import historical_request_category
+from mne.presentation_language import historical_request_outcome
 from mne.historical_replay_admin import (
     build_replay_admin_summary,
     build_replay_error_context,
@@ -1851,6 +1853,58 @@ def build_historical_selector_context(request: Request):
     }
 
 
+def build_historical_request_form_context(request: Request, error_code=None):
+    error_keys = {
+        "invalid_dates": "request_invalid_dates",
+        "empty_categories": "request_empty_categories",
+        "invalid_categories": "request_invalid_categories",
+        "invalid_submission": "request_invalid_submission",
+        "range_too_large": "request_range_too_large",
+    }
+    return {
+        "request": request,
+        "copy": HISTORICAL_COPY,
+        "categories": [
+            {"token": token, **historical_request_category(token)}
+            for token in historical_request.CATEGORY_ORDER
+        ],
+        "error": HISTORICAL_COPY.get(error_keys.get(error_code, ""))
+        if error_code
+        else None,
+    }
+
+
+def build_historical_request_status_context(request: Request, request_id: str):
+    context = {
+        "request": request,
+        "copy": HISTORICAL_COPY,
+        "historical_request": None,
+        "not_found": False,
+    }
+    try:
+        record = historical_request.load_request(request_id)
+        if record is None:
+            raise FileNotFoundError
+        view = historical_request.build_user_request_view(record)
+        view["category_labels"] = [
+            historical_request_category(token)["label"]
+            for token in view["categories"]
+        ]
+        for outcome in view["outcomes"]:
+            outcome["category_label"] = historical_request_category(
+                outcome["category"]
+            )["label"]
+            outcome["message"] = historical_request_outcome(
+                outcome["outcome"], outcome["record_count"]
+            )
+        context["historical_request"] = view
+    except (ValueError, FileNotFoundError, json.JSONDecodeError, OSError):
+        context["not_found"] = True
+    except Exception:
+        context["not_found"] = True
+    return context
+
+
 def build_user_historical_route_context(request: Request, replay_id: str):
     context = {
         "request": request,
@@ -1946,6 +2000,62 @@ def historical_selector(request: Request):
     return templates.TemplateResponse(
         "historical_selector.html",
         build_historical_selector_context(request),
+    )
+
+
+@app.get("/history/request", response_class=HTMLResponse)
+def historical_request_form(
+    request: Request,
+    error: Optional[str] = Query(default=None),
+):
+    return templates.TemplateResponse(
+        "historical_request.html",
+        build_historical_request_form_context(request, error),
+    )
+
+
+@app.post("/history/request")
+async def submit_historical_request(request: Request):
+    body = (await request.body()).decode("utf-8")
+    form_data = parse_qs(body, keep_blank_values=True)
+    try:
+        historical_request.validate_form_fields(form_data)
+        if len(form_data.get("start_date", [])) != 1 or len(
+            form_data.get("end_date", [])
+        ) != 1:
+            raise historical_request.HistoricalRequestValidationError(
+                "invalid_submission"
+            )
+        result = historical_request.execute_request(
+            form_data["start_date"][0],
+            form_data["end_date"][0],
+            form_data.get("category", []),
+            run_backfills=execute_admin_workflow_backfills,
+            run_replay=execute_admin_workflow_confirmation,
+        )
+    except historical_request.HistoricalRequestValidationError as error:
+        return RedirectResponse(
+            url=f"/history/request?error={error.code}",
+            status_code=303,
+        )
+    except Exception:
+        return RedirectResponse(
+            url="/history/request?error=invalid_submission",
+            status_code=303,
+        )
+    return RedirectResponse(
+        url=f"/history/request/{result['request_id']}",
+        status_code=303,
+    )
+
+
+@app.get("/history/request/{request_id}", response_class=HTMLResponse)
+def historical_request_status(request: Request, request_id: str):
+    context = build_historical_request_status_context(request, request_id)
+    return templates.TemplateResponse(
+        "historical_request_status.html",
+        context,
+        status_code=404 if context["not_found"] else 200,
     )
 
 
