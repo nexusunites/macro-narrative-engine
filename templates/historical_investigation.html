@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Historical Investigation · MNE</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body class="user-historical-page">
+  {% set active_tier = "historical" %}
+  {% include "_partials/app_rail.html" %}
+  <header class="site-header investigation-header-static">
+    <div class="brand-row"><a class="brand" href="/">Macro Narrative Engine</a></div>
+  </header>
+  <main class="page-shell historical-user-shell">
+    {% if not_found %}
+      <section class="empty-state historical-user-empty">
+        <p class="eyebrow">{{ copy.archive_label }}</p>
+        <h1>{{ copy.unavailable_title }}</h1>
+        <p>{{ copy.unavailable_body }}</p>
+        <a class="accent-link" href="/history">Browse historical narratives →</a>
+      </section>
+    {% else %}
+      <section class="historical-user-banner" aria-label="Historical context">
+        <strong>{{ copy.historical_banner }}</strong>
+        <span>Evidence cutoff: {{ historical.cutoff }}</span>
+        <span>{{ copy.read_only }}</span>
+        <span>{{ copy.not_current }}</span>
+      </section>
+
+      <nav class="zone-jump investigation-nav-sticky" aria-label="Historical investigation sections">
+        <a href="#historical-snapshot">Snapshot</a>
+        <a href="#historical-explanation">Explanation</a>
+        <a href="#historical-evidence">Evidence</a>
+        <a href="#historical-coverage">Coverage</a>
+        <a href="#historical-next">Next</a>
+      </nav>
+
+      <section class="content-section historical-user-zone" id="historical-snapshot">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Historical Snapshot</p>
+          <h1>{{ historical.date }}</h1>
+          <p>{{ historical.summary }}</p>
+        </div>
+        <div class="historical-user-snapshot">
+          <article class="historical-primary-panel">
+            <span>Leading market story</span>
+            <strong>{{ historical.dominant_group or historical.dominant_theme }}</strong>
+            {% if historical.dominant_group and historical.dominant_theme %}<p>{{ historical.dominant_theme }}</p>{% endif %}
+          </article>
+          <dl class="historical-user-facts">
+            {% if historical.theme_score_label %}<div><dt>Theme strength</dt><dd>{{ historical.theme_score_label }}</dd></div>{% endif %}
+            {% if historical.group_score_label %}<div><dt>Group strength</dt><dd>{{ historical.group_score_label }}</dd></div>{% endif %}
+            {% if historical.evidence_label %}<div><dt>Evidence</dt><dd>{{ historical.evidence_label }}</dd></div>{% endif %}
+            {% if historical.source_label %}<div><dt>Sources</dt><dd>{{ historical.source_label }}</dd></div>{% endif %}
+            {% if historical.breadth.label %}<div><dt>Coverage</dt><dd>{{ historical.breadth.label }}</dd></div>{% endif %}
+          </dl>
+        </div>
+        <details class="why-expander section-why">
+          <summary>Why?</summary>
+          <p>{{ historical.breadth.meaning }}</p>
+          <small>Engine values: Dominant Theme · {{ historical.why.dominant_theme }}; Dominant Group · {{ historical.why.dominant_group }}; theme score · {{ historical.why.theme_score }}; group score · {{ historical.why.group_score }}; evidence count · {{ historical.why.evidence_count }}; source count · {{ historical.why.source_count }}{% if historical.why.breadth_state %}; coverage breadth · {{ historical.why.breadth_state }}{% endif %}</small>
+        </details>
+      </section>
+
+      <section class="content-section historical-user-zone" id="historical-explanation">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Narrative Explanation</p>
+          <h2>What was shaping the market story?</h2>
+        </div>
+        <article class="investigation-brief"><p>{{ historical.summary }}</p></article>
+      </section>
+
+      <section class="content-section historical-user-zone" id="historical-evidence">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Supporting Historical Evidence</p>
+          <h2>What evidence supported the reconstruction?</h2>
+        </div>
+        {% if historical.evidence %}
+          <div class="historical-user-evidence-layout">
+            <ul class="research-evidence-list">
+              {% for evidence in historical.evidence %}
+                <li class="research-evidence-item historical-evidence-item">
+                  <article class="historical-user-evidence-card">
+                    <h3>{{ evidence.title }}</h3>
+                    <p>{{ evidence.source_name }}{% if evidence.provider and evidence.provider != evidence.source_name %} · {{ evidence.provider }}{% endif %}{% if evidence.published_at %} · {{ evidence.published_at }}{% endif %}</p>
+                    {% if evidence.attribution %}<p>Narrative: {{ evidence.attribution }}</p>{% endif %}
+                    <p>{{ evidence.origin_explanation }}</p>
+                    {% if evidence.url %}
+                      <a href="{{ evidence.url }}" target="_blank" rel="noopener noreferrer">{{ copy.read_original }}</a>
+                    {% else %}
+                      <span class="historical-missing-link">{{ copy.missing_link }}</span>
+                    {% endif %}
+                    {% if evidence.reader_summary %}
+                      <details class="why-expander">
+                        <summary>Why?</summary>
+                        <p>{{ evidence.reader_summary.why_it_matters }}</p>
+                        <p>{{ evidence.reader_summary.narrative_connection }}</p>
+                      </details>
+                      <button class="evidence-card-button historical-reader-button" type="button" data-evidence-reader-target="user-historical-reader-{{ loop.index0 }}" aria-controls="user-historical-reader-{{ loop.index0 }}" aria-expanded="false">Open Evidence Reader</button>
+                    {% endif %}
+                  </article>
+                </li>
+              {% endfor %}
+            </ul>
+            <aside class="evidence-reader-panel historical-reader-panel" aria-live="polite">
+              <div class="subsection-heading">
+                <p class="eyebrow">Evidence Reader</p>
+                <h3>Headline-level explanation</h3>
+              </div>
+              <div class="evidence-reader-empty" data-evidence-reader-empty>
+                <p>Select an evidence item to inspect its narrative connection.</p>
+              </div>
+              {% for evidence in historical.evidence %}
+                {% if evidence.reader_summary %}
+                  <div class="evidence-reader-detail" id="user-historical-reader-{{ loop.index0 }}" data-evidence-reader-panel hidden>
+                    <div class="evidence-reader-header">
+                      <h4>{{ evidence.title }}</h4>
+                      <p>{{ evidence.source_name }}{% if evidence.published_at %} · {{ evidence.published_at }}{% endif %}</p>
+                    </div>
+                    <dl class="evidence-reader-sections">
+                      <div><dt>Main point</dt><dd>{{ evidence.reader_summary.main_point }}</dd></div>
+                      <div><dt>Why it matters</dt><dd>{{ evidence.reader_summary.why_it_matters }}</dd></div>
+                      <div><dt>Narrative connection</dt><dd>{{ evidence.reader_summary.narrative_connection }}</dd></div>
+                    </dl>
+                    <div class="evidence-reader-actions">
+                      {% if evidence.url %}<a href="{{ evidence.url }}" target="_blank" rel="noopener noreferrer">{{ copy.read_original }}</a>{% else %}<span>{{ copy.missing_link }}</span>{% endif %}
+                      <button type="button" data-evidence-reader-close>Close</button>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </aside>
+          </div>
+        {% else %}
+          <section class="empty-state historical-user-empty">
+            <h3>{{ copy.zero_evidence_title }}</h3>
+            <p>{{ copy.zero_evidence_body }}</p>
+          </section>
+        {% endif %}
+      </section>
+
+      <section class="content-section historical-user-zone" id="historical-coverage">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Coverage and Limitations</p>
+          <h2>How much of the historical record is represented?</h2>
+        </div>
+        {% if historical.coverage and historical.breadth.label %}
+          <p class="coverage-state">{{ historical.breadth.label }}</p>
+          <p>{{ historical.breadth.meaning }}</p>
+        {% endif %}
+        <ul class="historical-limitations">
+          <li>{{ copy.coverage_supported }}</li>
+          <li>{{ copy.coverage_incomplete }}</li>
+          <li>{{ copy.coverage_cutoff }}</li>
+          <li>{{ copy.breadth_explanation }}</li>
+        </ul>
+      </section>
+
+      <section class="content-section historical-user-zone" id="historical-next">
+        <div class="investigation-zone-heading">
+          <p class="eyebrow">Where to Look Next</p>
+          <h2>Continue historical research</h2>
+        </div>
+        <a class="accent-link" href="/history">Explore another historical narrative →</a>
+      </section>
+    {% endif %}
+  </main>
+  {% include "_partials/evidence_reader_script.html" %}
+</body>
+</html>

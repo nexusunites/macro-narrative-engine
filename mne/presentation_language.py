@@ -11,6 +11,11 @@ from typing import Any
 
 from mne.narrative_signals import NARRATIVE_GROUPS
 
+
+def _entry(label: str, meaning: str = "", tone: str = "neutral") -> dict[str, str]:
+    return {"label": label, "meaning": meaning, "tone": tone}
+
+
 METRICS = {
     "Regime Alignment": {
         "label": "Market Support",
@@ -38,11 +43,77 @@ METRICS = {
     },
     "Regime Alignment History": {"label": "Support Over Time", "question": None},
     "Data Quality": {"label": "Data Quality", "question": None},
+    "Historical Snapshot": {"label": "Historical Snapshot", "question": None},
+    "Historical Narrative Explanation": {"label": "Narrative Explanation", "question": None},
+    "Supporting Historical Evidence": {"label": "Supporting Historical Evidence", "question": None},
+    "Historical Coverage": {"label": "Coverage and Limitations", "question": None},
+    "Historical Next Steps": {"label": "Where to Look Next", "question": None},
+}
+
+HISTORICAL_COPY = {
+    "archive_label": "Historical Narratives",
+    "archive_intro": "Browse completed reconstructions of what the available evidence showed at an earlier market cutoff.",
+    "archive_empty_title": "No historical reconstructions are available yet",
+    "archive_empty_body": "Historical reconstructions bring together evidence that was available by a past cutoff. Completed reconstructions will appear here.",
+    "limited_badge": "Limited reconstruction",
+    "evidence_singular": "piece of evidence",
+    "evidence_plural": "pieces of evidence",
+    "story_singular": "story",
+    "story_plural": "stories",
+    "historical_banner": "Historical reconstruction",
+    "read_only": "Read-only",
+    "not_current": "This is not current market intelligence.",
+    "unavailable_title": "This historical reconstruction isn't available",
+    "unavailable_body": "It may have been removed or may not contain enough information for a user-facing investigation.",
+    "zero_evidence_title": "Evidence is limited for this reconstruction",
+    "zero_evidence_body": "The historical snapshot is available, but no supporting evidence items were accepted for display.",
+    "missing_link": "Original article unavailable",
+    "read_original": "Read original →",
+    "coverage_supported": "Historical coverage reflects the supported sources available for this reconstruction.",
+    "coverage_incomplete": "This is not complete historical market-news coverage.",
+    "coverage_cutoff": "Evidence published after the historical cutoff is excluded.",
+    "breadth_explanation": "Breadth describes how much evidence was available, not whether the narrative was true or high quality.",
+    "origin_historical_backfill": "From an official historical source archive",
+    "origin_live_persisted": "From live news collection at the time",
+    "origin_fed_fomc": "From the official Federal Reserve statement archive",
+    "origin_bls_cpi": "From the official Bureau of Labor Statistics release archive",
+    "origin_bea_gdp_pce": "From the official Bureau of Economic Analysis release archive",
+    "origin_eia_energy": "From the official U.S. Energy Information Administration release archive",
+    "origin_default": "From evidence collected by Macro Narrative Engine",
+}
+
+HISTORICAL_BREADTH = {
+    "MINIMAL": _entry("Very limited coverage", "Only a small evidence base was available."),
+    "NARROW": _entry("Narrow coverage", "The reconstruction draws from a limited range of evidence."),
+    "MODERATE": _entry("Moderate coverage", "The reconstruction draws from a meaningful range of evidence."),
+    "BROAD": _entry("Broad coverage", "The reconstruction draws from a wider range of evidence."),
+    "ROBUST": _entry("Broad coverage", "The reconstruction draws from a wider range of evidence."),
 }
 
 
-def _entry(label: str, meaning: str = "", tone: str = "neutral") -> dict[str, str]:
-    return {"label": label, "meaning": meaning, "tone": tone}
+def historical_copy(key: str) -> str:
+    """Return fixed user-facing historical vocabulary."""
+    return HISTORICAL_COPY[key]
+
+
+def historical_breadth(value: Any) -> dict[str, Any]:
+    """Translate replay coverage breadth without making a quality claim."""
+    raw = "" if value in (None, "") else str(value)
+    translated = HISTORICAL_BREADTH.get(raw.upper())
+    if translated is None:
+        return {"label": "", "meaning": "", "tone": "neutral", "raw": raw, "untranslated": bool(raw)}
+    return {**translated, "raw": raw, "untranslated": False}
+
+
+def historical_origin(origin: Any = None, source_id: Any = None) -> str:
+    """Explain an evidence origin using a deterministic, user-safe mapping."""
+    source_key = str(source_id or "").strip().lower()
+    origin_key = str(origin or "").strip().lower()
+    if source_key and f"origin_{source_key}" in HISTORICAL_COPY:
+        return HISTORICAL_COPY[f"origin_{source_key}"]
+    if origin_key and f"origin_{origin_key}" in HISTORICAL_COPY:
+        return HISTORICAL_COPY[f"origin_{origin_key}"]
+    return HISTORICAL_COPY["origin_default"]
 
 
 STATES = {

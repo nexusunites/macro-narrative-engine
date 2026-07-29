@@ -23,6 +23,11 @@ from mne.historical_research import (
     build_historical_research_context,
     load_replay_for_historical_research,
 )
+from mne.historical_research_view import (
+    build_user_historical_view,
+    list_user_replays,
+)
+from mne.presentation_language import HISTORICAL_COPY
 from mne.historical_replay_admin import (
     build_replay_admin_summary,
     build_replay_error_context,
@@ -1837,6 +1842,31 @@ def build_historical_research_route_context(request: Request, replay_id: str):
     return context
 
 
+def build_historical_selector_context(request: Request):
+    return {
+        "request": request,
+        "replays": list_user_replays(),
+        "copy": HISTORICAL_COPY,
+    }
+
+
+def build_user_historical_route_context(request: Request, replay_id: str):
+    context = {
+        "request": request,
+        "historical": None,
+        "not_found": False,
+        "copy": HISTORICAL_COPY,
+    }
+    try:
+        artifact, _ = load_replay_for_historical_research(replay_id)
+        context["historical"] = build_user_historical_view(artifact)
+    except (HistoricalResearchError, ValueError, TypeError):
+        context["not_found"] = True
+    except Exception:
+        context["not_found"] = True
+    return context
+
+
 def build_historical_comparison_route_context(request: Request, replay_a: str, replay_b: str):
     context = {
         "request": request,
@@ -1879,6 +1909,24 @@ def research_selector(request: Request):
 def narrative_investigation(request: Request, key: str):
     context = build_investigation_context(request, key, admin=False)
     return templates.TemplateResponse("narrative_investigation.html", context)
+
+
+@app.get("/history", response_class=HTMLResponse)
+def historical_selector(request: Request):
+    return templates.TemplateResponse(
+        "historical_selector.html",
+        build_historical_selector_context(request),
+    )
+
+
+@app.get("/history/{replay_id}", response_class=HTMLResponse)
+def historical_investigation(request: Request, replay_id: str):
+    context = build_user_historical_route_context(request, replay_id)
+    return templates.TemplateResponse(
+        "historical_investigation.html",
+        context,
+        status_code=404 if context["not_found"] else 200,
+    )
 
 
 @app.get("/admin", response_class=HTMLResponse)

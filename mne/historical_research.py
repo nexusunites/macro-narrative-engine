@@ -304,6 +304,7 @@ def _display_evidence(evidence, selected_narrative=None):
         "matched_group": metadata["group"],
         "evidence_type": metadata["evidence_type"],
         "reader_summary": build_evidence_reader_summary(evidence, reader_narrative),
+        "_raw": evidence,
     }
 
 
