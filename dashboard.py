@@ -1640,6 +1640,7 @@ def build_template_context(
     meaningful_default: bool = True,
     replay_id: Optional[str] = None,
     backfill_id: Optional[str] = None,
+    include_admin: bool = True,
 ):
     recent_files = list_result_files()
     selected_path = safe_result_path(run) if run else None
@@ -1661,14 +1662,21 @@ def build_template_context(
         "message": None,
         "notice": selection.notice if selection else None,
         "view": None,
-        "regime_history": build_regime_history(),
-        "narrative_leadership_history": build_narrative_leadership_history(),
-        "historical_replay_console": build_historical_replay_console(
-            backfill_choices=historical_backfill_admin.list_recent_backfill_summaries(),
-        ),
-        "historical_backfill_console": build_historical_backfill_console(),
     }
-    if replay_id:
+    if include_admin:
+        context.update(
+            {
+                "regime_history": build_regime_history(),
+                "narrative_leadership_history": build_narrative_leadership_history(),
+                "historical_replay_console": build_historical_replay_console(
+                    backfill_choices=(
+                        historical_backfill_admin.list_recent_backfill_summaries()
+                    ),
+                ),
+                "historical_backfill_console": build_historical_backfill_console(),
+            }
+        )
+    if include_admin and replay_id:
         replay_backfill_choices = historical_backfill_admin.list_recent_backfill_summaries()
         try:
             replay_dir = historical_replay.ensure_replay_dir()
@@ -1686,7 +1694,7 @@ def build_template_context(
                 error=build_replay_error_context(error)["message"],
                 backfill_choices=replay_backfill_choices,
             )
-    if backfill_id:
+    if include_admin and backfill_id:
         try:
             context["historical_backfill_console"] = build_historical_backfill_console(
                 result=historical_backfill_admin.load_backfill_summary_by_id(backfill_id),
@@ -1973,7 +1981,12 @@ def build_historical_comparison_route_context(request: Request, replay_a: str, r
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, run: Optional[str] = Query(default=None)):
-    context = build_template_context(request, run, meaningful_default=True)
+    context = build_template_context(
+        request,
+        run,
+        meaningful_default=True,
+        include_admin=False,
+    )
     selected_timestamp = (
         context["view"]["run"].get("timestamp")
         if context.get("view")
