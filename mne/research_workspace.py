@@ -6,6 +6,7 @@ from mne.evidence_summary import (
     normalize_evidence_reader_metadata,
 )
 from mne.narrative_signals import NARRATIVE_GROUPS, compute_group_scores
+from mne.explanation_layer import explain_narrative_snapshot
 
 
 @dataclass(frozen=True)
@@ -147,7 +148,7 @@ def build_narrative_investigation(
         narrative_id,
     )
     source_summary = _source_summary(source_intelligence, coverage_record)
-    return {
+    context = {
         "narrative_level": narrative_level,
         "narrative_id": narrative_id,
         "display_name": _display_name(narrative_level, narrative_id),
@@ -178,6 +179,8 @@ def build_narrative_investigation(
             _platform_observability(run.get("platform_observability")) if admin else None
         ),
     }
+    context["explanation"] = explain_narrative_snapshot(context)
+    return context
 
 
 def _display_name(narrative_level, narrative_id):

@@ -7,6 +7,7 @@ from collections import Counter
 from mne.historical_comparison import build_historical_comparison
 from mne.historical_research import load_replay_for_historical_research
 from mne.historical_research_view import build_user_historical_view
+from mne.explanation_layer import explain_historical_comparison
 from mne.presentation_language import (
     HISTORICAL_COPY,
     historical_breadth,
@@ -45,7 +46,7 @@ def build_user_historical_comparison(replay_a_id, replay_b_id, replay_dir=None):
     summary = _summary(period_a, period_b, dominance, theme_changes, group_changes)
     coverage_available = bool(period_a["breadth"]["label"] or period_b["breadth"]["label"])
 
-    return {
+    result = {
         "same_reconstruction": replay_a_id == replay_b_id,
         "period_a": period_a,
         "period_b": period_b,
@@ -75,6 +76,8 @@ def build_user_historical_comparison(replay_a_id, replay_b_id, replay_dir=None):
         "later_url": f"/history/{replay_b_id}",
         "copy": dict(HISTORICAL_COPY),
     }
+    result["explanation"] = explain_historical_comparison(result)
+    return result
 
 
 def _chronology_key(artifact):

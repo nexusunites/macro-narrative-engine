@@ -41,6 +41,7 @@ from mne.historical_replay_admin import (
 )
 from mne.narrative_signals import compute_group_scores
 from mne.narrative_history import build_narrative_history
+from mne.explanation_layer import explain_lifecycle_state
 from mne.presentation_language import confidence as present_confidence
 from mne.presentation_language import compose_sentence
 from mne.presentation_language import metric as present_metric
@@ -1516,6 +1517,17 @@ def build_view_model(run, current_file):
             item["presentation"]["acceleration"],
             item["presentation"]["crowding"] if item["crowding"] else None,
         )
+        explanation_state = "DOMINANT" if item["rank"] == 1 else (
+            "FADING" if str(item["acceleration"] or "").lower() == "cooling"
+            else "EMERGING" if str(item["rotation_state"] or "").lower() == "emerging"
+            else "PERSISTENT" if str(item["acceleration"] or "").lower() == "stable"
+            else "BUILDING"
+        )
+        item["presentation"]["explanation"] = explain_lifecycle_state(
+            group_name,
+            explanation_state,
+            dominant_declining=item["rank"] == 1 and (item["share_delta"] or 0) < 0,
+        )
         item["story_count_label"] = pluralize(item["score"], "story")
         item["leader_gap_label"] = pluralize(item["leader_gap"], "story")
 
@@ -1540,6 +1552,10 @@ def build_view_model(run, current_file):
             "Regime Alignment History", "Data Quality",
         )},
         "regime": present_support(regime.get("score"), regime.get("state")),
+        "hero_explanation": (
+            narrative_leadership[0]["presentation"]["explanation"]
+            if narrative_leadership else ""
+        ),
         "mode_context": present_state(mode_context.get("state")),
         "mode_confidence": present_confidence(mode_context.get("confidence")),
         "market_environment": present_state(market_environment_card.get("state")),

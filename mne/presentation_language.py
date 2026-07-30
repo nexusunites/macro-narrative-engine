@@ -257,6 +257,20 @@ def historical_breadth(value: Any) -> dict[str, Any]:
     return {**translated, "raw": raw, "untranslated": False}
 
 
+def narrative_display_name(value: Any) -> str:
+    """Translate a persisted narrative key at the presentation boundary."""
+    if value in (None, ""):
+        return ""
+    text = str(value)
+    if text in NARRATIVE_GROUPS:
+        return text
+    translated = _THEME_DISPLAY.get(text)
+    if translated:
+        return translated
+    text = text.replace("_", " ").replace("-", " ").title()
+    return text.replace("Ai", "AI").replace("Gdp", "GDP").replace("Pce", "PCE")
+
+
 def historical_origin(origin: Any = None, source_id: Any = None) -> str:
     """Explain an evidence origin using a deterministic, user-safe mapping."""
     source_key = str(source_id or "").strip().lower()

@@ -17,6 +17,10 @@ from mne.presentation_language import (
     historical_origin,
     pluralize,
 )
+from mne.explanation_layer import (
+    explain_evidence_breadth,
+    build_explanation_limitations,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -133,6 +137,27 @@ def build_user_historical_view(artifact):
     if summary:
         summary += "."
 
+    explanation = {
+        "headline": summary or "The available reconstruction identifies the period's leading market story.",
+        "what_changed": None,
+        "why_it_matters": (
+            f"{dominant_group or dominant_theme} was the most influential narrative in the available evidence."
+        ),
+        "supporting_points": [
+            point for point in (
+                explain_evidence_breadth(coverage.get("breadth_state")),
+                f"The reconstruction is supported by {pluralize(evidence_count, historical_copy('evidence_singular'), historical_copy('evidence_plural'))}." if evidence_count is not None else None,
+            ) if point
+        ][:3],
+        "limitations": build_explanation_limitations(recent=False),
+        "technical_details": [
+            item for item in (
+                f"Theme score: {theme_score}" if theme_score is not None else "",
+                f"Group score: {group_score}" if group_score is not None else "",
+                f"Coverage state: {coverage.get('breadth_state')}" if coverage.get("breadth_state") else "",
+            ) if item
+        ],
+    }
     return {
         "date": str(artifact["replay_date"]),
         "cutoff": str(artifact["evidence_cutoff"]),
@@ -148,6 +173,7 @@ def build_user_historical_view(artifact):
         "source_label": pluralize(source_count, "source") if source_count is not None else None,
         "breadth": breadth,
         "summary": summary,
+        "explanation": explanation,
         "evidence": evidence,
         "coverage": coverage if breadth["label"] or any(value is not None for value in coverage.values()) else None,
         "copy": dict(HISTORICAL_COPY),

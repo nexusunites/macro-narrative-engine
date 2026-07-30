@@ -13,6 +13,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from mne.explanation_layer import explain_history_pattern
+
 from mne.render_cache import get_or_load
 from mne.storage import SNAPSHOTS_DIR
 
@@ -256,4 +258,5 @@ def build_narrative_history(
             "latest_memory_event": persisted_events[-1] if persisted_events else None,
         },
     }
+    context["explanation"] = explain_history_pattern(context)
     return context

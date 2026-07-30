@@ -39,9 +39,11 @@
       <section class="content-section historical-user-zone" id="historical-snapshot">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Historical Snapshot</p>
-          <h1>{{ historical.date }}</h1>
-          <p>{{ historical.summary }}</p>
+          <h1>{{ historical.explanation.headline }}</h1>
+          <p>{{ historical.explanation.why_it_matters }}</p>
+          {% for point in historical.explanation.supporting_points %}<p>{{ point }}</p>{% endfor %}
         </div>
+        <details class="why-expander section-why"><summary>Supporting details</summary>
         <div class="historical-user-snapshot">
           <article class="historical-primary-panel">
             <span>Leading market story</span>
@@ -56,8 +58,6 @@
             {% if historical.breadth.label %}<div><dt>Coverage</dt><dd>{{ historical.breadth.label }}</dd></div>{% endif %}
           </dl>
         </div>
-        <details class="why-expander section-why">
-          <summary>Why?</summary>
           <p>{{ historical.breadth.meaning }}</p>
           <small>Engine values: Dominant Theme · {{ historical.why.dominant_theme }}; Dominant Group · {{ historical.why.dominant_group }}; theme score · {{ historical.why.theme_score }}; group score · {{ historical.why.group_score }}; evidence count · {{ historical.why.evidence_count }}; source count · {{ historical.why.source_count }}{% if historical.why.breadth_state %}; coverage breadth · {{ historical.why.breadth_state }}{% endif %}</small>
         </details>

@@ -23,12 +23,17 @@
     {% elif history %}
       <section class="research-hero">
         <p class="eyebrow">{{ copy.page_label }}</p>
-        <h1>{{ history.group_key }}</h1>
-        <p>{{ copy.page_intro }}</p>
+        <h1>{{ history.explanation.headline }}</h1>
+        {% if history.explanation.why_it_matters %}<p>{{ history.explanation.why_it_matters }}</p>{% endif %}
+        {% for point in history.explanation.supporting_points %}<p>{{ point }}</p>{% endfor %}
+        {% for limitation in history.explanation.limitations %}<p class="muted">{{ limitation }}</p>{% endfor %}
         <a class="history-back-link" href="{{ url_for('narrative_investigation', key=narrative_key) }}">← {{ copy.back }}</a>
       </section>
 
-      {{ history_summary(history, copy) }}
+      <details class="why-expander section-why">
+        <summary>Supporting details</summary>
+        {{ history_summary(history, copy) }}
+      </details>
 
       {% if history.has_chart_history %}
         {% for chart_key, title, suffix in [

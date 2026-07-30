@@ -81,7 +81,7 @@
               {% endif %}
             </div>
           </div>
-          <p class="support-subtitle {% if view.presentation.mode_context.untranslated %}untranslated{% endif %}">{{ view.presentation.mode_context.label }}</p>
+          <p class="support-subtitle">{{ view.presentation.hero_explanation or view.presentation.mode_context.label }}</p>
           <p class="support-caption">{{ view.presentation.metrics["Regime Alignment"].question }}</p>
           <details class="why-expander">
             <summary>Why?</summary>
@@ -171,7 +171,7 @@
               <article class="story-card{% if item.rank == 1 %} story-card-leader{% endif %}">
                 <span class="story-rank">0{{ item.rank }}</span>
                 <h3>{{ item.group }}</h3>
-                <p class="story-summary">{{ item.presentation.summary }}</p>
+                <p class="story-summary">{{ item.presentation.explanation }}</p>
 
                 <dl class="story-stats">
                   <div>

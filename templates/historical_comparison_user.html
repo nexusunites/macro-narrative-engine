@@ -60,7 +60,14 @@
         </section>
       {% else %}
         <section class="content-section historical-user-zone">
-          <div class="investigation-zone-heading"><p class="eyebrow">{{ copy.compare_snapshot }}</p><h2>{{ comparison.period_a.date }} → {{ comparison.period_b.date }}</h2></div>
+          <div class="investigation-zone-heading">
+            <p class="eyebrow">{{ copy.compare_snapshot }}</p>
+            <h2>{{ comparison.explanation.headline }}</h2>
+            {% if comparison.explanation.why_it_matters %}<p>{{ comparison.explanation.why_it_matters }}</p>{% endif %}
+            {% for point in comparison.explanation.supporting_points %}<p>{{ point }}</p>{% endfor %}
+            {% for limitation in comparison.explanation.limitations %}<p>{{ limitation }}</p>{% endfor %}
+          </div>
+          <details class="why-expander section-why"><summary>Supporting details</summary>
           <div class="historical-period-grid">
             {% for period, label in [(comparison.period_a, copy.compare_earlier), (comparison.period_b, copy.compare_later)] %}
               <article class="historical-period-card">
@@ -76,6 +83,7 @@
             {% endfor %}
           </div>
           {% if comparison.summary %}<p class="historical-comparison-summary">{{ comparison.summary }}</p>{% endif %}
+          </details>
         </section>
 
         <section class="content-section historical-user-zone">

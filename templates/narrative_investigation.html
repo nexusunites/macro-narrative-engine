@@ -35,8 +35,10 @@
 
       <section class="research-hero">
         <p class="eyebrow">Narrative Investigation</p>
-        <h1>{{ investigation.display_name }}</h1>
-        <p>{{ investigation.narrative_level|title }} investigation from the selected run. Start with the current signal, then move through explanation, evidence, and next research paths.</p>
+        <h1>{{ investigation.explanation.headline }}</h1>
+        {% if investigation.explanation.what_changed %}<p>{{ investigation.explanation.what_changed }}</p>{% endif %}
+        {% if investigation.explanation.why_it_matters %}<p>{{ investigation.explanation.why_it_matters }}</p>{% endif %}
+        {% for point in investigation.explanation.supporting_points %}<p>{{ point }}</p>{% endfor %}
       </section>
 
       <nav class="zone-jump investigation-nav-sticky" aria-label="Investigation sections">
@@ -50,9 +52,10 @@
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 1 / Snapshot</p>
           <h2>What is happening?</h2>
-          <p>Selected run: {{ selected_file or "Unavailable" }}</p>
         </div>
-        <div class="investigation-snapshot-panel">
+        <details class="why-expander section-why">
+          <summary>Supporting details</summary>
+          <div class="investigation-snapshot-panel">
           <div class="snapshot-primary">
             <span>Score</span>
             <strong>{{ investigation.overview.score if investigation.overview.score is not none else "Unavailable" }}</strong>
@@ -87,7 +90,9 @@
               {% endif %}
             </div>
           </dl>
-        </div>
+          </div>
+          {% for limitation in investigation.explanation.limitations %}<p>{{ limitation }}</p>{% endfor %}
+        </details>
       </section>
 
       <section class="content-section investigation-zone investigation-zone-explanation" id="investigation-explanation">
@@ -120,14 +125,12 @@
         <article class="investigation-memory-card">
           {% if investigation.memory %}
             <div class="investigation-memory-header">
-              <span class="memory-state-badge {{ investigation.memory.state_class }}">{{ investigation.memory.state }}</span>
               <strong>{{ investigation.memory.display_name }}</strong>
             </div>
-            {% if investigation.memory.summary %}
-              <p>{{ investigation.memory.summary }}</p>
-            {% else %}
-              <p class="muted">No plain-language memory summary is persisted for this narrative.</p>
-            {% endif %}
+            <p>{{ investigation.explanation.headline }}</p>
+            <details class="why-expander"><summary>Supporting details</summary>
+              <span class="memory-state-badge {{ investigation.memory.state_class }}">{{ investigation.memory.state }}</span>
+              {% if investigation.memory.summary %}<p>{{ investigation.memory.summary }}</p>{% endif %}
             <dl class="investigation-memory-grid">
               <div>
                 <dt>Appearances</dt>
@@ -154,6 +157,7 @@
                 <dd>{{ investigation.memory.share_delta }}</dd>
               </div>
             </dl>
+            </details>
           {% else %}
             <p class="muted">Recent memory is unavailable for this narrative in the selected live run.</p>
           {% endif %}
