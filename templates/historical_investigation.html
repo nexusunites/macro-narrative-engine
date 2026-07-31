@@ -6,6 +6,7 @@
   <title>Historical Investigation · MNE</title>
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
   <script src="{{ url_for('static', path='ai_analyst.js') }}" defer></script>
+  <script src="{{ url_for('static', path='personalization.js') }}" defer></script>
 </head>
 <body class="user-historical-page">
   {% set active_tier = "historical" %}
@@ -14,6 +15,11 @@
     <div class="brand-row"><a class="brand" href="/">Macro Narrative Engine</a></div>
   </header>
   <main class="page-shell historical-user-shell">
+    {% if historical %}
+    <div class="historical-save-control">
+      <button type="button" data-save-history data-view-type="investigation" data-replay-id="{{ saved_replay_id }}" data-label="Reconstruction — {{ historical.date }}">Save investigation</button>
+    </div>
+    {% endif %}
     {% if not_found %}
       <section class="empty-state historical-user-empty">
         <p class="eyebrow">{{ copy.archive_label }}</p>
