@@ -41,8 +41,19 @@ Macro Narrative Engine (MNE) is a lightweight macro narrative intelligence syste
 - Admin Dashboard for diagnostics, scoring detail, raw JSON, catalyst detail, and audit metadata (unchanged by the rework).
 - Daily snapshots now persist a representative Regime Alignment score/state (latest scored run of the day, explicit nulls otherwise), feeding the hero chart from snapshots only.
 
+### Authentication and Accounts
+
+- Self-hosted email/password authentication with Argon2id password hashing.
+- Database-backed sessions with secure cookie handling, logout, and invalidation.
+- `USER` and `ADMIN` roles with centralized authorization helpers; `/admin` routes require `ADMIN` access.
+- Explicit first-admin bootstrap and CLI/admin-assisted single-use password reset tokens.
+- Server-controlled `FREE`, `PRO`, and `TEAM` plan assignments. Billing and paid entitlement enforcement are not implemented.
+- Account-owned personalization, alerts, saved investigations, saved comparisons, and historical requests, with explicit anonymous-profile migration and verified cross-account isolation.
+- SQLAlchemy models and Alembic migrations; SQLite works for the MVP and Postgres is supported through `MNE_DATABASE_URL`.
+
 ## Recent Major Additions
 
+- **Authentication and Account Architecture** — self-hosted account creation and login, Argon2id password storage, database-backed sessions, role-based authorization, protected admin access, account-owned persistence, explicit anonymous-profile migration, reset-token and admin-bootstrap operations, and SQLAlchemy/Alembic database persistence are implemented. Billing, paid entitlements, email verification/delivery, self-service email reset, Team workspaces, and social login/SSO remain pending.
 - **Historical-to-Current Narrative Connection** — the latest meaningful live narrative state now connects deterministically to recent daily narrative history and up to three relevant completed historical reconstructions. The Research Workspace shows recent peak and trajectory context, descriptive resemblance, meaningful differences, coverage caveats, and safe historical investigation links; the dashboard adds one concise sentence only for reliable comparisons. The connection is read-only, uses persisted inputs, preserves the replay-to-replay comparison contract, and performs no fetching, replay, backfill, scoring, taxonomy changes, prediction, or trade recommendation.
 - **Dashboard Experience Rework (four sprints, July 2026)** — plain-language presentation layer, new page architecture with Market Support hero and interactive chart, Robinhood-grade visual system under a strict color budget, progressive disclosure of engine terminology via Why-expanders, and a data-completeness/visual-energy pass (change-chip translation and dedupe, unavailable-state suppression, green promoted to dual up/brand accent). Specifications: `docs/dashboard_rework_handoff.md`, `docs/handoffs/dashboard_sprint_d_handoff.md`.
 - **Snapshot Support Score Persistence** — daily snapshots persist `regime_alignment` (score/state/source_run_id) using a latest-scored-run representative rule with explicit nulls; idempotent repair backfill added (`scripts/repair_snapshot_support_scores.py`). Null-day recovery is deferred to Historical Replay. Specification: `docs/handoffs/snapshot_support_score_handoff.md`.
@@ -56,10 +67,14 @@ Macro Narrative Engine (MNE) is a lightweight macro narrative intelligence syste
 
 ## Current Focus
 
-The current focus is expanding the product surface beyond the latest-run dashboard: leadership rotation, dedicated navigation pages, a Market Expression Map, and Taxonomy V2.
+The next likely sequence is entitlements and usage limits, billing provider integration, plan-aware UI and upgrade flows, paid beta lifecycle testing, email delivery and self-service password reset, and production hardening.
 
 ## Known Limitations
 
+- Billing provider integration and paid entitlement enforcement are not implemented; account plan assignments alone do not create paid access controls.
+- Email verification, email delivery, and self-service email password reset are not implemented. Password recovery currently requires the CLI/admin-assisted single-use token flow.
+- Team workspaces, social login/SSO, and full account-management administration are not implemented.
+- External alert delivery remains future work; alerts are in-app only.
 - Daily snapshots created before Snapshot Support Score Persistence carry null support scores; the hero chart renders these as gaps. Historical recovery is a designated future Historical Replay use case.
 - Leadership Rotation is not yet a dedicated workflow for showing narrative handoffs and changes in leadership over time.
 - Several dashboard areas still share the same main surface instead of having dedicated navigation pages.
@@ -71,8 +86,8 @@ The current focus is expanding the product surface beyond the latest-run dashboa
 
 `main.py` orchestrates ingestion, analysis, context classification, Narrative Brief composition, persistence, and reporting. Engine logic lives in modules under `mne/`, including RSS fetching, storage, theme analysis, narrative signals, market context, catalysts, positioning, regime alignment, narrative brief composition, and reporting. Runtime outputs are written outside the repository to the configured `MNE_DATA_DIR` location.
 
-`dashboard.py` serves the FastAPI dashboard and loads saved run JSON files from the runtime results directory. The dashboard templates provide user-facing and admin views for the market snapshot, Regime Alignment History, Narrative Leadership, Narrative Pulse, diagnostics, raw JSON, scoring detail, catalyst detail, and audit metadata.
+`dashboard.py` serves the FastAPI dashboard and loads saved run JSON files from the runtime results directory. The dashboard templates provide authenticated user-facing account and preference views plus ADMIN-protected views for the market snapshot, Regime Alignment History, Narrative Leadership, Narrative Pulse, diagnostics, raw JSON, scoring detail, catalyst detail, and audit metadata. Account and session state is persisted through SQLAlchemy/Alembic-backed relational storage configured by `MNE_DATABASE_URL`.
 
 ## Latest Product Milestone
 
-The latest product milestone is the dashboard-backed intelligence layer. MNE now connects RSS ingestion, deduplication, taxonomy-based theme detection, persistence, acceleration, crowding risk, catalysts, market environment, breadth, positioning, regime alignment, leadership, and pulse outputs into user and admin dashboard views.
+The latest product milestone is Authentication and Account Architecture. MNE now adds self-hosted identity, database-backed sessions, account-owned persistence, role-based authorization, and protected admin access to the dashboard-backed intelligence layer. Commercial billing, paid entitlements, email delivery, and Team collaboration features remain pending.
