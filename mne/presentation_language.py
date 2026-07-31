@@ -765,4 +765,43 @@ ACCOUNT_COPY = {
     "import": "Import preferences", "not_now": "Not now", "reset_heading": "Set a new password",
     "new_password": "New password", "set_password": "Set password",
 }
+
+ENTITLEMENT_COPY = {
+    "plan_heading": "Your plan",
+    "usage_heading": "Included usage",
+    "internal_access": "Internal product access is enabled for this account.",
+    "upgrade_prompt": "Upgrade to Pro for deeper historical research and higher limits.",
+    "feature_unavailable": "This feature is not included with your current plan.",
+    "upgrade_required": "This feature is not included with your current plan.",
+    "monthly_allowance_used": "You've used this month's included allowance.",
+    "capacity_reached": "Your current plan's saved-item limit has been reached. You can still view and remove existing items.",
+    "temporarily_unavailable": "This feature is temporarily unavailable.",
+    "HISTORICAL_INVESTIGATION_VIEWS": "historical investigations",
+    "HISTORICAL_COMPARISONS": "historical comparisons",
+    "HISTORICAL_REQUESTS": "historical requests",
+    "AI_ANALYST_QUESTIONS": "Analyst questions",
+    "SAVED_HISTORICAL_VIEWS": "saved historical views",
+    "FOLLOWED_NARRATIVES": "followed narratives",
+    "ALERT_RULES": "alert rules",
+}
+
+
+def entitlement_denial(reason, metric=None):
+    if reason == "monthly_allowance_used" and metric == "HISTORICAL_COMPARISONS":
+        return "You've used this month's included historical comparisons."
+    if reason == "monthly_allowance_used" and metric:
+        label = ENTITLEMENT_COPY.get(metric, "allowance")
+        return f"You've used this month's included {label}."
+    return ENTITLEMENT_COPY.get(reason, ENTITLEMENT_COPY["temporarily_unavailable"])
+
+
+def usage_summary(entitlement_context):
+    monthly = {"HISTORICAL_INVESTIGATION_VIEWS", "HISTORICAL_COMPARISONS", "HISTORICAL_REQUESTS"}
+    result = []
+    for metric, usage in entitlement_context.get("usage", {}).items():
+        if metric == "AI_ANALYST_QUESTIONS":
+            continue
+        suffix = " this month" if metric in monthly else ""
+        result.append(f"{usage['used']} of {usage['limit']} {ENTITLEMENT_COPY[metric]} used{suffix}.")
+    return result
 """Deterministic product language for authentication and account surfaces."""

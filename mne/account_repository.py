@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from mne.alert_engine import build_default_alert_state
 from mne.database import session_scope
+from mne.entitlements import PLANS
 from mne.models import AccountPreferences, AlertState, AnonymousProfileDecision, AuditLog, FollowedNarrative, HistoricalRequestOwner, SavedHistoricalView, User
 from mne.personalization import SUPPORTED_ALERT_TYPES, build_default_preferences, validate_preferences
 
@@ -24,6 +25,31 @@ def update_display_name(user_id: str, display_name: str) -> bool:
         user = db.get(User, user_id)
         if not user: return False
         user.display_name = name
+        return True
+
+
+def assign_account_access(actor_user_id: str, target_user_id: str, *, plan: str | None = None,
+                          internal_full_access: bool | None = None) -> bool:
+    """The sole audited repository path for server-controlled product access."""
+    if plan is not None and plan not in PLANS:
+        raise ValueError("Invalid plan.")
+    with session_scope() as db:
+        actor, target = db.get(User, actor_user_id), db.get(User, target_user_id)
+        if not actor or actor.account_status != "ACTIVE" or actor.role != "ADMIN" or not target:
+            return False
+        details = {"old_plan": target.plan, "new_plan": target.plan,
+                   "old_internal_full_access": bool(target.internal_full_access),
+                   "new_internal_full_access": bool(target.internal_full_access)}
+        if plan is not None:
+            target.plan = plan
+            details["new_plan"] = plan
+        if internal_full_access is not None:
+            target.internal_full_access = bool(internal_full_access)
+            details["new_internal_full_access"] = bool(internal_full_access)
+        if details["old_plan"] == details["new_plan"] and details["old_internal_full_access"] == details["new_internal_full_access"]:
+            return True
+        db.add(AuditLog(actor_user_id=actor_user_id, action="ACCOUNT_ACCESS_CHANGED",
+                        target_ref=target_user_id, details=details))
         return True
 
 
@@ -108,6 +134,6 @@ def owns_historical_request(user_id: str, request_id: str) -> bool:
         return bool(row and row.user_id==user_id)
 
 
-def record_admin_action(actor_user_id: str, action: str, target_ref: str | None=None) -> None:
+def record_admin_action(actor_user_id: str, action: str, target_ref: str | None=None, details: dict | None=None) -> None:
     with session_scope() as db:
-        db.add(AuditLog(actor_user_id=actor_user_id,action=action,target_ref=target_ref))
+        db.add(AuditLog(actor_user_id=actor_user_id,action=action,target_ref=target_ref,details=details or {}))

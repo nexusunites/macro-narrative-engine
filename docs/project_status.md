@@ -47,11 +47,13 @@ Macro Narrative Engine (MNE) is a lightweight macro narrative intelligence syste
 - Database-backed sessions with secure cookie handling, logout, and invalidation.
 - `USER` and `ADMIN` roles with centralized authorization helpers; `/admin` routes require `ADMIN` access.
 - Explicit first-admin bootstrap and CLI/admin-assisted single-use password reset tokens.
-- Server-controlled `FREE`, `PRO`, and `TEAM` plan assignments. Billing and paid entitlement enforcement are not implemented.
+- Server-controlled `FREE`, `PRO`, and `TEAM` plan assignments with centralized server-side feature enforcement, deterministic monthly usage accounting, live capacity limits, and audited internal operator access. Billing is not implemented.
 - Account-owned personalization, alerts, saved investigations, saved comparisons, and historical requests, with explicit anonymous-profile migration and verified cross-account isolation.
 - SQLAlchemy models and Alembic migrations; SQLite works for the MVP and Postgres is supported through `MNE_DATABASE_URL`.
 
 ## Recent Major Additions
+
+- **Entitlements and Usage Limits** — centralized fail-closed feature rules, UTC calendar-month distinct-object consumption, atomic idempotent usage events, live capacity counts, downgrade-safe preservation, audited plan/internal-access assignment, and restrained account usage summaries are implemented. No billing provider, payment, checkout, subscription, invoice, coupon, or trial code is present.
 
 - **Authentication and Account Architecture** — self-hosted account creation and login, Argon2id password storage, database-backed sessions, role-based authorization, protected admin access, account-owned persistence, explicit anonymous-profile migration, reset-token and admin-bootstrap operations, and SQLAlchemy/Alembic database persistence are implemented. Billing, paid entitlements, email verification/delivery, self-service email reset, Team workspaces, and social login/SSO remain pending.
 - **Historical-to-Current Narrative Connection** — the latest meaningful live narrative state now connects deterministically to recent daily narrative history and up to three relevant completed historical reconstructions. The Research Workspace shows recent peak and trajectory context, descriptive resemblance, meaningful differences, coverage caveats, and safe historical investigation links; the dashboard adds one concise sentence only for reliable comparisons. The connection is read-only, uses persisted inputs, preserves the replay-to-replay comparison contract, and performs no fetching, replay, backfill, scoring, taxonomy changes, prediction, or trade recommendation.
@@ -67,11 +69,11 @@ Macro Narrative Engine (MNE) is a lightweight macro narrative intelligence syste
 
 ## Current Focus
 
-The next likely sequence is entitlements and usage limits, billing provider integration, plan-aware UI and upgrade flows, paid beta lifecycle testing, email delivery and self-service password reset, and production hardening.
+The next likely sequence is billing provider integration, paid upgrade flows, paid beta lifecycle testing, email delivery and self-service password reset, and production hardening.
 
 ## Known Limitations
 
-- Billing provider integration and paid entitlement enforcement are not implemented; account plan assignments alone do not create paid access controls.
+- Billing provider integration, payments, checkout, subscriptions, invoices, and trials are not implemented. Entitlement enforcement exists independently of billing.
 - Email verification, email delivery, and self-service email password reset are not implemented. Password recovery currently requires the CLI/admin-assisted single-use token flow.
 - Team workspaces, social login/SSO, and full account-management administration are not implemented.
 - External alert delivery remains future work; alerts are in-app only.

@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from mne.database import Base
@@ -24,6 +24,7 @@ class User(Base):
     account_status: Mapped[str] = mapped_column(String(16), nullable=False, default="ACTIVE")
     role: Mapped[str] = mapped_column(String(16), nullable=False, default="USER")
     plan: Mapped[str] = mapped_column(String(16), nullable=False, default="FREE")
+    internal_full_access: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -117,6 +118,7 @@ class AuditLog(Base):
     actor_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.user_id"), index=True)
     action: Mapped[str] = mapped_column(String(80), nullable=False)
     target_ref: Mapped[str | None] = mapped_column(String(160))
+    details: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -127,11 +129,30 @@ class HistoricalRequestOwner(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-class UsageState(Base):
-    __tablename__ = "usage_states"
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True)
-    counters: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+class UsageRecord(Base):
+    __tablename__ = "usage_records"
+    usage_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
+    metric: Mapped[str] = mapped_column(String(64), nullable=False)
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    consumed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    __table_args__ = (
+        UniqueConstraint("user_id", "metric", "period_start", name="uq_usage_record_period"),
+        CheckConstraint("consumed >= 0", name="ck_usage_consumed_nonnegative"),
+    )
+
+
+class UsageEvent(Base):
+    __tablename__ = "usage_events"
+    event_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
+    metric: Mapped[str] = mapped_column(String(64), nullable=False)
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    object_reference: Mapped[str] = mapped_column(String(255), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 Index("ix_login_attempt_email_ip_time", LoginAttempt.email, LoginAttempt.ip_address, LoginAttempt.attempted_at)
 Index("uq_one_anonymous_profile_claim", AnonymousProfileDecision.global_claim, unique=True,

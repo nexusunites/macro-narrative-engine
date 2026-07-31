@@ -162,6 +162,15 @@ python -m mne.bootstrap_admin
 
 Generate an expiring, single-use password reset token for out-of-band delivery with `python -m mne.bootstrap_admin --reset-password EMAIL`. For an explicit development fixture only, set `MNE_DEV_MODE=true` and run `python -m mne.seed_users`. There is no authentication bypass.
 
+Product plans and internal operator access are server-controlled and enforced through the centralized entitlement and usage-limit services. Assign either through the audited administrator CLI path; normal account forms never accept plan, role, or internal-access values:
+
+```bash
+python -m mne.assign_plan --actor-email operator@example.com --user-email user@example.com --plan PRO
+python -m mne.assign_plan --actor-email operator@example.com --user-email operator@example.com --internal-full-access
+```
+
+Monthly consumption uses UTC calendar months and charges each distinct historical object once per account and period. Followed narratives, saved historical views, and alert rules are live capacity counts. This foundation contains no billing provider, checkout, payment, subscription, invoice, coupon, or trial integration.
+
 MNE stores generated headlines, JSON results, and reports outside the source-code repository. `MNE_DATA_DIR` is the active datastore and should point to a fast local directory. The optional `MNE_SYNC_DIR` points to a shared Google Drive directory used only by the explicit sync commands; the engine and dashboard never read it directly.
 
 macOS/Linux:

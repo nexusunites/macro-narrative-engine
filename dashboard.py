@@ -1,4 +1,5 @@
 import json
+import hashlib
 import math
 import os
 from urllib.parse import parse_qs
@@ -65,7 +66,7 @@ from mne.presentation_language import present_change_summary
 from mne.presentation_language import state as present_state
 from mne.presentation_language import support as present_support
 from mne.presentation_language import PERSONALIZATION_COPY, narrative_display_name
-from mne.presentation_language import ACCOUNT_COPY
+from mne.presentation_language import ACCOUNT_COPY, ENTITLEMENT_COPY, entitlement_denial, usage_summary
 from mne.personalization import (
     SUPPORTED_ALERT_TYPES,
     build_default_preferences,
@@ -101,6 +102,10 @@ from mne.auth import (AUTH_ERROR, SESSION_ABSOLUTE_EXPIRY, SESSION_COOKIE_NAME, 
                       create_account, create_session, invalidate_session, secure_cookies)
 from mne.database import Base, engine
 from mne.security import csrf_token, get_current_user, require_admin, require_authenticated_user, validate_csrf
+from mne.entitlements import EntitlementDenied, HISTORICAL_COMPARISON, HISTORICAL_REQUEST, HISTORICAL_RESEARCH, FOLLOWED_NARRATIVES as FOLLOWED_NARRATIVES_FEATURE, SAVED_HISTORICAL_VIEWS as SAVED_HISTORICAL_VIEWS_FEATURE, require_entitlement
+from mne.usage_limits import (FOLLOWED_NARRATIVES, HISTORICAL_COMPARISONS, HISTORICAL_INVESTIGATION_VIEWS,
+                              HISTORICAL_REQUESTS, SAVED_HISTORICAL_VIEWS, build_entitlement_context,
+                              consume_usage, require_capacity)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -151,6 +156,15 @@ async def calm_authorization_error(request: Request, error: HTTPException):
     if error.status_code in {401, 403}:
         return HTMLResponse("<h1>Access unavailable</h1><p>" + str(error.detail) + "</p>", status_code=error.status_code)
     return JSONResponse({"detail": error.detail}, status_code=error.status_code)
+
+
+@app.exception_handler(EntitlementDenied)
+async def calm_entitlement_error(request: Request, error: EntitlementDenied):
+    message = entitlement_denial(error.reason, error.metric)
+    return HTMLResponse(
+        f"<h1>Access unavailable</h1><p>{message}</p><p>{ENTITLEMENT_COPY['upgrade_prompt']}</p>",
+        status_code=403,
+    )
 
 
 def _form(body: bytes):
@@ -2238,7 +2252,9 @@ async def logout(request: Request):
 @app.get("/account", response_class=HTMLResponse)
 def account_page(request: Request):
     user=require_authenticated_user(request)
-    return templates.TemplateResponse("account.html",{"request":request,"account":user,"migration":anonymous_profile_status(user.user_id),"message":None})
+    entitlements = build_entitlement_context(user)
+    return templates.TemplateResponse("account.html",{"request":request,"account":user,"migration":anonymous_profile_status(user.user_id),"message":None,
+                                                       "entitlements":entitlements,"usage_summary":usage_summary(entitlements),"entitlement_copy":ENTITLEMENT_COPY})
 
 
 @app.post("/account/profile")
@@ -2326,6 +2342,10 @@ async def change_followed_narrative(request: Request):
     action = (form.get("action") or [""])[0]
     profile = account_repository.load_preferences(user.user_id)
     try:
+        existing = {x["narrative_level"] + ":" + x["narrative_key"] for x in profile["followed_narratives"]}
+        if action == "follow" and level + ":" + key not in existing:
+            require_entitlement(user, FOLLOWED_NARRATIVES_FEATURE)
+            require_capacity(user, FOLLOWED_NARRATIVES)
         profile = (
             follow_narrative(profile, level, key)
             if action == "follow"
@@ -2360,6 +2380,10 @@ async def change_saved_history(request: Request):
     label = (form.get("label") or [None])[0]
     profile = account_repository.load_preferences(user.user_id)
     try:
+        existing = {(x["view_type"], tuple(x["replay_ids"])) for x in profile["saved_historical_views"]}
+        if action == "save" and (view_type, tuple(replay_ids)) not in existing:
+            require_entitlement(user, SAVED_HISTORICAL_VIEWS_FEATURE)
+            require_capacity(user, SAVED_HISTORICAL_VIEWS)
         profile = (
             save_historical_view(profile, view_type, replay_ids, label=label)
             if action == "save"
@@ -2479,6 +2503,8 @@ async def submit_historical_request(request: Request):
     if hasattr(request, "state"):
         _csrf(request, form_data)
     try:
+        if user:
+            require_entitlement(user, HISTORICAL_REQUEST)
         historical_request.validate_form_fields(form_data)
         if len(form_data.get("start_date", [])) != 1 or len(
             form_data.get("end_date", [])
@@ -2486,6 +2512,13 @@ async def submit_historical_request(request: Request):
             raise historical_request.HistoricalRequestValidationError(
                 "invalid_submission"
             )
+        request_identity = json.dumps({
+            "start_date": form_data["start_date"][0],
+            "end_date": form_data["end_date"][0],
+            "category": sorted(set(form_data.get("category", []))),
+        }, sort_keys=True, separators=(",", ":"))
+        if user:
+            consume_usage(user, HISTORICAL_REQUESTS, object_reference=hashlib.sha256(request_identity.encode()).hexdigest())
         result = historical_request.execute_request(
             form_data["start_date"][0],
             form_data["end_date"][0],
@@ -2495,6 +2528,8 @@ async def submit_historical_request(request: Request):
         )
         if user:
             account_repository.claim_historical_request(user.user_id, result["request_id"])
+    except EntitlementDenied:
+        raise
     except historical_request.HistoricalRequestValidationError as error:
         return RedirectResponse(
             url=f"/history/request?error={error.code}",
@@ -2532,6 +2567,10 @@ def user_historical_comparison(
 ):
     context = build_user_historical_comparison_context(request, replay_a, replay_b)
     if context.get("comparison"):
+        user = get_current_user(request)
+        if user:
+            require_entitlement(user, HISTORICAL_COMPARISON)
+            consume_usage(user, HISTORICAL_COMPARISONS, object_reference="|".join(sorted((replay_a, replay_b))))
         analyst_context = build_ai_analyst_context(
             MODE_COMPARISON, comparison=context["comparison"]
         )
@@ -2545,6 +2584,10 @@ def user_historical_comparison(
 def historical_investigation(request: Request, replay_id: str):
     context = build_user_historical_route_context(request, replay_id)
     if context.get("historical"):
+        user = get_current_user(request)
+        if user:
+            require_entitlement(user, HISTORICAL_RESEARCH)
+            consume_usage(user, HISTORICAL_INVESTIGATION_VIEWS, object_reference=replay_id)
         analyst_context = build_ai_analyst_context(
             MODE_HISTORICAL, historical=context["historical"]
         )
