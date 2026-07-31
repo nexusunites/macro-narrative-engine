@@ -21,7 +21,7 @@
         <span class="app-rail-label">History</span>
       </a>
     </li>
-    {% if not hide_admin_nav %}
+    {% if current_user and current_user.role == 'ADMIN' and not hide_admin_nav %}
       <li>
         <a class="app-rail-item{% if active_tier == 'admin' %} active{% endif %}" href="/admin">
           <span class="app-rail-label">Admin</span>
@@ -29,6 +29,7 @@
       </li>
     {% endif %}
   </ul>
+  {% if current_user %}<a class="app-rail-item" href="/account">{{ current_user.display_name }}</a>{% else %}<a class="app-rail-item" href="/login">Sign in</a>{% endif %}
   <p class="app-rail-tier app-rail-tier-{{ active_tier }}">
     {% if active_tier == 'live' %}Live
     {% elif active_tier == 'research' %}Research

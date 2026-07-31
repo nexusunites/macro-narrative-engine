@@ -23,6 +23,7 @@
     {% if error %}<p class="historical-request-error" role="alert">{{ error }}</p>{% endif %}
 
     <form class="historical-request-form" method="post" action="/history/request">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <div class="historical-request-dates">
         <label>{{ copy.request_start_date }}
           <input type="date" name="start_date" required>

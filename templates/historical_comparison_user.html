@@ -55,6 +55,7 @@
       </section>
     {% elif comparison %}
       <form method="post" action="/preferences/history" class="historical-save-control">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="view_type" value="comparison"><input type="hidden" name="replay_id" value="{{ replay_a }}"><input type="hidden" name="replay_id" value="{{ replay_b }}">
         <input type="hidden" name="label" value="Comparison — {{ comparison.period_a.date }} and {{ comparison.period_b.date }}"><button name="action" value="save">Save comparison</button>
       </form>

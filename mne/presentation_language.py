@@ -752,3 +752,17 @@ def narrative_display_name(value):
     text = str(value or "").replace("_", " ").strip()
     known = {"ai": "AI", "ai / tech growth": "AI / Tech Growth", "fed": "Federal Reserve"}
     return known.get(text.lower(), text.title())
+ACCOUNT_COPY = {
+    "account": "Account", "sign_in": "Sign in", "sign_out": "Sign out",
+    "create_account": "Create an account", "email": "Email", "password": "Password",
+    "display_name": "Display name", "login_intro": "Use your MNE account to access preferences and saved work.",
+    "signup_intro": "Your preferences and saved views will be stored with this account.",
+    "existing_account": "Already have an account?", "terms": "I accept the terms.",
+    "privacy": "I accept the privacy notice.", "profile": "Profile", "save": "Save",
+    "storage_note": "Your preferences, followed narratives, alerts, and saved historical views are stored with this account. Anonymous data saved on this machine does not sync across devices.",
+    "import_heading": "Preferences found on this machine",
+    "import_intro": "Import the preferences saved on this machine? Invalid or missing references will be skipped. The local file will remain in place.",
+    "import": "Import preferences", "not_now": "Not now", "reset_heading": "Set a new password",
+    "new_password": "New password", "set_password": "Set password",
+}
+"""Deterministic product language for authentication and account surfaces."""

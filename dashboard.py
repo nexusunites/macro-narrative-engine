@@ -1,12 +1,13 @@
 import json
 import math
+import os
 from urllib.parse import parse_qs
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import uvicorn
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -64,8 +65,10 @@ from mne.presentation_language import present_change_summary
 from mne.presentation_language import state as present_state
 from mne.presentation_language import support as present_support
 from mne.presentation_language import PERSONALIZATION_COPY, narrative_display_name
+from mne.presentation_language import ACCOUNT_COPY
 from mne.personalization import (
     SUPPORTED_ALERT_TYPES,
+    build_default_preferences,
     follow_narrative,
     historical_view_url,
     load_preferences,
@@ -75,6 +78,7 @@ from mne.personalization import (
     unfollow_narrative,
 )
 from mne.alert_engine import (
+    build_default_alert_state,
     build_personalized_dashboard_context,
     evaluate_alert_rules,
     load_alert_state,
@@ -91,6 +95,12 @@ from mne.research_workspace import (
 )
 from mne.source_registry import SourceRegistryError, load_source_registry
 from mne.storage import get_recent_daily_runs, load_daily_snapshots
+from mne import account_repository
+from mne.accounts import anonymous_profile_status, decline_anonymous_profile, import_anonymous_profile
+from mne.auth import (AUTH_ERROR, SESSION_ABSOLUTE_EXPIRY, SESSION_COOKIE_NAME, authenticate, consume_password_reset,
+                      create_account, create_session, invalidate_session, secure_cookies)
+from mne.database import Base, engine
+from mne.security import csrf_token, get_current_user, require_admin, require_authenticated_user, validate_csrf
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -111,7 +121,44 @@ REGIME_SCORE_DELTA_THRESHOLD = 5
 
 app = FastAPI(title="Macro Narrative Engine Dashboard")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
-templates = Jinja2Templates(directory=BASE_DIR / "templates")
+templates = Jinja2Templates(directory=BASE_DIR / "templates", context_processors=[
+    lambda request: {"current_user": get_current_user(request), "csrf_token": csrf_token(request), "account_copy": ACCOUNT_COPY}
+])
+
+
+@app.middleware("http")
+async def enforce_allowed_origins(request: Request, call_next):
+    if request.method not in {"GET","HEAD","OPTIONS"}:
+        origin=request.headers.get("origin")
+        allowed={item.strip() for item in os.getenv("MNE_ALLOWED_ORIGINS","").split(",") if item.strip()}
+        if origin and allowed and origin not in allowed:
+            return HTMLResponse("<h1>Request unavailable</h1><p>This request origin is not allowed.</p>",status_code=403)
+    return await call_next(request)
+
+
+@app.on_event("startup")
+def verify_database_schema():
+    """Fail clearly when migrations have not been applied; never create tables here."""
+    from sqlalchemy import inspect
+    if "users" not in inspect(engine).get_table_names():
+        raise RuntimeError("Account database is not migrated. Run: alembic upgrade head")
+
+
+@app.exception_handler(HTTPException)
+async def calm_authorization_error(request: Request, error: HTTPException):
+    if error.status_code == 401 and not request.url.path.startswith("/api/"):
+        return RedirectResponse(f"/login?next={error.detail}", status_code=303)
+    if error.status_code in {401, 403}:
+        return HTMLResponse("<h1>Access unavailable</h1><p>" + str(error.detail) + "</p>", status_code=error.status_code)
+    return JSONResponse({"detail": error.detail}, status_code=error.status_code)
+
+
+def _form(body: bytes):
+    return parse_qs(body.decode("utf-8"), keep_blank_values=True)
+
+
+def _csrf(request: Request, form: dict):
+    validate_csrf(request, (form.get("csrf_token") or [""])[0])
 
 
 def build_analyst_panel(mode, context, scope=""):
@@ -166,11 +213,11 @@ def _previous_meaningful_run(current_file):
     return None
 
 
-def build_personalization_context(current_run=None, current_file=None):
-    """Lazily evaluate one newly landed meaningful run, then shape local UI context."""
-    preferences = load_preferences()
-    state = load_alert_state()
-    if current_run and current_file:
+def build_personalization_context(current_run=None, current_file=None, user_id=None):
+    """Lazily evaluate a run and shape either account-owned or anonymous context."""
+    preferences = account_repository.load_preferences(user_id) if user_id else build_default_preferences()
+    state = account_repository.load_alert_state(user_id) if user_id else build_default_alert_state()
+    if user_id and current_run and current_file:
         evaluated = evaluate_alert_rules(
             current_run,
             _previous_meaningful_run(current_file),
@@ -178,7 +225,7 @@ def build_personalization_context(current_run=None, current_file=None):
             state,
         )
         if evaluated != state:
-            save_alert_state(evaluated)
+            account_repository.save_alert_state(user_id, evaluated)
         state = evaluated
     context = build_personalized_dashboard_context(current_run, preferences, state)
     context.update(
@@ -2142,6 +2189,88 @@ def build_historical_comparison_route_context(request: Request, replay_a: str, r
     return context
 
 
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request, next: str = Query(default="/"), error: str | None = Query(default=None)):
+    if get_current_user(request): return RedirectResponse("/", status_code=303)
+    return templates.TemplateResponse("login.html", {"request":request,"next":next if next.startswith("/") else "/","error":error})
+
+
+@app.post("/login")
+async def login_submit(request: Request):
+    form=_form(await request.body())
+    user=authenticate((form.get("email") or [""])[0],(form.get("password") or [""])[0],request.client.host if request.client else "unknown")
+    if not user: return templates.TemplateResponse("login.html",{"request":request,"next":"/","error":AUTH_ERROR},status_code=400)
+    # A successful login always retires any presented session before issuing a
+    # fresh opaque identifier (session-fixation prevention).
+    invalidate_session(request.cookies.get(SESSION_COOKIE_NAME))
+    session=create_session(user.user_id)
+    target=(form.get("next") or ["/"])[0]
+    if not target.startswith("/") or target.startswith("//"): target="/"
+    response=RedirectResponse(target,status_code=303)
+    response.set_cookie(SESSION_COOKIE_NAME,session.session_id,max_age=int(SESSION_ABSOLUTE_EXPIRY.total_seconds()),
+                        httponly=True,samesite="lax",secure=secure_cookies(),path="/")
+    return response
+
+
+@app.get("/signup", response_class=HTMLResponse)
+def signup_page(request: Request):
+    return templates.TemplateResponse("signup.html",{"request":request,"error":None})
+
+
+@app.post("/signup")
+async def signup_submit(request: Request):
+    form=_form(await request.body())
+    try:
+        create_account((form.get("email") or [""])[0],(form.get("password") or [""])[0],(form.get("display_name") or [""])[0],
+                       accepted_terms=(form.get("accept_terms") or [""])[0]=="yes",accepted_privacy=(form.get("accept_privacy") or [""])[0]=="yes")
+    except ValueError as error:
+        return templates.TemplateResponse("signup.html",{"request":request,"error":str(error)},status_code=400)
+    return RedirectResponse("/login",status_code=303)
+
+
+@app.post("/logout")
+async def logout(request: Request):
+    require_authenticated_user(request); form=_form(await request.body()); _csrf(request,form)
+    invalidate_session(request.cookies.get(SESSION_COOKIE_NAME))
+    response=RedirectResponse("/",status_code=303); response.delete_cookie(SESSION_COOKIE_NAME,path="/"); return response
+
+
+@app.get("/account", response_class=HTMLResponse)
+def account_page(request: Request):
+    user=require_authenticated_user(request)
+    return templates.TemplateResponse("account.html",{"request":request,"account":user,"migration":anonymous_profile_status(user.user_id),"message":None})
+
+
+@app.post("/account/profile")
+async def account_profile(request: Request):
+    user=require_authenticated_user(request); form=_form(await request.body()); _csrf(request,form)
+    account_repository.update_display_name(user.user_id,(form.get("display_name") or [""])[0])
+    return RedirectResponse("/account",status_code=303)
+
+
+@app.post("/account/import")
+async def account_import(request: Request):
+    user=require_authenticated_user(request); form=_form(await request.body()); _csrf(request,form)
+    action=(form.get("action") or [""])[0]
+    if action=="import": import_anonymous_profile(user.user_id)
+    elif action=="decline": decline_anonymous_profile(user.user_id)
+    return RedirectResponse("/account",status_code=303)
+
+
+@app.get("/reset-password", response_class=HTMLResponse)
+def reset_page(request: Request, token: str = Query(default="")):
+    return templates.TemplateResponse("reset_password.html",{"request":request,"token":token,"error":None})
+
+
+@app.post("/reset-password")
+async def reset_submit(request: Request):
+    form=_form(await request.body()); token=(form.get("token") or [""])[0]
+    try: success=consume_password_reset(token,(form.get("password") or [""])[0])
+    except ValueError as error: return templates.TemplateResponse("reset_password.html",{"request":request,"token":token,"error":str(error)},status_code=400)
+    if not success: return templates.TemplateResponse("reset_password.html",{"request":request,"token":"","error":"This reset link is invalid or expired."},status_code=400)
+    return RedirectResponse("/login",status_code=303)
+
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, run: Optional[str] = Query(default=None)):
     context = build_template_context(
@@ -2158,9 +2287,9 @@ def dashboard(request: Request, run: Optional[str] = Query(default=None)):
     context["regime_history"] = build_daily_support_history(selected_timestamp)
     if context.get("view"):
         selected_path = safe_result_path(context.get("selected_file"))
+        user = get_current_user(request)
         context["personalization"] = build_personalization_context(
-            context["view"]["run"], selected_path
-        )
+            context["view"]["run"], selected_path, user.user_id if user else None)
     if context.get("view"):
         analyst_context = build_ai_analyst_context(MODE_TODAY, view=context["view"])
         context["ai_analyst"] = build_analyst_panel(
@@ -2171,8 +2300,9 @@ def dashboard(request: Request, run: Optional[str] = Query(default=None)):
 
 @app.get("/preferences", response_class=HTMLResponse)
 def preferences_page(request: Request):
+    user = require_authenticated_user(request)
     selection = select_latest_meaningful_run(list_all_result_files(), load_result)
-    personalization = build_personalization_context(selection.run, selection.path)
+    personalization = build_personalization_context(selection.run, selection.path, user.user_id)
     selector = build_narrative_selector(selection.run) if selection.run else []
     return templates.TemplateResponse(
         "preferences.html",
@@ -2182,24 +2312,26 @@ def preferences_page(request: Request):
             "narratives": selector,
             "supported_alert_types": SUPPORTED_ALERT_TYPES,
             "display_name": narrative_display_name,
+            "migration": anonymous_profile_status(user.user_id),
         },
     )
 
 
 @app.post("/preferences/narratives")
 async def change_followed_narrative(request: Request):
-    form = parse_qs((await request.body()).decode("utf-8"), keep_blank_values=True)
+    user = require_authenticated_user(request)
+    form = _form(await request.body()); _csrf(request, form)
     level = (form.get("narrative_level") or [""])[0]
     key = (form.get("narrative_key") or [""])[0]
     action = (form.get("action") or [""])[0]
-    profile = load_preferences()
+    profile = account_repository.load_preferences(user.user_id)
     try:
         profile = (
             follow_narrative(profile, level, key)
             if action == "follow"
             else unfollow_narrative(profile, level, key)
         )
-        save_preferences(profile)
+        account_repository.save_preferences(user.user_id, profile)
     except ValueError:
         pass
     return RedirectResponse("/preferences", status_code=303)
@@ -2207,31 +2339,33 @@ async def change_followed_narrative(request: Request):
 
 @app.post("/preferences/alerts")
 async def change_alert_preferences(request: Request):
-    form = parse_qs((await request.body()).decode("utf-8"), keep_blank_values=True)
+    user = require_authenticated_user(request)
+    form = _form(await request.body()); _csrf(request, form)
     selected = set(form.get("alert_type") or [])
-    profile = load_preferences()
+    profile = account_repository.load_preferences(user.user_id)
     profile["preferred_alert_types"] = [
         item for item in SUPPORTED_ALERT_TYPES if item in selected
     ]
-    save_preferences(profile)
+    account_repository.save_preferences(user.user_id, profile)
     return RedirectResponse("/preferences", status_code=303)
 
 
 @app.post("/preferences/history")
 async def change_saved_history(request: Request):
-    form = parse_qs((await request.body()).decode("utf-8"), keep_blank_values=True)
+    user = require_authenticated_user(request)
+    form = _form(await request.body()); _csrf(request, form)
     view_type = (form.get("view_type") or [""])[0]
     replay_ids = form.get("replay_id") or []
     action = (form.get("action") or [""])[0]
     label = (form.get("label") or [None])[0]
-    profile = load_preferences()
+    profile = account_repository.load_preferences(user.user_id)
     try:
         profile = (
             save_historical_view(profile, view_type, replay_ids, label=label)
             if action == "save"
             else remove_historical_view(profile, view_type, replay_ids)
         )
-        save_preferences(profile)
+        account_repository.save_preferences(user.user_id, profile)
     except ValueError:
         pass
     return RedirectResponse(request.headers.get("referer") or "/preferences", status_code=303)
@@ -2328,6 +2462,7 @@ def historical_request_form(
     request: Request,
     error: Optional[str] = Query(default=None),
 ):
+    require_authenticated_user(request)
     return templates.TemplateResponse(
         "historical_request.html",
         build_historical_request_form_context(request, error),
@@ -2336,8 +2471,13 @@ def historical_request_form(
 
 @app.post("/history/request")
 async def submit_historical_request(request: Request):
+    user = None
+    if hasattr(request, "state"):
+        user = require_authenticated_user(request)
     body = (await request.body()).decode("utf-8")
     form_data = parse_qs(body, keep_blank_values=True)
+    if hasattr(request, "state"):
+        _csrf(request, form_data)
     try:
         historical_request.validate_form_fields(form_data)
         if len(form_data.get("start_date", [])) != 1 or len(
@@ -2353,6 +2493,8 @@ async def submit_historical_request(request: Request):
             run_backfills=execute_admin_workflow_backfills,
             run_replay=execute_admin_workflow_confirmation,
         )
+        if user:
+            account_repository.claim_historical_request(user.user_id, result["request_id"])
     except historical_request.HistoricalRequestValidationError as error:
         return RedirectResponse(
             url=f"/history/request?error={error.code}",
@@ -2371,6 +2513,9 @@ async def submit_historical_request(request: Request):
 
 @app.get("/history/request/{request_id}", response_class=HTMLResponse)
 def historical_request_status(request: Request, request_id: str):
+    user=require_authenticated_user(request)
+    if not account_repository.owns_historical_request(user.user_id,request_id):
+        raise HTTPException(status_code=404,detail="That historical request was not found.")
     context = build_historical_request_status_context(request, request_id)
     return templates.TemplateResponse(
         "historical_request_status.html",
@@ -2422,6 +2567,7 @@ def admin_dashboard(
     backfill: Optional[str] = Query(default=None),
     backfill_error: Optional[str] = Query(default=None),
 ):
+    require_admin(request)
     context = build_template_context(
         request,
         run,
@@ -2457,6 +2603,7 @@ def admin_historical_workflow(
     request: Request,
     workflow_error: Optional[str] = Query(default=None),
 ):
+    require_admin(request)
     return templates.TemplateResponse(
         "historical_workflow.html",
         build_historical_workflow_context(request, error_code=workflow_error),
@@ -2465,14 +2612,20 @@ def admin_historical_workflow(
 
 @app.post("/admin/historical-workflow/run-backfills")
 async def admin_historical_workflow_backfills(request: Request):
+    admin_user = None
+    if hasattr(request, "state"):
+        admin_user = require_admin(request)
     body = (await request.body()).decode("utf-8")
     form_data = parse_qs(body, keep_blank_values=True)
+    if hasattr(request, "state"):
+        _csrf(request, form_data)
     result = execute_admin_workflow_backfills(
         form_data.get("source", []),
         (form_data.get("replay_date") or [""])[0],
         (form_data.get("start_date") or [""])[0],
         (form_data.get("end_date") or [""])[0],
     )
+    if admin_user: account_repository.record_admin_action(admin_user.user_id,"HISTORICAL_WORKFLOW_BACKFILLS",result.get("workflow_id"))
     if result.get("workflow_id"):
         return RedirectResponse(
             url=(
@@ -2496,6 +2649,7 @@ def admin_historical_workflow_confirm(
     workflow_id: Optional[str] = Query(default=None),
     workflow_error: Optional[str] = Query(default=None),
 ):
+    require_admin(request)
     return templates.TemplateResponse(
         "historical_workflow.html",
         build_historical_workflow_context(
@@ -2506,11 +2660,14 @@ def admin_historical_workflow_confirm(
 
 @app.post("/admin/historical-workflow/confirm")
 async def admin_historical_workflow_confirmation(request: Request):
+    admin_user=require_admin(request)
     body = (await request.body()).decode("utf-8")
     form_data = parse_qs(body, keep_blank_values=True)
+    _csrf(request, form_data)
     workflow_id = (form_data.get("workflow_id") or [""])[0].strip()
     action = (form_data.get("action") or [""])[0].strip()
     result = execute_admin_workflow_confirmation(workflow_id, action)
+    account_repository.record_admin_action(admin_user.user_id,"HISTORICAL_WORKFLOW_CONFIRMATION",workflow_id)
     if result.get("cancelled"):
         return RedirectResponse(url="/admin/historical-workflow", status_code=303)
     if result.get("replay_id"):
@@ -2533,12 +2690,15 @@ async def admin_historical_workflow_confirmation(request: Request):
 
 @app.post("/admin/historical-replay")
 async def admin_replay(request: Request, run: Optional[str] = Query(default=None)):
+    admin_user=require_admin(request)
     body = (await request.body()).decode("utf-8")
     form_data = parse_qs(body, keep_blank_values=True)
+    _csrf(request, form_data)
     replay_date = (form_data.get("replay_date") or [""])[0].strip()
     mode = (form_data.get("mode") or [historical_replay.SUPPORTED_MODE])[0].strip()
     selected_backfill_ids = form_data.get("backfill_id", [])
     result = execute_admin_replay_form(replay_date, mode, backfill_ids=selected_backfill_ids)
+    account_repository.record_admin_action(admin_user.user_id,"HISTORICAL_REPLAY",result.get("replay_id"))
     query = f"?run={Path(run).name}" if run else ""
     separator = "&" if query else "?"
     if result.get("replay_id"):
@@ -2555,12 +2715,15 @@ async def admin_replay(request: Request, run: Optional[str] = Query(default=None
 
 @app.post("/admin/historical-backfill")
 async def admin_historical_backfill(request: Request, run: Optional[str] = Query(default=None)):
+    admin_user=require_admin(request)
     body = (await request.body()).decode("utf-8")
     form_data = parse_qs(body, keep_blank_values=True)
+    _csrf(request, form_data)
     source = (form_data.get("source") or [""])[0].strip()
     start_date = (form_data.get("start_date") or [""])[0].strip()
     end_date = (form_data.get("end_date") or [""])[0].strip()
     result = execute_admin_backfill_form(source, start_date, end_date)
+    account_repository.record_admin_action(admin_user.user_id,"HISTORICAL_BACKFILL",result.get("backfill_id"))
     query = f"?run={Path(run).name}" if run else ""
     separator = "&" if query else "?"
     if result.get("backfill_id"):
@@ -2582,12 +2745,14 @@ async def admin_replay_legacy(request: Request, run: Optional[str] = Query(defau
 
 @app.get("/admin/research/{key:path}", response_class=HTMLResponse)
 def admin_narrative_investigation(request: Request, key: str):
+    require_admin(request)
     context = build_investigation_context(request, key, admin=True)
     return templates.TemplateResponse("narrative_investigation.html", context)
 
 
 @app.get("/admin/replay/{replay_id}/research", response_class=HTMLResponse)
 def admin_historical_research(request: Request, replay_id: str):
+    require_admin(request)
     context = build_historical_research_route_context(request, replay_id)
     return templates.TemplateResponse("historical_research.html", context)
 
@@ -2598,6 +2763,7 @@ def admin_historical_comparison(
     replay_a: Optional[str] = Query(default=None),
     replay_b: Optional[str] = Query(default=None),
 ):
+    require_admin(request)
     context = build_historical_comparison_route_context(request, replay_a, replay_b)
     return templates.TemplateResponse("historical_comparison.html", context)
 

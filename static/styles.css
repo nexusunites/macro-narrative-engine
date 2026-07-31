@@ -4875,3 +4875,4 @@ input:focus-visible,
   .preference-list form button,.saved-view-row button { display:block; flex:0 0 auto; color:var(--text-primary); }
   .preferences-shell + .app-rail .app-rail-item { font-size:10px; }
 }
+.auth-shell{max-width:32rem;margin:8vh auto;padding:1.5rem;box-sizing:border-box}.auth-card{margin-top:2rem;border:1px solid var(--border,#ddd);border-radius:1rem;padding:2rem;box-sizing:border-box}.auth-card form{display:grid;gap:1rem}.auth-card label{display:grid;gap:.4rem}.auth-card input{width:100%;box-sizing:border-box;padding:.75rem;border:1px solid #aaa;border-radius:.5rem}.auth-card button{padding:.75rem}.auth-card form + p{margin-top:1rem}.auth-error{font-weight:700}@media(max-width:480px){.auth-shell{margin:4vh auto;padding:1rem}.auth-card{padding:1.5rem}}

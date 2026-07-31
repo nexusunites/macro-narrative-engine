@@ -6,12 +6,11 @@
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
 </head>
 <body class="user-historical-page">
-  {% set active_tier = "preferences" %}{% set hide_admin_nav = true %}
+  {% set active_tier = "preferences" %}{% set hide_admin_nav = current_user.role != 'ADMIN' %}
   {% include "_partials/app_rail.html" %}
   <header class="site-header investigation-header-static"><div class="brand-row"><a class="brand" href="/">Macro Narrative Engine</a></div></header>
   <main class="page-shell preferences-shell">
-    <section class="historical-user-hero"><p class="eyebrow">Local personalization</p><h1>{{ personalization.personalization_copy.heading }}</h1><p>{{ personalization.personalization_copy.intro }}</p></section>
-    <section class="local-profile-notice"><strong>Local, anonymous profile</strong><p>{{ personalization.personalization_copy.local_notice }}</p></section>
+    <section class="historical-user-hero"><p class="eyebrow">Your preferences</p><h1>{{ personalization.personalization_copy.heading }}</h1><p>These settings are stored with your MNE account.</p></section>
     {% if personalization.preferences.limitation_note %}<p class="section-empty">{{ personalization.preferences.limitation_note }}</p>{% endif %}
 
     <section class="content-section"><h2>Follow narratives</h2><p>Follow a theme or narrative group to add it to My Narratives.</p>
@@ -19,6 +18,7 @@
       {% for narrative in narratives %}
         {% set followed = {'narrative_level': narrative.narrative_level, 'narrative_key': narrative.narrative_id} in personalization.preferences.followed_narratives %}
         <form method="post" action="/preferences/narratives">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <input type="hidden" name="narrative_level" value="{{ narrative.narrative_level }}"><input type="hidden" name="narrative_key" value="{{ narrative.narrative_id }}">
           <strong>{{ narrative.display_name }}</strong><button name="action" value="{{ 'unfollow' if followed else 'follow' }}">{{ 'Unfollow' if followed else 'Follow' }}</button>
         </form>
@@ -28,6 +28,7 @@
 
     <section class="content-section"><h2>{{ personalization.personalization_copy.alerts_heading }}</h2><p>Alerts are evaluated only when a new meaningful live run lands.</p>
       <form method="post" action="/preferences/alerts" class="preference-list">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       {% for alert_type in supported_alert_types %}
         <label><input type="checkbox" name="alert_type" value="{{ alert_type }}" {% if alert_type in personalization.preferences.preferred_alert_types %}checked{% endif %}> {{ personalization.personalization_copy.alert_descriptions[alert_type] }}</label>
       {% endfor %}<button type="submit">Save alert preferences</button></form>
@@ -37,6 +38,7 @@
     <section class="content-section"><h2>Saved historical views</h2>
       {% for view in personalization.saved_views %}
         <form method="post" action="/preferences/history" class="saved-view-row">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <input type="hidden" name="view_type" value="{{ view.view_type }}">{% for replay_id in view.replay_ids %}<input type="hidden" name="replay_id" value="{{ replay_id }}">{% endfor %}
           <a href="{{ view.url }}">{{ view.label }}</a><button name="action" value="remove">Remove</button>
         </form>

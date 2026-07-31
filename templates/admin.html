@@ -79,6 +79,7 @@
       </div>
       <article class="card">
         <form method="post" action="/admin/historical-replay{% if selected_file %}?run={{ selected_file }}{% endif %}" class="replay-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <div>
             <label for="replay_date">Replay date</label>
             <input id="replay_date" name="replay_date" type="date" value="{{ replay_form.get('replay_date', '') }}" required>
@@ -326,6 +327,7 @@
       </div>
       <article class="card">
         <form method="post" action="/admin/historical-backfill{% if selected_file %}?run={{ selected_file }}{% endif %}" class="replay-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <div>
             <label for="backfill_source">Source</label>
             <select id="backfill_source" name="source" required>

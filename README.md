@@ -139,6 +139,29 @@ pip install -r requirements.txt
 
 ### 4. Configure runtime storage
 
+### Account database and authentication
+
+MNE stores identity, sessions, preferences, alerts, and saved views in a SQL database. Apply migrations before starting the dashboard:
+
+```bash
+export MNE_DATABASE_URL="sqlite:////absolute/path/to/mne-accounts.sqlite3"
+export MNE_SESSION_SECRET="generate-and-store-a-deployment-secret"
+export MNE_SECURE_COOKIES="true"
+export MNE_ALLOWED_ORIGINS="https://your-mne-host.example"
+alembic upgrade head
+```
+
+`MNE_DATABASE_URL` may later be a PostgreSQL URL without changing application code. `MNE_SECURE_COOKIES` is secure by default; set it to `false` only for explicit local HTTP development. `MNE_ALLOWED_ORIGINS` documents the deployment origin allowlist for the next proxy/deployment layer. `MNE_SESSION_SECRET` is reserved for deployment secret continuity; opaque sessions themselves are stored server-side.
+
+Bootstrap the first administrator explicitly. The first signup is never promoted automatically:
+
+```bash
+export MNE_ADMIN_EMAIL="operator@example.com"
+python -m mne.bootstrap_admin
+```
+
+Generate an expiring, single-use password reset token for out-of-band delivery with `python -m mne.bootstrap_admin --reset-password EMAIL`. For an explicit development fixture only, set `MNE_DEV_MODE=true` and run `python -m mne.seed_users`. There is no authentication bypass.
+
 MNE stores generated headlines, JSON results, and reports outside the source-code repository. `MNE_DATA_DIR` is the active datastore and should point to a fast local directory. The optional `MNE_SYNC_DIR` points to a shared Google Drive directory used only by the explicit sync commands; the engine and dashboard never read it directly.
 
 macOS/Linux:
