@@ -63,6 +63,23 @@ from mne.presentation_language import pluralize
 from mne.presentation_language import present_change_summary
 from mne.presentation_language import state as present_state
 from mne.presentation_language import support as present_support
+from mne.presentation_language import PERSONALIZATION_COPY, narrative_display_name
+from mne.personalization import (
+    SUPPORTED_ALERT_TYPES,
+    follow_narrative,
+    historical_view_url,
+    load_preferences,
+    remove_historical_view,
+    save_historical_view,
+    save_preferences,
+    unfollow_narrative,
+)
+from mne.alert_engine import (
+    build_personalized_dashboard_context,
+    evaluate_alert_rules,
+    load_alert_state,
+    save_alert_state,
+)
 from mne.operations_center import build_operations_center
 from mne.platform_observability import stage_by_name
 from mne.research_workspace import (
@@ -128,6 +145,54 @@ def get_prior_result_file(current_file):
             if index + 1 < len(files):
                 return files[index + 1]
             return None
+
+
+def _previous_meaningful_run(current_file):
+    """Return the prior meaningful live run without recomputing engine output."""
+    found_current = False
+    for path in list_all_result_files():
+        if path.name == current_file.name:
+            found_current = True
+            continue
+        if not found_current:
+            continue
+        try:
+            candidate = load_result(path)
+        except (OSError, json.JSONDecodeError):
+            continue
+        selected = select_latest_meaningful_run([path], lambda _path: candidate)
+        if selected.run:
+            return candidate
+    return None
+
+
+def build_personalization_context(current_run=None, current_file=None):
+    """Lazily evaluate one newly landed meaningful run, then shape local UI context."""
+    preferences = load_preferences()
+    state = load_alert_state()
+    if current_run and current_file:
+        evaluated = evaluate_alert_rules(
+            current_run,
+            _previous_meaningful_run(current_file),
+            preferences,
+            state,
+        )
+        if evaluated != state:
+            save_alert_state(evaluated)
+        state = evaluated
+    context = build_personalized_dashboard_context(current_run, preferences, state)
+    context.update(
+        {
+            "preferences": preferences,
+            "alert_state": state,
+            "personalization_copy": PERSONALIZATION_COPY,
+            "saved_views": [
+                {**item, "url": historical_view_url(item)}
+                for item in preferences["saved_historical_views"]
+            ],
+        }
+    )
+    return context
     return None
 
 
@@ -2012,6 +2077,7 @@ def build_user_historical_route_context(request: Request, replay_id: str):
         "historical": None,
         "not_found": False,
         "copy": HISTORICAL_COPY,
+        "saved_replay_id": replay_id,
     }
     try:
         artifact, _ = load_replay_for_historical_research(replay_id)
@@ -2035,9 +2101,13 @@ def build_user_historical_comparison_context(
         "comparison": None,
         "invalid": False,
         "copy": HISTORICAL_COPY,
+        "replay_a": replay_a,
+        "replay_b": replay_b,
     }
     replay_a = (replay_a or "").strip()
     replay_b = (replay_b or "").strip()
+    context["replay_a"] = replay_a
+    context["replay_b"] = replay_b
     if not replay_a and not replay_b:
         return context
     if not replay_a or not replay_b:
@@ -2087,11 +2157,84 @@ def dashboard(request: Request, run: Optional[str] = Query(default=None)):
     )
     context["regime_history"] = build_daily_support_history(selected_timestamp)
     if context.get("view"):
+        selected_path = safe_result_path(context.get("selected_file"))
+        context["personalization"] = build_personalization_context(
+            context["view"]["run"], selected_path
+        )
+    if context.get("view"):
         analyst_context = build_ai_analyst_context(MODE_TODAY, view=context["view"])
         context["ai_analyst"] = build_analyst_panel(
             MODE_TODAY, analyst_context, context.get("selected_file") or ""
         )
     return templates.TemplateResponse("dashboard.html", context)
+
+
+@app.get("/preferences", response_class=HTMLResponse)
+def preferences_page(request: Request):
+    selection = select_latest_meaningful_run(list_all_result_files(), load_result)
+    personalization = build_personalization_context(selection.run, selection.path)
+    selector = build_narrative_selector(selection.run) if selection.run else []
+    return templates.TemplateResponse(
+        "preferences.html",
+        {
+            "request": request,
+            "personalization": personalization,
+            "narratives": selector,
+            "supported_alert_types": SUPPORTED_ALERT_TYPES,
+            "display_name": narrative_display_name,
+        },
+    )
+
+
+@app.post("/preferences/narratives")
+async def change_followed_narrative(request: Request):
+    form = parse_qs((await request.body()).decode("utf-8"), keep_blank_values=True)
+    level = (form.get("narrative_level") or [""])[0]
+    key = (form.get("narrative_key") or [""])[0]
+    action = (form.get("action") or [""])[0]
+    profile = load_preferences()
+    try:
+        profile = (
+            follow_narrative(profile, level, key)
+            if action == "follow"
+            else unfollow_narrative(profile, level, key)
+        )
+        save_preferences(profile)
+    except ValueError:
+        pass
+    return RedirectResponse("/preferences", status_code=303)
+
+
+@app.post("/preferences/alerts")
+async def change_alert_preferences(request: Request):
+    form = parse_qs((await request.body()).decode("utf-8"), keep_blank_values=True)
+    selected = set(form.get("alert_type") or [])
+    profile = load_preferences()
+    profile["preferred_alert_types"] = [
+        item for item in SUPPORTED_ALERT_TYPES if item in selected
+    ]
+    save_preferences(profile)
+    return RedirectResponse("/preferences", status_code=303)
+
+
+@app.post("/preferences/history")
+async def change_saved_history(request: Request):
+    form = parse_qs((await request.body()).decode("utf-8"), keep_blank_values=True)
+    view_type = (form.get("view_type") or [""])[0]
+    replay_ids = form.get("replay_id") or []
+    action = (form.get("action") or [""])[0]
+    label = (form.get("label") or [None])[0]
+    profile = load_preferences()
+    try:
+        profile = (
+            save_historical_view(profile, view_type, replay_ids, label=label)
+            if action == "save"
+            else remove_historical_view(profile, view_type, replay_ids)
+        )
+        save_preferences(profile)
+    except ValueError:
+        pass
+    return RedirectResponse(request.headers.get("referer") or "/preferences", status_code=303)
 
 
 @app.get("/research", response_class=HTMLResponse)

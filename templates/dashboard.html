@@ -232,6 +232,33 @@
         {% endif %}
       </section>
 
+      <section id="my-narratives" class="dashboard-section personalization-section">
+        <header class="dashboard-section-heading split-heading">
+          <div><p class="eyebrow">Personalized</p><h2>My Narratives</h2></div>
+          <a class="accent-link" href="/preferences">Preferences{% if personalization is defined and personalization.notification_count %} · {{ personalization.notification_count }} new{% endif %}</a>
+        </header>
+        {% if personalization is defined and personalization["items"] %}
+          <div class="personalization-grid">
+          {% for item in personalization["items"] %}
+            <article class="personalization-card">
+              <h3>{{ item.display_name }}</h3>
+              <strong>{{ item.lifecycle_state|replace("_", " ")|title if item.lifecycle_state else "History unavailable" }}</strong>
+              <p>{{ item.summary }}</p>
+              {% if item.latest_alert %}<p class="personalization-alert">{{ item.latest_alert.headline }}</p>{% endif %}
+              <a class="investigate-link" href="{{ item.investigation_url }}">Investigate history →</a>
+            </article>
+          {% endfor %}
+          </div>
+        {% else %}
+          <div class="section-empty">You aren't following any narratives yet — choose some in Preferences.</div>
+        {% endif %}
+        {% if personalization is defined and personalization.recent_alerts %}
+          <div class="personalization-alert-list"><h3>Recent meaningful changes</h3>
+          {% for alert in personalization.recent_alerts %}<article><strong>{{ alert.headline }}</strong><p>{{ alert.summary }}</p></article>{% endfor %}
+          </div>
+        {% endif %}
+      </section>
+
       <section id="markets" class="dashboard-section">
         <header class="dashboard-section-heading">
           <h2>{{ view.presentation.metrics["Market Snapshot"].label }}</h2>

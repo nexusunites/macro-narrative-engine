@@ -12,6 +12,11 @@
       </a>
     </li>
     <li>
+      <a class="app-rail-item{% if active_tier == 'preferences' %} active{% endif %}" href="/preferences">
+        <span class="app-rail-label">Preferences{% if personalization and personalization.notification_count %} · {{ personalization.notification_count }}{% endif %}</span>
+      </a>
+    </li>
+    <li>
       <a class="app-rail-item{% if active_tier == 'historical' %} active{% endif %}" href="/history">
         <span class="app-rail-label">History</span>
       </a>
@@ -29,6 +34,7 @@
     {% elif active_tier == 'research' %}Research
     {% elif active_tier == 'admin' %}Admin
     {% elif active_tier == 'historical' %}Historical Archive
+    {% elif active_tier == 'preferences' %}Local Profile
     {% endif %}
   </p>
 </nav>

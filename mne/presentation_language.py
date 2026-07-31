@@ -729,3 +729,26 @@ def present_change_summary(summary: Any) -> Any:
         "changes": translated,
         "has_changes": any(translated.values()),
     }
+PERSONALIZATION_COPY = {
+    "heading": "Preferences",
+    "intro": "Choose the narratives and meaningful changes you want to keep close.",
+    "local_notice": "Preferences are stored locally on this machine in one anonymous profile. They are not tied to an account, are not account-secured, and do not sync across devices.",
+    "alerts_heading": "In-app alerts",
+    "alert_descriptions": {
+        "NARRATIVE_BECAME_DOMINANT": "Tell me when a narrative becomes dominant",
+        "NARRATIVE_BUILDING_AGAIN": "Tell me when a narrative starts building again",
+        "NARRATIVE_FADING": "Tell me when a narrative begins fading",
+        "NARRATIVE_RETURNED": "Tell me when a narrative returns",
+        "DOMINANT_NARRATIVE_CHANGED": "Tell me when the dominant narrative changes",
+        "MARKET_EXPRESSION_CHANGED_MATERIALLY": "Tell me when market expression changes materially",
+        "EVIDENCE_BREADTH_LIMITED_OR_UNAVAILABLE": "Tell me when the evidence base becomes limited",
+        "HISTORICAL_CONNECTION_MEANINGFULLY_STRONG": "Tell me when a historical connection becomes meaningfully strong",
+    },
+}
+
+
+def narrative_display_name(value):
+    """Translate a narrative key at the presentation boundary."""
+    text = str(value or "").replace("_", " ").strip()
+    known = {"ai": "AI", "ai / tech growth": "AI / Tech Growth", "fed": "Federal Reserve"}
+    return known.get(text.lower(), text.title())
