@@ -210,6 +210,32 @@
         </section>
       {% endif %}
 
+      {% if investigation.market_expression %}
+        <section class="content-section investigation-market-expression" aria-labelledby="market-expression-heading">
+          <div class="subsection-heading">
+            <p class="eyebrow">Market Expression</p>
+            <h3 id="market-expression-heading">How is the market reflecting this narrative?</h3>
+          </div>
+          <p class="expression-state">{{ investigation.market_expression.explanation.headline }}</p>
+          {% if investigation.market_expression.explanation.what_changed %}<p>{{ investigation.market_expression.explanation.what_changed }}</p>{% endif %}
+          {% if investigation.market_expression.explanation.why_it_matters %}<p>{{ investigation.market_expression.explanation.why_it_matters }}</p>{% endif %}
+          {% for point in investigation.market_expression.explanation.supporting_points %}<p>{{ point }}</p>{% endfor %}
+          {% for limitation in investigation.market_expression.explanation.limitations %}<p class="muted">{{ limitation }}</p>{% endfor %}
+          <details class="market-expression-details">
+            <summary>Market expression details</summary>
+            <div class="market-expression-detail-list">
+              {% for item in investigation.market_expression.instruments %}
+                <div class="market-expression-detail">
+                  <strong>{{ item.label }}</strong>
+                  <span>{{ item.role|title }} · {{ item.move|title }} · {{ item.status|replace("_", " ")|title }}</span>
+                  {% if item.status == "UNAVAILABLE" %}<small>Current market data unavailable{% if item.stale %} or stale{% endif %}.</small>{% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          </details>
+        </section>
+      {% endif %}
+
       <section class="content-section investigation-zone investigation-zone-evidence" id="supporting-evidence">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 3 / Evidence</p>

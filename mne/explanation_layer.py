@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from mne.presentation_language import (
+    MARKET_EXPRESSION_COPY,
     confidence,
     historical_breadth,
     narrative_display_name,
@@ -190,6 +191,76 @@ def explain_narrative_snapshot(context: dict[str, Any]) -> dict[str, Any]:
         supporting_points=points,
         limitations=build_explanation_limitations(),
         technical_details=technical,
+    )
+
+
+def explain_market_expression(expression: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Compose a deterministic plain-language explanation of observed expression."""
+    if not isinstance(expression, dict):
+        return None
+    raw_state = str(expression.get("state") or "UNAVAILABLE").upper()
+    if raw_state not in MARKET_EXPRESSION_COPY["headlines"]:
+        raw_state = "UNAVAILABLE"
+    name = narrative_display_name(expression.get("narrative_key")) or "current"
+    instruments = expression.get("instruments")
+    instruments = instruments if isinstance(instruments, list) else []
+    confirming = [
+        item.get("label")
+        for item in instruments
+        if isinstance(item, dict) and item.get("status") in {"CONFIRMING", "ALIGNED"}
+    ]
+    diverging = [
+        item.get("label")
+        for item in instruments
+        if isinstance(item, dict) and item.get("status") in {"DIVERGING", "PRESSURE"}
+    ]
+    muted = [
+        item.get("label")
+        for item in instruments
+        if isinstance(item, dict) and item.get("status") == "MUTED"
+    ]
+
+    if confirming and diverging:
+        what_changed = (
+            f"{', '.join(confirming[:2]).capitalize()} showed alignment while "
+            f"{', '.join(diverging[:2])} provided counter-pressure."
+        )
+    elif confirming:
+        what_changed = (
+            f"{', '.join(confirming[:2]).capitalize()} reflected the narrative "
+            "in the available snapshot."
+        )
+    elif diverging:
+        what_changed = (
+            f"{', '.join(diverging[:2]).capitalize()} moved against the mapped "
+            "narrative expression."
+        )
+    elif muted:
+        what_changed = "The available mapped indicators showed no meaningful move."
+    else:
+        what_changed = "Available primary market indicators were insufficient."
+
+    points = []
+    if confirming:
+        points.append(f"Confirming context: {', '.join(confirming[:3])}.")
+    if diverging:
+        points.append(f"Contrary context: {', '.join(diverging[:3])}.")
+    breadth = expression.get("expression_breadth")
+    if breadth and breadth != "unavailable":
+        points.append(f"Expression breadth is {breadth}.")
+    limitations = list(expression.get("limitations") or [])
+    limitations.append(MARKET_EXPRESSION_COPY["context_note"])
+    return _schema(
+        MARKET_EXPRESSION_COPY["headlines"][raw_state].format(name=name),
+        what_changed=what_changed,
+        why_it_matters=MARKET_EXPRESSION_COPY["why"][raw_state],
+        supporting_points=points,
+        limitations=limitations,
+        technical_details=[
+            f"{item.get('asset')}: {item.get('move')} / {item.get('status')}"
+            for item in instruments
+            if isinstance(item, dict)
+        ],
     )
 
 

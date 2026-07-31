@@ -43,6 +43,8 @@ from mne.narrative_signals import compute_group_scores
 from mne.narrative_history import build_narrative_history
 from mne.historical_connection import load_current_and_historical_context
 from mne.explanation_layer import explain_lifecycle_state
+from mne.explanation_layer import explain_market_expression
+from mne.market_expression import build_market_expression_for_run
 from mne.presentation_language import confidence as present_confidence
 from mne.presentation_language import HISTORICAL_CONNECTION_COPY
 from mne.presentation_language import compose_sentence
@@ -1567,6 +1569,14 @@ def build_view_model(run, current_file):
         ),
         "positioning_environment": present_state(positioning_environment_card.get("state")),
     }
+    evaluated_market_expression = (
+        run.get("market_expression_context")
+        if isinstance(run.get("market_expression_context"), dict)
+        else build_market_expression_for_run(run)
+    )
+    market_expression_explanation = explain_market_expression(
+        evaluated_market_expression
+    )
 
     return {
         "run": run,
@@ -1587,6 +1597,13 @@ def build_view_model(run, current_file):
         "presentation": presentation,
         "market_environment_card": market_environment_card,
         "market_expression": market_expression if isinstance(market_expression, dict) else None,
+        "market_expression_context": evaluated_market_expression,
+        "market_expression_sentence": (
+            market_expression_explanation.get("headline")
+            if market_expression_explanation
+            and evaluated_market_expression.get("state") != "UNAVAILABLE"
+            else None
+        ),
         "catalyst_environment_card": catalyst_environment_card,
         "event_lifecycle": event_lifecycle,
         "positioning_environment_card": positioning_environment_card,

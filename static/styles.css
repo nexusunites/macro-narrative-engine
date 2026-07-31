@@ -4706,6 +4706,62 @@ input:focus-visible,
   font-size: 0.9rem;
 }
 
+.support-market-expression {
+  max-width: 62ch;
+  margin: 0.45rem 0 0;
+  color: var(--text-secondary);
+}
+
+.investigation-market-expression {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.investigation-market-expression > p {
+  max-width: 72ch;
+  margin: 0;
+}
+
+.expression-state {
+  font-size: 1.08rem;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.market-expression-details {
+  margin-top: 0.35rem;
+}
+
+.market-expression-detail-list {
+  display: grid;
+  gap: 0;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.market-expression-detail {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) minmax(14rem, 2fr);
+  gap: 0.4rem 1rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.market-expression-detail small {
+  grid-column: 2;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 560px) {
+  .market-expression-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .market-expression-detail small {
+    grid-column: 1;
+  }
+}
+
 .historical-connection-list {
   display: grid;
   gap: 0.75rem;

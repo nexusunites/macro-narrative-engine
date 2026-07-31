@@ -9,6 +9,29 @@ from __future__ import annotations
 import re
 from typing import Any
 
+
+MARKET_EXPRESSION_COPY = {
+    "headlines": {
+        "STRONGLY_CONFIRMING": "The market is broadly confirming the {name} narrative.",
+        "CONFIRMING": "The market is confirming the {name} narrative.",
+        "PARTIALLY_CONFIRMING": "The market is partially confirming the {name} narrative.",
+        "MIXED": "The {name} narrative is producing a mixed market response.",
+        "DIVERGING": "The market is diverging from the {name} narrative.",
+        "MUTED": "The market response to the {name} narrative is muted.",
+        "UNAVAILABLE": "The current narrative is not yet being clearly reflected in the available market indicators.",
+    },
+    "why": {
+        "STRONGLY_CONFIRMING": "The narrative is reflected across several relevant market areas without meaningful offset pressure.",
+        "CONFIRMING": "The narrative is visible in available price behavior, though the expression is not broad.",
+        "PARTIALLY_CONFIRMING": "The narrative is visible in price behavior, but counter-pressure or incomplete coverage limits the confirmation.",
+        "MIXED": "The core market expressions disagree, so price behavior does not support one clear reading.",
+        "DIVERGING": "Available primary market expressions are moving against the narrative.",
+        "MUTED": "Available indicators have not moved enough to establish a meaningful market expression.",
+        "UNAVAILABLE": "There is not enough current primary-market coverage to classify the expression.",
+    },
+    "context_note": "This is descriptive market context, not a recommendation.",
+}
+
 from mne.narrative_signals import NARRATIVE_GROUPS
 
 

@@ -6,7 +6,8 @@ from mne.evidence_summary import (
     normalize_evidence_reader_metadata,
 )
 from mne.narrative_signals import NARRATIVE_GROUPS, compute_group_scores
-from mne.explanation_layer import explain_narrative_snapshot
+from mne.explanation_layer import explain_market_expression, explain_narrative_snapshot
+from mne.market_expression import build_market_expression_for_run
 
 
 @dataclass(frozen=True)
@@ -179,6 +180,10 @@ def build_narrative_investigation(
             _platform_observability(run.get("platform_observability")) if admin else None
         ),
     }
+    market_expression = build_market_expression_for_run(run, narrative_id)
+    if market_expression:
+        market_expression["explanation"] = explain_market_expression(market_expression)
+    context["market_expression"] = market_expression
     context["explanation"] = explain_narrative_snapshot(context)
     return context
 

@@ -28,6 +28,7 @@ from mne.evidence import (
 )
 from mne.headline_deduplication import dedupe_headlines
 from mne.market_context import get_market_snapshot
+from mne.market_expression import build_market_expression_for_run
 from mne.macro_calendar_ingestion import (
     auto_refresh_macro_calendar_enabled,
     refresh_macro_calendar,
@@ -570,6 +571,7 @@ def main(args=None):
             prior_dominant_group=prior_dominant_group,
         )
         run["narrative_market_relationship"] = narrative_market_relationship
+        run["market_expression_context"] = build_market_expression_for_run(run)
         breadth_confirmation = classify_breadth_confirmation(market_snapshot)
         run["breadth_confirmation"] = breadth_confirmation
         regime_alignment = calculate_regime_alignment(
@@ -623,6 +625,7 @@ def main(args=None):
             ),
         }
         run["narrative_market_relationship"] = neutral_relationship
+        run["market_expression_context"] = None
         narrative_market_relationship = neutral_relationship
         breadth_confirmation = {
             "state": "Neutral Breadth",

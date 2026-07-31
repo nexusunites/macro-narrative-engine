@@ -1,0 +1,53 @@
+{
+  "mapping_version": "market_expression_v1",
+  "narratives": {
+    "AI / Tech Growth": {
+      "aliases": ["ai", "technology", "semiconductors"],
+      "primary": [
+        {"asset": "QQQ", "label": "growth-sensitive equities", "confirming_direction": "UP"},
+        {"asset": "NVDA", "label": "AI market leadership", "confirming_direction": "UP"},
+        {"asset": "SMH", "label": "semiconductors", "confirming_direction": "UP"}
+      ],
+      "secondary": [
+        {"asset": "CLOUD", "label": "cloud infrastructure", "confirming_direction": "UP"},
+        {"asset": "DATA_CENTER", "label": "data-center infrastructure", "confirming_direction": "UP"}
+      ],
+      "offsets": [
+        {"asset": "VIX", "label": "volatility", "pressure_direction": "UP"},
+        {"asset": "DXY", "label": "dollar pressure", "pressure_direction": "UP"},
+        {"asset": "RATES", "label": "rates pressure", "pressure_direction": "UP"}
+      ]
+    },
+    "Energy / Commodities": {
+      "aliases": ["energy", "commodities", "inflation"],
+      "primary": [
+        {"asset": "CRUDE_OIL", "label": "crude oil", "confirming_direction": "UP"},
+        {"asset": "XLE", "label": "energy equities", "confirming_direction": "UP"}
+      ],
+      "secondary": [
+        {"asset": "XLI", "label": "industrials", "confirming_direction": "UP"},
+        {"asset": "COMMODITY_FX", "label": "commodity-sensitive currencies", "confirming_direction": "UP"}
+      ],
+      "offsets": [
+        {"asset": "DXY", "label": "dollar pressure", "pressure_direction": "UP"},
+        {"asset": "GROWTH_CONCERNS", "label": "growth concerns", "pressure_direction": "UP"}
+      ]
+    },
+    "Macro Pressure": {
+      "aliases": ["rates", "recession", "macro"],
+      "primary": [
+        {"asset": "VIX", "label": "volatility", "confirming_direction": "UP"},
+        {"asset": "DXY", "label": "the dollar", "confirming_direction": "UP"},
+        {"asset": "RATES", "label": "Treasury and rates pressure", "confirming_direction": "UP"}
+      ],
+      "secondary": [
+        {"asset": "XLU", "label": "defensive utilities", "confirming_direction": "UP"},
+        {"asset": "XLP", "label": "defensive consumer staples", "confirming_direction": "UP"}
+      ],
+      "offsets": [
+        {"asset": "QQQ", "label": "high-beta growth assets", "pressure_direction": "UP"},
+        {"asset": "NVDA", "label": "AI market leadership", "pressure_direction": "UP"}
+      ]
+    }
+  }
+}
