@@ -455,6 +455,8 @@ The profile is single-user, anonymous, and local to the configured datastore; it
 | User-specific notification schedules | Future. No per-user delivery schedule exists. | Lets users control notification timing | Accounts, background evaluation, external delivery | Medium | Future |
 | Billing and plan limits | Future. The local profile has no entitlements, metering, or commercial limits. | Supports commercial packaging | Product packaging, authentication, billing architecture | High | Future |
 
+**Monetization planning annotation (July 2026):** Product packaging is now ratified in `docs/product_packaging_and_monetization.md`: Free remains a useful daily product with limited history, Pro is recommended at $24/month or approximately $240/year, and Team remains a later seat-based direction. This annotation defines future boundaries only; no current access, feature behavior, billing, authentication, entitlement, or metering implementation has changed. Authentication and account architecture is the next implementation sprint and must precede enforceable plan limits.
+
 ---
 
 ## Epic 11 — Future Platform Opportunities
@@ -493,6 +495,8 @@ The next likely sequence is:
 4. **Background jobs and production hardening** — add durable background execution, operational controls, and the infrastructure required for production monitoring.
 5. **Real AI provider adapter, when budget permits** — select and connect a provider/model through the implemented provider-neutral boundary only after budget and operational approval; no paid API calls are currently enabled.
 6. **External notification delivery** — add deliberately scoped email, SMS, push, Slack, or Discord delivery after accounts, background evaluation, privacy, and delivery controls exist.
+
+**Sequence status annotation (July 2026):** Step 1 planning is complete. The ratified Free / Pro / later Team structure, $24/month or approximately $240/year Pro recommendation, usage-limit direction, admin-only boundaries, entitlement architecture, and billing sequence are defined in `docs/product_packaging_and_monetization.md`; no commercial enforcement is implemented. Step 2, Authentication and account architecture, is the next implementation sprint and must include admin protection. No paywall can be enforced securely before it is complete.
 
 The Personalization and Alerts Foundation, AI Analyst Path A foundation, deterministic MNE Explanation Layer, plain-English-first summaries, progressive disclosure of technical metrics, Narrative History Charts and Lifecycle Visualization, Historical-to-Current Narrative Connection, and Market Context and Expression Layer are implemented and therefore removed from future sequencing. Broader market coverage for currently unavailable mapped instruments, historical market-price context, narrative-versus-market outcome analysis, Market Expression Map expansion, cross-narrative comparison charts, longer configurable history windows, similar-period matching, and additional advanced historical visualizations remain future work. Personalization beyond the anonymous single-user local profile and alerts beyond lazy in-app evaluation remain future work. Backtesting is not implemented. Recommendations, predictions, and trade alerts or signals remain explicitly out of scope. Public/user-triggered reconstruction is not implied by the implemented read-only Historical Research UX.
 
