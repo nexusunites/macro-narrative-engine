@@ -41,8 +41,10 @@ from mne.historical_replay_admin import (
 )
 from mne.narrative_signals import compute_group_scores
 from mne.narrative_history import build_narrative_history
+from mne.historical_connection import load_current_and_historical_context
 from mne.explanation_layer import explain_lifecycle_state
 from mne.presentation_language import confidence as present_confidence
+from mne.presentation_language import HISTORICAL_CONNECTION_COPY
 from mne.presentation_language import compose_sentence
 from mne.presentation_language import metric as present_metric
 from mne.presentation_language import pluralize
@@ -1736,6 +1738,10 @@ def build_template_context(
         return context
 
     view = build_view_model(result, current_file)
+    historical_connection = load_current_and_historical_context(result)
+    view["historical_context_sentence"] = historical_connection.get(
+        "dashboard_sentence"
+    )
     view["dashboard_trust_summary"] = build_dashboard_trust_summary(
         result,
         latest_meaningful_fallback_active=bool(selection and selection.notice),
@@ -1851,6 +1857,12 @@ def build_investigation_context(request: Request, key: str, admin: bool = False)
         if narrative_level == "group"
         else None
     )
+    context["historical_connection"] = load_current_and_historical_context(
+        run,
+        narrative_name=narrative_id,
+        history=context["history"],
+    )
+    context["historical_connection_copy"] = HISTORICAL_CONNECTION_COPY
     context["history_copy"] = NARRATIVE_HISTORY_COPY
     context["narrative_key"] = key
     return context

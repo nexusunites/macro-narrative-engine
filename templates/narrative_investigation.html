@@ -180,6 +180,36 @@
         </section>
       {% endif %}
 
+      {% if historical_connection %}
+        <section class="content-section investigation-connections" aria-labelledby="historical-connections-heading">
+          <div class="subsection-heading">
+            <p class="eyebrow">{{ historical_connection_copy.eyebrow }}</p>
+            <h3 id="historical-connections-heading">{{ historical_connection_copy.heading }}</h3>
+          </div>
+          <p>{{ historical_connection.explanation.headline }}</p>
+          {% if historical_connection.explanation.what_changed %}<p>{{ historical_connection.explanation.what_changed }}</p>{% endif %}
+          {% if historical_connection.connections %}
+            <div class="historical-connection-list">
+              {% for connection in historical_connection.connections %}
+                <article class="historical-connection-card">
+                  <div>
+                    <strong>{{ connection.date }}</strong>
+                    <span>{{ connection.label }}</span>
+                  </div>
+                  {% for feature in connection.shared_features %}<p>{{ feature }}</p>{% endfor %}
+                  {% for difference in connection.differences %}<p>{{ difference }}</p>{% endfor %}
+                  {% if connection.coverage_caveat %}<p class="muted">{{ connection.coverage_caveat }}</p>{% endif %}
+                  <a href="{{ connection.historical_url }}">{{ historical_connection_copy.explore }}</a>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="muted">{{ historical_connection.empty_message }}</p>
+          {% endif %}
+          {% for limitation in historical_connection.explanation.limitations %}<p class="muted">{{ limitation }}</p>{% endfor %}
+        </section>
+      {% endif %}
+
       <section class="content-section investigation-zone investigation-zone-evidence" id="supporting-evidence">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 3 / Evidence</p>

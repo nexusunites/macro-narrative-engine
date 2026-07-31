@@ -4700,3 +4700,30 @@ input:focus-visible,
     grid-template-columns: 1fr;
   }
 }
+.support-history-context {
+  margin: 0.45rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.historical-connection-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.historical-connection-card {
+  border-top: 1px solid var(--border);
+  padding-top: 0.8rem;
+}
+
+.historical-connection-card > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.historical-connection-card p {
+  margin: 0.45rem 0;
+}

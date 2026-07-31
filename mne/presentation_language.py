@@ -195,6 +195,12 @@ NARRATIVE_HISTORY_COPY = {
     "groups_only": "Daily history is currently available for narrative groups.",
 }
 
+HISTORICAL_CONNECTION_COPY = {
+    "eyebrow": "Historical Context",
+    "heading": "Connections to recent history",
+    "explore": "Explore this historical reconstruction →",
+}
+
 HISTORICAL_REQUEST_CATEGORIES = {
     "monetary_policy": {
         "label": "Monetary policy",

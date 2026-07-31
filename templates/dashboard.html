@@ -82,6 +82,7 @@
             </div>
           </div>
           <p class="support-subtitle">{{ view.presentation.hero_explanation or view.presentation.mode_context.label }}</p>
+          {% if view.historical_context_sentence %}<p class="support-history-context">{{ view.historical_context_sentence }}</p>{% endif %}
           <p class="support-caption">{{ view.presentation.metrics["Regime Alignment"].question }}</p>
           <details class="why-expander">
             <summary>Why?</summary>
