@@ -1,0 +1,28 @@
+{% if ai_analyst %}
+<section class="ai-analyst-panel" id="ai-analyst" data-ai-analyst data-mode="{{ ai_analyst.mode }}" data-scope="{{ ai_analyst.scope }}" data-loading-copy="{{ ai_analyst.copy.loading }}" data-error-copy="{{ ai_analyst.copy.error }}">
+  <header>
+    <p class="eyebrow">{{ ai_analyst.copy.title }}</p>
+    <h2>{{ ai_analyst.copy.description }}</h2>
+    <p>{{ ai_analyst.copy.no_fetch }} {{ ai_analyst.copy.no_prediction }} {{ ai_analyst.copy.evidence_limit }}</p>
+  </header>
+  <div class="ai-analyst-suggestions" aria-label="Suggested questions">
+    {% for question in ai_analyst.suggested_questions %}<button type="button" data-analyst-question="{{ question }}">{{ question }}</button>{% endfor %}
+  </div>
+  <form data-analyst-form>
+    <label for="ai-analyst-question-{{ ai_analyst.mode }}">{{ ai_analyst.copy.input_label }}</label>
+    <div>
+      <input id="ai-analyst-question-{{ ai_analyst.mode }}" name="question" type="text" maxlength="1000" placeholder="{{ ai_analyst.copy.input_placeholder }}" required>
+      <button type="submit">{{ ai_analyst.copy.submit }}</button>
+    </div>
+  </form>
+  <p class="ai-analyst-status" data-analyst-status aria-live="polite"></p>
+  <article class="ai-analyst-response" data-analyst-response>
+    <p class="ai-analyst-note">{{ ai_analyst.initial.note }}</p>
+    <h3>{{ ai_analyst.initial.headline }}</h3>
+    {% if ai_analyst.initial.summary %}<p>{{ ai_analyst.initial.summary }}</p>{% endif %}
+    {% if ai_analyst.initial.what_changed %}<p><strong>What changed</strong> {{ ai_analyst.initial.what_changed }}</p>{% endif %}
+    {% if ai_analyst.initial.market_confirmation %}<p><strong>Market context</strong> {{ ai_analyst.initial.market_confirmation }}</p>{% endif %}
+    {% if ai_analyst.initial.limitations %}<div><strong>Limits</strong><ul>{% for item in ai_analyst.initial.limitations %}<li>{{ item }}</li>{% endfor %}</ul></div>{% endif %}
+  </article>
+</section>
+{% endif %}

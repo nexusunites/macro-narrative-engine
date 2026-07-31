@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ copy.compare_label }} · MNE</title>
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+  <script src="{{ url_for('static', path='ai_analyst.js') }}" defer></script>
 </head>
 <body class="user-historical-page">
   {% set active_tier = "historical" %}
@@ -59,6 +60,7 @@
           <p>{{ copy.compare_same_body }}</p>
         </section>
       {% else %}
+        {% include "_partials/ai_analyst.html" %}
         <section class="content-section historical-user-zone">
           <div class="investigation-zone-heading">
             <p class="eyebrow">{{ copy.compare_snapshot }}</p>

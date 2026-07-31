@@ -4783,3 +4783,73 @@ input:focus-visible,
 .historical-connection-card p {
   margin: 0.45rem 0;
 }
+
+.ai-analyst-panel {
+  margin: 2rem 0;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.ai-analyst-panel header h2 {
+  margin: 0.25rem 0 0.5rem;
+}
+
+.ai-analyst-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.ai-analyst-suggestions button {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+}
+
+.ai-analyst-panel form > div {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.ai-analyst-panel input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.ai-analyst-panel form button[type="submit"] {
+  border: 0;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  background: var(--brand-accent);
+  color: #fff;
+}
+
+.ai-analyst-status,
+.ai-analyst-note,
+.ai-analyst-response small {
+  color: var(--text-secondary);
+}
+
+.ai-analyst-response small {
+  display: block;
+}
+
+@media (max-width: 560px) {
+  .ai-analyst-panel form > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

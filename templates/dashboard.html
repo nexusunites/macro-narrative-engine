@@ -6,6 +6,7 @@
   <title>MNE Overview</title>
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
   <script src="{{ url_for('static', path='chart.js') }}" defer></script>
+  <script src="{{ url_for('static', path='ai_analyst.js') }}" defer></script>
 </head>
 <body class="user-dashboard">
   {% set active_tier = "live" %}
@@ -329,6 +330,7 @@
           <div class="section-empty">No supporting headlines were stored for the top stories in this update.</div>
         {% endif %}
       </section>
+      {% include "_partials/ai_analyst.html" %}
       <section class="dashboard-section dashboard-next-section">
         <header class="dashboard-section-heading">
           <p class="eyebrow">Where to Look Next</p>

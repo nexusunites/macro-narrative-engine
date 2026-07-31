@@ -7,7 +7,7 @@ from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -44,9 +44,19 @@ from mne.narrative_history import build_narrative_history
 from mne.historical_connection import load_current_and_historical_context
 from mne.explanation_layer import explain_lifecycle_state
 from mne.explanation_layer import explain_market_expression
+from mne.ai_analyst import (
+    MODE_COMPARISON,
+    MODE_HISTORICAL,
+    MODE_NARRATIVE,
+    MODE_TODAY,
+    SUGGESTED_QUESTIONS,
+    build_ai_analyst_context,
+    build_deterministic_fallback,
+    generate_analyst_response,
+)
 from mne.market_expression import build_market_expression_for_run
 from mne.presentation_language import confidence as present_confidence
-from mne.presentation_language import HISTORICAL_CONNECTION_COPY
+from mne.presentation_language import AI_ANALYST_COPY, HISTORICAL_CONNECTION_COPY
 from mne.presentation_language import compose_sentence
 from mne.presentation_language import metric as present_metric
 from mne.presentation_language import pluralize
@@ -85,6 +95,16 @@ REGIME_SCORE_DELTA_THRESHOLD = 5
 app = FastAPI(title="Macro Narrative Engine Dashboard")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+
+def build_analyst_panel(mode, context, scope=""):
+    return {
+        "mode": mode,
+        "scope": scope,
+        "copy": AI_ANALYST_COPY,
+        "suggested_questions": SUGGESTED_QUESTIONS[mode],
+        "initial": build_deterministic_fallback(context, mode),
+    }
 
 
 def list_result_files(limit=RECENT_RUN_LIMIT):
@@ -2066,6 +2086,11 @@ def dashboard(request: Request, run: Optional[str] = Query(default=None)):
         else None
     )
     context["regime_history"] = build_daily_support_history(selected_timestamp)
+    if context.get("view"):
+        analyst_context = build_ai_analyst_context(MODE_TODAY, view=context["view"])
+        context["ai_analyst"] = build_analyst_panel(
+            MODE_TODAY, analyst_context, context.get("selected_file") or ""
+        )
     return templates.TemplateResponse("dashboard.html", context)
 
 
@@ -2073,6 +2098,56 @@ def dashboard(request: Request, run: Optional[str] = Query(default=None)):
 def research_selector(request: Request):
     context = build_research_context(request)
     return templates.TemplateResponse("research_selector.html", context)
+
+
+@app.post("/api/ai-analyst")
+async def ask_ai_analyst(request: Request):
+    """Handle one explicit, stateless Analyst question."""
+    try:
+        payload = await request.json()
+    except Exception:
+        return JSONResponse({"error": AI_ANALYST_COPY["error"]}, status_code=400)
+    mode = payload.get("mode") if isinstance(payload, dict) else None
+    scope = str(payload.get("scope") or "") if isinstance(payload, dict) else ""
+    question = str(payload.get("question") or "") if isinstance(payload, dict) else ""
+    try:
+        if mode == MODE_TODAY:
+            page = build_template_context(
+                request, scope or None, meaningful_default=True, include_admin=False
+            )
+            analyst_context = build_ai_analyst_context(
+                mode, view=page.get("view")
+            )
+        elif mode == MODE_NARRATIVE:
+            page = build_investigation_context(request, scope, admin=False)
+            analyst_context = build_ai_analyst_context(
+                mode,
+                investigation=page.get("investigation"),
+                history=page.get("history"),
+                historical_connections=page.get("historical_connection"),
+            )
+        elif mode == MODE_HISTORICAL:
+            page = build_user_historical_route_context(request, scope)
+            analyst_context = build_ai_analyst_context(
+                mode, historical=page.get("historical")
+            )
+        elif mode == MODE_COMPARISON:
+            replay_a, separator, replay_b = scope.partition("|")
+            if not separator:
+                raise ValueError("Missing comparison scope.")
+            page = build_user_historical_comparison_context(
+                request, replay_a, replay_b
+            )
+            analyst_context = build_ai_analyst_context(
+                mode, comparison=page.get("comparison")
+            )
+        else:
+            raise ValueError("Unsupported Analyst mode.")
+    except Exception:
+        return JSONResponse({"error": AI_ANALYST_COPY["error"]}, status_code=400)
+    return JSONResponse(
+        generate_analyst_response(analyst_context, mode, question)
+    )
 
 
 @app.get("/research/{key:path}/history", response_class=HTMLResponse)
@@ -2084,6 +2159,16 @@ def narrative_history(request: Request, key: str):
 @app.get("/research/{key:path}", response_class=HTMLResponse)
 def narrative_investigation(request: Request, key: str):
     context = build_investigation_context(request, key, admin=False)
+    if context.get("investigation"):
+        analyst_context = build_ai_analyst_context(
+            MODE_NARRATIVE,
+            investigation=context["investigation"],
+            history=context.get("history"),
+            historical_connections=context.get("historical_connection"),
+        )
+        context["ai_analyst"] = build_analyst_panel(
+            MODE_NARRATIVE, analyst_context, key
+        )
     return templates.TemplateResponse("narrative_investigation.html", context)
 
 
@@ -2157,15 +2242,27 @@ def user_historical_comparison(
     replay_a: str = Query(default=""),
     replay_b: str = Query(default=""),
 ):
-    return templates.TemplateResponse(
-        "historical_comparison_user.html",
-        build_user_historical_comparison_context(request, replay_a, replay_b),
-    )
+    context = build_user_historical_comparison_context(request, replay_a, replay_b)
+    if context.get("comparison"):
+        analyst_context = build_ai_analyst_context(
+            MODE_COMPARISON, comparison=context["comparison"]
+        )
+        context["ai_analyst"] = build_analyst_panel(
+            MODE_COMPARISON, analyst_context, f"{replay_a}|{replay_b}"
+        )
+    return templates.TemplateResponse("historical_comparison_user.html", context)
 
 
 @app.get("/history/{replay_id}", response_class=HTMLResponse)
 def historical_investigation(request: Request, replay_id: str):
     context = build_user_historical_route_context(request, replay_id)
+    if context.get("historical"):
+        analyst_context = build_ai_analyst_context(
+            MODE_HISTORICAL, historical=context["historical"]
+        )
+        context["ai_analyst"] = build_analyst_panel(
+            MODE_HISTORICAL, analyst_context, replay_id
+        )
     return templates.TemplateResponse(
         "historical_investigation.html",
         context,

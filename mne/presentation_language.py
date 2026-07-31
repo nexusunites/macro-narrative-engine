@@ -218,6 +218,20 @@ NARRATIVE_HISTORY_COPY = {
     "groups_only": "Daily history is currently available for narrative groups.",
 }
 
+AI_ANALYST_COPY = {
+    "title": "AI Analyst",
+    "description": "AI Analyst explains MNE's persisted evidence and analysis.",
+    "no_fetch": "It does not fetch new information.",
+    "no_prediction": "It does not provide predictions or trade recommendations.",
+    "evidence_limit": "Responses may be limited by the evidence available to MNE.",
+    "input_label": "Ask about MNE's analysis",
+    "input_placeholder": "What is driving the market narrative today?",
+    "submit": "Ask Analyst",
+    "loading": "Reviewing MNE's persisted analysis…",
+    "error": "The Analyst response was unavailable.",
+    "fallback_note": "Showing MNE's built-in explanation.",
+}
+
 HISTORICAL_CONNECTION_COPY = {
     "eyebrow": "Historical Context",
     "heading": "Connections to recent history",

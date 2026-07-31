@@ -7,6 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MNE Narrative Investigation</title>
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+  <script src="{{ url_for('static', path='ai_analyst.js') }}" defer></script>
 </head>
 <body>
   {% set active_tier = "research" %}
@@ -304,6 +305,7 @@
         </div>
       </section>
 
+      {% include "_partials/ai_analyst.html" %}
       <section class="content-section investigation-zone investigation-zone-next" id="investigation-next">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 4 / Research Entry Points</p>
