@@ -161,8 +161,14 @@ async def calm_authorization_error(request: Request, error: HTTPException):
 @app.exception_handler(EntitlementDenied)
 async def calm_entitlement_error(request: Request, error: EntitlementDenied):
     message = entitlement_denial(error.reason, error.metric)
-    return HTMLResponse(
-        f"<h1>Access unavailable</h1><p>{message}</p><p>{ENTITLEMENT_COPY['upgrade_prompt']}</p>",
+    return templates.TemplateResponse(
+        request,
+        "entitlement_denied.html",
+        {
+            "message": message,
+            "upgrade_prompt": ENTITLEMENT_COPY["upgrade_prompt"],
+            "usage_lines": (),
+        },
         status_code=403,
     )
 
@@ -1697,6 +1703,7 @@ def build_view_model(run, current_file):
         "metrics": {name: present_metric(name) for name in (
             "Regime Alignment", "Dominant Narrative", "Narrative Leadership",
             "Narrative Pulse", "Acceleration", "Crowding", "Market Environment",
+            "Narrative Direction", "Recent Movement", "X-Ray View", "Market Reaction",
             "Catalyst Environment", "Positioning", "Change Summary",
             "Market Snapshot", "Example Headlines / Top Theme Evidence",
             "Regime Alignment History", "Data Quality",

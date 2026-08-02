@@ -142,6 +142,8 @@ Replace the static SVG with a hover-scrubbable line chart: crosshair follows poi
 
 ## Part 3 — Sprint Plan
 
+The live dashboard hierarchy also includes the integrated **My Narratives** personalization/alerts section and the lower-priority **AI Analyst** explanation panel. Both are preserved parts of the user experience; neither changes the user/admin context split.
+
 **Sprint A — Language layer.** `mne/presentation_language.py` + dictionary, view-builder integration, template text swap, Why-expanders, run-selector labels, confidence rewording. No layout changes. Verifiable: render latest run, confirm zero internal state strings visible on `/` outside Why-expanders.
 
 **Sprint B — Layout and cards.** New page architecture, hero (static chart initially), narrative cards, market list rows, removals/relocations, trust pill, spacing/color/typography system including directional tokens.

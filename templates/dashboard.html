@@ -9,6 +9,7 @@
   <script src="{{ url_for('static', path='ai_analyst.js') }}" defer></script>
 </head>
 <body class="user-dashboard">
+  {% from "_partials/xray_disclosure.html" import xray_disclosure %}
   {% set active_tier = "live" %}
   {% include "_partials/app_rail.html" %}
 
@@ -232,6 +233,21 @@
         {% endif %}
       </section>
 
+      <section id="narrative-discovery" class="dashboard-section narrative-discovery-preview">
+        <header class="dashboard-section-heading split-heading">
+          <div><p class="eyebrow">Narrative Discovery</p><h2>Explore today's leading stories</h2></div>
+          <a class="accent-link" href="/research">Open Research →</a>
+        </header>
+        <p class="section-read">Start with the stories drawing the most attention, then open Research for their evidence and history.</p>
+        {% if view.narrative_leadership %}
+          <ol class="discovery-list">
+          {% for item in view.narrative_leadership[:5] %}
+            <li><span class="discovery-rank">0{{ item.rank }}</span><div><strong>{{ item.group }}</strong><span>{{ item.presentation.explanation }}</span></div><a href="{{ url_for('narrative_investigation', key=item.investigation_key) }}">Explore →</a></li>
+          {% endfor %}
+          </ol>
+        {% else %}<div class="section-empty">Narrative discovery will appear after a meaningful live run lands.</div>{% endif %}
+      </section>
+
       <section id="my-narratives" class="dashboard-section personalization-section">
         <header class="dashboard-section-heading split-heading">
           <div><p class="eyebrow">Personalized</p><h2>My Narratives</h2></div>
@@ -261,27 +277,25 @@
 
       <section id="markets" class="dashboard-section">
         <header class="dashboard-section-heading">
-          <h2>{{ view.presentation.metrics["Market Snapshot"].label }}</h2>
+          <div><p class="eyebrow">{{ view.presentation.metrics["Market Reaction"].question }}</p><h2>{{ view.presentation.metrics["Market Snapshot"].label }}</h2></div>
         </header>
-        <div class="market-list">
-          {% if view.market_context %}
-            {% for row in view.market_context %}
-              <div class="market-row">
-                <strong class="market-symbol">{{ row.symbol }}</strong>
-                <span class="market-name">{{ row.name }}</span>
-                <span class="market-price">{{ row.latest_close if row.latest_close is not none else "—" }}</span>
-                <span class="market-change direction-chip direction-{{ row.direction }}">{{ row.change_label }}</span>
-              </div>
+        <div class="market-list market-expression-preview">
+          {% if view.market_expression_context and view.market_expression_context.instruments %}
+            {% for role, label in [("primary", "Primary expression"), ("secondary", "Secondary expression"), ("offset", "Offset or contradiction")] %}
+              {% set rows = view.market_expression_context.instruments|selectattr("role", "equalto", role)|list %}
+              {% if rows %}<section class="market-role-group"><h3>{{ label }}</h3>
+              {% for row in rows %}<div class="market-row expression-row"><strong class="market-symbol">{{ row.asset }}</strong><span class="market-name">{{ row.label }}</span><span class="market-status tone-{{ 'good' if row.status in ['CONFIRMING', 'ALIGNED'] else 'caution' if row.status in ['DIVERGING', 'PRESSURE'] else 'neutral' }}">{{ row.status|replace('_', ' ')|title }}</span></div>{% endfor %}
+              </section>{% endif %}
             {% endfor %}
           {% else %}
-            <div class="section-empty">Market prices were not available in this update.</div>
+            <div class="section-empty">The current story is not yet being clearly reflected in the available market indicators.</div>
           {% endif %}
           <footer class="market-footer">
-            <details class="why-expander section-why">
-              <summary>Why?</summary>
+            {% call xray_disclosure("Market X-Ray", "See how persisted market indicators support or complicate this read.", "section-why") %}
               <p>{{ view.market_environment_card.reason or view.presentation.market_environment.meaning }}</p>
+              {% for limitation in view.market_expression_context.limitations or [] %}<p>{{ limitation }}</p>{% endfor %}
               <small>Engine signal: Market Environment · {{ view.market_environment_card.state or "Unavailable" }}</small>
-            </details>
+            {% endcall %}
           </footer>
         </div>
       </section>

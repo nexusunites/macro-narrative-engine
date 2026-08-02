@@ -1,0 +1,13 @@
+{% macro locked_state(title, message, upgrade_prompt, usage_lines=(), full_page=false) %}
+<section class="locked-state{% if full_page %} locked-state-page{% endif %}" aria-labelledby="locked-state-title">
+  <div class="locked-state-mark" aria-hidden="true">×</div>
+  <div>
+    <p class="eyebrow">Plan access</p>
+    <h1 id="locked-state-title">{{ title }}</h1>
+    <p>{{ message }}</p>
+    {% for line in usage_lines %}<p class="locked-state-usage">{{ line }}</p>{% endfor %}
+    {% if upgrade_prompt %}<p class="locked-state-next">{{ upgrade_prompt }}</p>{% endif %}
+    <a class="accent-link" href="/account">View account and plan →</a>
+  </div>
+</section>
+{% endmacro %}

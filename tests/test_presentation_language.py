@@ -18,6 +18,11 @@ from mne.presentation_language import (
 class PresentationLanguageTests(unittest.TestCase):
     def test_canonical_copy_is_exact(self):
         self.assertEqual(metric("Regime Alignment")["label"], "Market Support")
+        self.assertEqual(metric("Narrative Pulse")["label"], "Strength")
+        self.assertEqual(metric("Narrative Direction")["label"], "Narrative Direction")
+        self.assertEqual(metric("Recent Movement")["label"], "Recent Movement")
+        self.assertEqual(metric("X-Ray View")["label"], "X-Ray View")
+        self.assertEqual(metric("Market Reaction")["label"], "Market Reaction")
         self.assertEqual(
             state("Fragile Risk-On"),
             {

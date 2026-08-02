@@ -1,0 +1,9 @@
+{% macro xray_disclosure(summary_label="X-Ray View", explanation="See the persisted evidence and engine context behind this read.", class_name="") %}
+<div class="xray-block {{ class_name }}">
+  <p class="xray-explanation">{{ explanation }}</p>
+  <details class="xray-disclosure">
+    <summary>{{ summary_label }}</summary>
+    <div class="xray-content">{{ caller() }}</div>
+  </details>
+</div>
+{% endmacro %}
