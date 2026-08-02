@@ -47,6 +47,27 @@ def explanation():
     }
 
 
+def change_summary():
+    return {
+        "compared_with": "2026-07-31_150412",
+        "changes": {
+            "major": [{
+                "text": "Energy / Commodities took leadership from Macro Pressure.",
+                "importance": 10,
+                "direction": "up",
+            }],
+            "narratives": [{
+                "text": "AI / Tech Growth strengthened recently.",
+                "importance": 7,
+                "direction": "up",
+            }],
+            "market": [],
+            "catalysts": [],
+        },
+        "has_changes": True,
+    }
+
+
 class AIAnalystTests(unittest.TestCase):
     def test_dashboard_context_builds_safely(self):
         context = build_ai_analyst_context(MODE_TODAY, view={
@@ -57,6 +78,48 @@ class AIAnalystTests(unittest.TestCase):
         })
         self.assertEqual(context["dominant_theme"], "AI")
         self.assertEqual(context["evidence"][0]["title"], "Persisted headline 1")
+
+    def test_dashboard_what_changed_composes_plain_english(self):
+        context = build_ai_analyst_context(
+            MODE_TODAY, view={"change_summary": change_summary()}
+        )
+        what_changed = context["explanation"]["what_changed"]
+        self.assertEqual(
+            what_changed,
+            "Energy / Commodities took leadership from Macro Pressure. "
+            "AI / Tech Growth strengthened recently.",
+        )
+        for leaked_repr in ("{", "'compared_with'", "'importance'"):
+            self.assertNotIn(leaked_repr, what_changed)
+
+    def test_dashboard_what_changed_empty_state(self):
+        no_changes = {
+            "has_changes": False,
+            "changes": {
+                "major": [], "narratives": [], "market": [], "catalysts": [],
+            },
+            "compared_with": "2026-07-31_150412",
+        }
+        for summary in (no_changes, None):
+            with self.subTest(change_summary=summary):
+                context = build_ai_analyst_context(
+                    MODE_TODAY, view={"change_summary": summary}
+                )
+                self.assertEqual(
+                    context["explanation"]["what_changed"],
+                    "No major changes since the last update.",
+                )
+
+    def test_dashboard_what_changed_feeds_deterministic_fallback(self):
+        context = build_ai_analyst_context(
+            MODE_TODAY, view={"change_summary": change_summary()}
+        )
+        fallback = build_deterministic_fallback(context, MODE_TODAY)
+        self.assertEqual(
+            fallback["what_changed"],
+            "Energy / Commodities took leadership from Macro Pressure. "
+            "AI / Tech Growth strengthened recently.",
+        )
 
     def test_narrative_context_builds_safely(self):
         context = build_ai_analyst_context(MODE_NARRATIVE, investigation={

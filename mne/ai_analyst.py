@@ -112,6 +112,21 @@ def _text(value: Any, limit: int = 3000) -> str | None:
     return result[:limit] if result else None
 
 
+def _compose_what_changed(change_summary: Any) -> str:
+    empty_state = "No major changes since the last update."
+    if not isinstance(change_summary, dict) or not change_summary.get("has_changes"):
+        return empty_state
+    changes = change_summary.get("changes")
+    changes = changes if isinstance(changes, dict) else {}
+    texts = [
+        str(item.get("text"))
+        for key in ("major", "narratives", "market", "catalysts")
+        for item in (changes.get(key) or [])
+        if isinstance(item, dict) and item.get("text")
+    ]
+    return " ".join(texts) if texts else empty_state
+
+
 def _safe_evidence(rows: Any) -> list[dict[str, Any]]:
     safe = []
     for row in rows if isinstance(rows, list) else []:
@@ -233,7 +248,7 @@ def build_ai_analyst_context(
             "shares": {"dominant": view.get("dominant_share")},
             "explanation": {
                 "headline": (view.get("presentation") or {}).get("hero_explanation"),
-                "what_changed": str(view.get("change_summary") or "")[:3000],
+                "what_changed": _compose_what_changed(view.get("change_summary"))[:3000],
             },
             "memory": view.get("narrative_memory"),
             "market_expression": (view.get("market_expression_context") or {}).get("explanation"),
