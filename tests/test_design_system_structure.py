@@ -10,11 +10,13 @@ from mne.entitlements import EntitlementDenied
 class DesignSystemStructureTests(unittest.TestCase):
     def test_dashboard_hierarchy_and_discovery_preview_are_ordered(self):
         source = Path("templates/dashboard.html").read_text(encoding="utf-8")
-        ordered = ['id="overview"', 'id="stories"', 'id="narrative-discovery"', 'id="my-narratives"', 'id="markets"', 'id="events"', 'id="evidence"']
+        ordered = ['id="overview"', 'id="stories"', '_partials/narrative_constellation.html', 'id="my-narratives"', 'id="markets"', 'id="events"', 'id="evidence"']
         positions = [source.index(marker) for marker in ordered]
         self.assertEqual(positions, sorted(positions))
-        self.assertIn("view.narrative_leadership[:5]", source)
-        self.assertIn("Open Research", source)
+        self.assertIn('_partials/narrative_constellation.html', source)
+        constellation = Path("templates/_partials/narrative_constellation.html").read_text(encoding="utf-8")
+        self.assertIn("Explore in Research", Path("mne/presentation_language.py").read_text(encoding="utf-8"))
+        self.assertIn("data-constellation", constellation)
 
     def test_market_preview_uses_expression_roles_not_price_table(self):
         source = Path("templates/dashboard.html").read_text(encoding="utf-8")

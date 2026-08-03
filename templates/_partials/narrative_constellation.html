@@ -1,0 +1,49 @@
+{% set constellation = view.narrative_constellation %}
+<section id="narrative-discovery" class="dashboard-section narrative-constellation" data-constellation>
+  <header class="dashboard-section-heading split-heading">
+    <div><p class="eyebrow">{{ constellation["copy"]["eyebrow"] }}</p><h2>{{ constellation["copy"]["title"] }}</h2></div>
+    <a class="accent-link" href="/research">{{ constellation["copy"]["research"] }}</a>
+  </header>
+  <p class="section-read">{{ constellation["copy"]["framing"] }}</p>
+  {% if constellation.has_data %}
+    <p class="constellation-summary">{{ constellation.summary }}</p>
+    <div class="constellation-stage">
+      <svg viewBox="0 0 {{ constellation.width }} {{ constellation.height }}" role="img" aria-labelledby="constellation-title constellation-description">
+        <title id="constellation-title">{{ constellation["copy"]["title"] }}</title>
+        <desc id="constellation-description">{{ constellation["copy"]["framing"] }}</desc>
+        <g class="constellation-relationships" data-constellation-xray hidden>
+          {% for relation in constellation.relationships %}
+            {% set source = constellation.nodes|selectattr("key", "equalto", relation.source)|first %}
+            {% set target = constellation.nodes|selectattr("key", "equalto", relation.target)|first %}
+            <line x1="{{ source.x }}" y1="{{ source.y }}" x2="{{ target.x }}" y2="{{ target.y }}"></line>
+          {% endfor %}
+        </g>
+        {% for node in constellation.nodes %}
+          <a href="{{ node.href }}" class="constellation-node constellation-node-{{ node.level }} direction-{{ node.direction_tone }}{% if node.dominant %} is-dominant{% endif %}" aria-label="{{ node.sr_label }}" {% if node.level == "theme" %}data-constellation-xray hidden{% endif %} tabindex="0">
+            <circle cx="{{ node.x }}" cy="{{ node.y }}" r="{{ node.radius }}"></circle>
+            <text x="{{ node.x }}" y="{{ node.y - 5 }}" text-anchor="middle">{{ node.display_name }}</text>
+            <text class="constellation-node-state" x="{{ node.x }}" y="{{ node.y + 16 }}" text-anchor="middle">{{ node.direction_icon }} {{ node.direction }}</text>
+          </a>
+        {% endfor %}
+      </svg>
+      <aside class="constellation-card" aria-live="polite" data-constellation-card>
+        {% set leader = constellation.nodes|selectattr("level", "equalto", "group")|first %}
+        <strong data-card-name>{{ leader.display_name }}</strong>
+        <span data-card-state>{{ leader.lifecycle_state or "Current story" }} · {{ leader.direction }}</span>
+        <p data-card-explanation>{{ leader.explanation }}</p>
+        {% if leader.share is not none %}<small data-card-metric>{{ leader.share }}% of visible narrative attention</small>{% else %}<small data-card-metric></small>{% endif %}
+      </aside>
+    </div>
+    <details class="constellation-xray" data-constellation-toggle>
+      <summary>{{ constellation["copy"]["xray"] }}</summary>
+      <p>{{ constellation["copy"]["xray_explanation"] }}</p>
+      {% if not constellation.has_themes %}<p>{{ constellation["copy"]["themes_unavailable"] }}</p>{% endif %}
+      <div class="constellation-details">
+        {% for node in constellation.nodes %}<article><strong>{{ node.display_name }}</strong><span>{{ node.lifecycle_state or "Current story" }} · {{ node.direction }}</span><p>{{ node.explanation }}</p></article>{% endfor %}
+      </div>
+    </details>
+    <script type="application/json" data-constellation-nodes>{{ constellation.nodes|tojson }}</script>
+  {% else %}
+    <div class="section-empty"><strong>{{ constellation.empty_state.title }}</strong><p>{{ constellation.empty_state.body }}</p></div>
+  {% endif %}
+</section>

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
   <script src="{{ url_for('static', path='chart.js') }}" defer></script>
   <script src="{{ url_for('static', path='ai_analyst.js') }}" defer></script>
+  <script src="{{ url_for('static', path='narrative_constellation.js') }}" defer></script>
 </head>
 <body class="user-dashboard">
   {% from "_partials/xray_disclosure.html" import xray_disclosure %}
@@ -233,20 +234,7 @@
         {% endif %}
       </section>
 
-      <section id="narrative-discovery" class="dashboard-section narrative-discovery-preview">
-        <header class="dashboard-section-heading split-heading">
-          <div><p class="eyebrow">Narrative Discovery</p><h2>Explore today's leading stories</h2></div>
-          <a class="accent-link" href="/research">Open Research →</a>
-        </header>
-        <p class="section-read">Start with the stories drawing the most attention, then open Research for their evidence and history.</p>
-        {% if view.narrative_leadership %}
-          <ol class="discovery-list">
-          {% for item in view.narrative_leadership[:5] %}
-            <li><span class="discovery-rank">0{{ item.rank }}</span><div><strong>{{ item.group }}</strong><span>{{ item.presentation.explanation }}</span></div><a href="{{ url_for('narrative_investigation', key=item.investigation_key) }}">Explore →</a></li>
-          {% endfor %}
-          </ol>
-        {% else %}<div class="section-empty">Narrative discovery will appear after a meaningful live run lands.</div>{% endif %}
-      </section>
+      {% include "_partials/narrative_constellation.html" %}
 
       <section id="my-narratives" class="dashboard-section personalization-section">
         <header class="dashboard-section-heading split-heading">

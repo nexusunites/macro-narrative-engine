@@ -77,6 +77,24 @@ METRICS = {
     "Historical Next Steps": {"label": "Where to Look Next", "question": None},
 }
 
+NARRATIVE_CONSTELLATION_COPY = {
+    "eyebrow": "Narrative Discovery",
+    "title": "Today's narrative constellation",
+    "framing": "Larger stories are receiving more attention. Accent and direction show whether attention is building or easing.",
+    "research": "Explore in Research →",
+    "xray": "X-Ray View",
+    "xray_explanation": "Show the confirmed themes within each visible story and the relationships between them.",
+    "themes_unavailable": "Deeper theme relationships are not available for this update.",
+    "empty_title": "No clear narrative cluster yet",
+    "empty": "No clear narrative cluster is available yet. MNE will show the strongest market stories here when enough evidence is present.",
+    "summary": "{name} is receiving the most attention and is currently {direction}.",
+}
+
+
+def constellation_copy(key: str) -> str:
+    """Return fixed, user-safe copy for Narrative Constellation."""
+    return NARRATIVE_CONSTELLATION_COPY[key]
+
 HISTORICAL_COPY = {
     "archive_label": "Historical Narratives",
     "archive_intro": "Browse completed reconstructions of what the available evidence showed at an earlier market cutoff.",

@@ -42,6 +42,7 @@ from mne.historical_replay_admin import (
     validate_replay_backfill_ids,
 )
 from mne.narrative_signals import compute_group_scores
+from mne.narrative_constellation import build_constellation_context
 from mne.narrative_history import build_narrative_history
 from mne.historical_connection import load_current_and_historical_context
 from mne.explanation_layer import explain_lifecycle_state
@@ -1636,6 +1637,7 @@ def build_view_model(run, current_file):
         run.get("narrative_pulse"),
         dynamics,
     )
+    narrative_constellation = build_constellation_context(run)
     from analysis.leadership_rotation import get_rotation
 
     try:
@@ -1771,6 +1773,7 @@ def build_view_model(run, current_file):
         "theme_scores": theme_scores,
         "group_scores": group_scores,
         "narrative_leadership": narrative_leadership,
+        "narrative_constellation": narrative_constellation,
         "dominant_share": pct(run.get("dominant_share")),
         "concentration_gap": run.get("concentration_gap"),
         "market_context": get_market_context(run),
