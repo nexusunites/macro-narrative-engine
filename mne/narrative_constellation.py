@@ -10,8 +10,8 @@ or pulse only when lifecycle is missing/non-directional; conflicting directional
 signals degrade to Stable. Strengthening, weakening, and neutral are expressed
 with the dashboard's existing up, down, and slate treatments plus text/icons.
 
-V1 relationships are limited to confirmed group-to-theme membership. No
-cross-group relationship is inferred from wording, movement, or proximity.
+Cross-group relationships are loaded only from curated configuration. No
+relationship is inferred from wording, movement, or proximity.
 The module performs no fetching, scoring, taxonomy mutation, or persistence.
 """
 
@@ -23,12 +23,19 @@ from typing import Any
 
 from mne.explanation_layer import explain_lifecycle_state
 from mne.narrative_signals import NARRATIVE_GROUPS
+from mne.narrative_relationships import (
+    NarrativeRelationshipError,
+    build_relationship_adjacency,
+    get_display_relationships,
+    normalize_relationship,
+)
 from mne.presentation_language import constellation_copy, narrative_display_name
 from mne.research_workspace import narrative_key
 
 
 GROUP_LIMIT = 5
 THEME_LIMIT = 3
+_RELATIONSHIP_STRENGTH_ORDER = {"STRONG": 0, "MODERATE": 1, "LIMITED": 2}
 _DIRECTIONAL_LIFECYCLE = {
     "BUILDING": "Strengthening",
     "EMERGING": "Strengthening",
@@ -185,6 +192,33 @@ def build_group_theme_relationships(nodes: list[dict]) -> list[dict]:
     return sorted(relationships, key=lambda item: (item["source"], item["target"]))
 
 
+def build_cross_group_relationships(nodes: list[dict]) -> list[dict]:
+    """Return visible curated group edges; config failures omit this layer."""
+    group_keys = {node["taxonomy_key"]: node["key"] for node in nodes if node.get("level") == "group"}
+    try:
+        configured = get_display_relationships()
+    except NarrativeRelationshipError:
+        return []
+    relationships = []
+    for relationship in configured:
+        if relationship.source_group not in group_keys or relationship.target_group not in group_keys:
+            continue
+        public = normalize_relationship(relationship)
+        relationships.append({
+            "source": group_keys[relationship.source_group],
+            "target": group_keys[relationship.target_group],
+            "type": "cross_group",
+            "relationship_type": relationship.relationship_type,
+            "strength": relationship.strength,
+            "label": public["label"],
+            "type_label": public["type_label"],
+            "strength_label": public["strength_label"],
+            "explanation": public["explanation"],
+            "directionality": public["directionality"],
+        })
+    return sorted(relationships, key=lambda item: (_RELATIONSHIP_STRENGTH_ORDER[item["strength"]], item["relationship_type"], item["target"]))
+
+
 def compute_deterministic_positions(nodes: list[dict], width: int = 800, height: int = 430) -> dict[str, dict]:
     """Compute fixed radial positions with rank then key as the stable order."""
     groups = sorted((n for n in nodes if n.get("level") == "group"), key=lambda n: (n["rank"], n["key"]))
@@ -251,7 +285,20 @@ def build_constellation_context(run: Any) -> dict:
     selected = select_visible_nodes(run)
     positions = compute_deterministic_positions(selected)
     nodes = _apply_visuals(selected, positions)
-    relationships = build_group_theme_relationships(nodes)
+    cross_group_relationships = build_cross_group_relationships(nodes)
+    try:
+        adjacency = build_relationship_adjacency()
+    except NarrativeRelationshipError:
+        adjacency = {}
+    for node in nodes:
+        if node["level"] == "group":
+            node["related_keys"] = list(adjacency.get(node["taxonomy_key"], ()))
+            node["relationship_details"] = [
+                {key: relation[key] for key in ("label", "type_label", "strength_label", "explanation", "directionality")}
+                for relation in cross_group_relationships
+                if node["key"] in (relation["source"], relation["target"])
+            ]
+    relationships = build_group_theme_relationships(nodes) + cross_group_relationships
     context = {
         "width": 800, "height": 430, "nodes": nodes, "relationships": relationships,
         "has_data": bool(nodes), "has_themes": any(n["level"] == "theme" for n in nodes),

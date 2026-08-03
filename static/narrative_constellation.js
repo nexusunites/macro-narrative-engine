@@ -12,6 +12,8 @@
       card.querySelector("[data-card-name]").textContent = node.display_name;
       card.querySelector("[data-card-state]").textContent = `${node.lifecycle_state || "Current story"} · ${node.direction}`;
       card.querySelector("[data-card-explanation]").textContent = node.explanation;
+      const relationshipText = (node.relationship_details || []).map((item) => `${item.label}: ${item.explanation}`).join(" ");
+      if (relationshipText) card.querySelector("[data-card-explanation]").textContent = `${node.explanation} ${relationshipText}`;
       card.querySelector("[data-card-metric]").textContent = node.share == null ? "" : `${node.share}% of visible narrative attention`;
     };
     root.querySelectorAll(".constellation-node").forEach((anchor) => {

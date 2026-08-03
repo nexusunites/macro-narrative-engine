@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "relationships": [
+    {
+      "source_group": "AI / Tech Growth",
+      "target_group": "Energy / Commodities",
+      "relationship_type": "DEPENDENCY",
+      "directionality": "BIDIRECTIONAL",
+      "strength": "MODERATE",
+      "public_label": "Infrastructure demand connection",
+      "explanation": "AI infrastructure growth is connected to rising power demand.",
+      "display_enabled": true,
+      "evidence_basis": "CURATED_DOMAIN_LOGIC"
+    },
+    {
+      "source_group": "Macro Pressure",
+      "target_group": "AI / Tech Growth",
+      "relationship_type": "TRANSMISSION",
+      "directionality": "SOURCE_TO_TARGET",
+      "strength": "STRONG",
+      "public_label": "Financial conditions connection",
+      "explanation": "Interest-rate pressure can weigh on growth-sensitive narratives.",
+      "display_enabled": true,
+      "evidence_basis": "CURATED_DOMAIN_LOGIC"
+    },
+    {
+      "source_group": "Energy / Commodities",
+      "target_group": "Macro Pressure",
+      "relationship_type": "TRANSMISSION",
+      "directionality": "SOURCE_TO_TARGET",
+      "strength": "MODERATE",
+      "public_label": "Inflation pressure connection",
+      "explanation": "Energy developments can feed into the broader inflation narrative.",
+      "display_enabled": true,
+      "evidence_basis": "CURATED_DOMAIN_LOGIC"
+    }
+  ]
+}

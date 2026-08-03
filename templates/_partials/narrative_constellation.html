@@ -15,7 +15,7 @@
           {% for relation in constellation.relationships %}
             {% set source = constellation.nodes|selectattr("key", "equalto", relation.source)|first %}
             {% set target = constellation.nodes|selectattr("key", "equalto", relation.target)|first %}
-            <line x1="{{ source.x }}" y1="{{ source.y }}" x2="{{ target.x }}" y2="{{ target.y }}"></line>
+            <line class="relationship-{{ relation.type }}" x1="{{ source.x }}" y1="{{ source.y }}" x2="{{ target.x }}" y2="{{ target.y }}"></line>
           {% endfor %}
         </g>
         {% for node in constellation.nodes %}
@@ -40,6 +40,7 @@
       {% if not constellation.has_themes %}<p>{{ constellation["copy"]["themes_unavailable"] }}</p>{% endif %}
       <div class="constellation-details">
         {% for node in constellation.nodes %}<article><strong>{{ node.display_name }}</strong><span>{{ node.lifecycle_state or "Current story" }} · {{ node.direction }}</span><p>{{ node.explanation }}</p></article>{% endfor %}
+        {% for relation in constellation.relationships if relation.type == "cross_group" %}<article class="constellation-relationship-detail"><strong>{{ relation.label }}</strong><span>{{ relation.type_label }} · {{ relation.strength_label }}</span><p>{{ relation.explanation }}</p></article>{% endfor %}
       </div>
     </details>
     <script type="application/json" data-constellation-nodes>{{ constellation.nodes|tojson }}</script>

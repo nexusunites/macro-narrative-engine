@@ -4401,7 +4401,9 @@ input:focus-visible,
 .constellation-summary { margin: 0; color: var(--text-secondary); }
 .constellation-stage { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: var(--space-4); min-width: 0; padding: var(--space-4); border-radius: 18px; background: var(--surface-1); }
 .constellation-stage svg { width: 100%; height: auto; min-height: 360px; overflow: visible; }
-.constellation-relationships line { stroke: var(--border-strong); stroke-width: 1.5; stroke-dasharray: 4 5; }
+.constellation-relationships line { stroke: var(--border-strong); stroke-width: 1.5; }
+.constellation-relationships .relationship-cross_group { stroke-width: 2.5; stroke-dasharray: 4 5; opacity: .82; }
+.constellation-relationships .relationship-group_theme { opacity: .55; }
 .constellation-node { color: var(--text-secondary); text-decoration: none; outline: none; }
 .narrative-constellation [data-constellation-xray][hidden] { display: none; }
 .constellation-node circle { fill: var(--surface-2); stroke: var(--border-strong); stroke-width: 2; transition: stroke-width 150ms ease, filter 150ms ease; }

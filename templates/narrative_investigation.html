@@ -306,6 +306,23 @@
       </section>
 
       {% include "_partials/ai_analyst.html" %}
+      {% if related_narratives %}
+        <section class="content-section investigation-zone related-narratives" aria-labelledby="related-narratives-title">
+          <div class="investigation-zone-heading">
+            <p class="eyebrow">{{ narrative_relationship_copy.section_eyebrow }}</p>
+            <h2 id="related-narratives-title">{{ narrative_relationship_copy.section_title }}</h2>
+            <p>{{ narrative_relationship_copy.section_intro }}</p>
+          </div>
+          <div class="research-entry-grid">
+            {% for relation in related_narratives %}
+              <a class="research-list-row" href="{{ url_for('narrative_investigation', key='group:' ~ relation.related_group) }}">
+                <span><strong>{{ relation.label }} · {{ relation.related_display_name }}</strong><small>{{ relation.explanation }}</small></span>
+                <em>{{ relation.type_label }}</em>
+              </a>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
       <section class="content-section investigation-zone investigation-zone-next" id="investigation-next">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 4 / Research Entry Points</p>

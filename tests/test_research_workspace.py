@@ -469,6 +469,29 @@ class ResearchWorkspaceTests(unittest.TestCase):
         self.assertNotIn("rejection_reason", html)
         self.assertNotIn("{&#", html)
 
+    def test_related_narratives_render_only_when_supplied(self):
+        investigation = build_narrative_investigation(sample_run(), "group", "AI / Tech Growth")
+        relation = {
+            "related_group": "Energy / Commodities",
+            "related_display_name": "Energy / Commodities",
+            "label": "Infrastructure demand connection",
+            "type_label": "Dependency",
+            "strength_label": "Moderate structural connection",
+            "explanation": "AI infrastructure growth is connected to rising power demand.",
+            "directionality": "bidirectional",
+        }
+        copy = {
+            "section_eyebrow": "Connected context",
+            "section_title": "Related narratives",
+            "section_intro": "Curated structural connections that can help frame this narrative.",
+        }
+        populated = render_template("narrative_investigation.html", investigation=investigation, related_narratives=(relation,), narrative_relationship_copy=copy)
+        self.assertIn("Related narratives", populated)
+        self.assertIn("Infrastructure demand connection", populated)
+        self.assertIn("/research/group:Energy / Commodities", populated)
+        empty = render_template("narrative_investigation.html", investigation=investigation, related_narratives=(), narrative_relationship_copy=copy)
+        self.assertNotIn('id="related-narratives-title"', empty)
+
     def test_investigation_context_includes_group_memory_from_selected_run(self):
         investigation = build_narrative_investigation(
             sample_run(),

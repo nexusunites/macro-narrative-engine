@@ -95,6 +95,27 @@ def constellation_copy(key: str) -> str:
     """Return fixed, user-safe copy for Narrative Constellation."""
     return NARRATIVE_CONSTELLATION_COPY[key]
 
+
+NARRATIVE_RELATIONSHIP_COPY = {
+    "type_SUPPORTIVE": "Supportive connection",
+    "type_DEPENDENCY": "Dependency",
+    "type_OVERLAP": "Evidence overlap",
+    "type_TRANSMISSION": "Transmission channel",
+    "type_OFFSETTING": "Offsetting pressure",
+    "type_CONDITIONAL": "Conditional connection",
+    "type_SHARED_DRIVER": "Shared driver",
+    "strength_STRONG": "Strong structural connection",
+    "strength_MODERATE": "Moderate structural connection",
+    "strength_LIMITED": "Limited structural connection",
+    "section_eyebrow": "Connected context",
+    "section_title": "Related narratives",
+    "section_intro": "Curated structural connections that can help frame this narrative.",
+}
+
+
+def narrative_relationship_copy(key: str) -> str:
+    return NARRATIVE_RELATIONSHIP_COPY[key]
+
 HISTORICAL_COPY = {
     "archive_label": "Historical Narratives",
     "archive_intro": "Browse completed reconstructions of what the available evidence showed at an earlier market cutoff.",

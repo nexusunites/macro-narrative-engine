@@ -30,7 +30,7 @@ from mne.historical_research_view import (
     build_user_historical_view,
     list_user_replays,
 )
-from mne.presentation_language import HISTORICAL_COPY, NARRATIVE_HISTORY_COPY
+from mne.presentation_language import HISTORICAL_COPY, NARRATIVE_HISTORY_COPY, NARRATIVE_RELATIONSHIP_COPY
 from mne.presentation_language import historical_request_category
 from mne.presentation_language import historical_request_outcome
 from mne.historical_replay_admin import (
@@ -43,6 +43,7 @@ from mne.historical_replay_admin import (
 )
 from mne.narrative_signals import compute_group_scores
 from mne.narrative_constellation import build_constellation_context
+from mne.narrative_relationships import NarrativeRelationshipError, get_relationships_for_group
 from mne.narrative_history import build_narrative_history
 from mne.historical_connection import load_current_and_historical_context
 from mne.explanation_layer import explain_lifecycle_state
@@ -2036,6 +2037,15 @@ def build_investigation_context(request: Request, key: str, admin: bool = False)
         history=context["history"],
     )
     context["historical_connection_copy"] = HISTORICAL_CONNECTION_COPY
+    context["narrative_relationship_copy"] = NARRATIVE_RELATIONSHIP_COPY
+    try:
+        context["related_narratives"] = (
+            get_relationships_for_group(narrative_id)
+            if narrative_level == "group"
+            else ()
+        )
+    except NarrativeRelationshipError:
+        context["related_narratives"] = ()
     context["history_copy"] = NARRATIVE_HISTORY_COPY
     context["narrative_key"] = key
     return context

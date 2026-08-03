@@ -63,6 +63,16 @@ class NarrativeConstellationTests(unittest.TestCase):
         fake = {**nodes[0], "key": "theme:fake", "taxonomy_key": "fake", "level": "theme", "parent_group": "AI / Tech Growth"}
         self.assertNotIn("theme:fake", {r["target"] for r in build_group_theme_relationships(nodes + [fake])})
 
+    def test_cross_group_relationships_are_curated_visible_and_distinct(self):
+        context = build_constellation_context(populated_run())
+        relationships = [item for item in context["relationships"] if item["type"] == "cross_group"]
+        self.assertEqual(len(relationships), 3)
+        self.assertTrue(all(item["label"] and item["explanation"] for item in relationships))
+        geopolitical = next(node for node in context["nodes"] if node["taxonomy_key"] == "Geopolitical Risk")
+        self.assertEqual(geopolitical["related_keys"], [])
+        ai = next(node for node in context["nodes"] if node["taxonomy_key"] == "AI / Tech Growth")
+        self.assertEqual(ai["related_keys"], ["Energy / Commodities", "Macro Pressure"])
+
     def test_context_and_positions_are_byte_stable(self):
         first = build_constellation_context(populated_run())
         second = build_constellation_context(populated_run())
@@ -103,6 +113,8 @@ class NarrativeConstellationTests(unittest.TestCase):
         self.assertIn("<a href=", template)
         self.assertIn("tabindex=\"0\"", template)
         self.assertIn("data-constellation-xray", template)
+        self.assertIn("relationship-{{ relation.type }}", template)
+        self.assertIn("relationship-cross_group", css)
         self.assertIn("@media (max-width: 430px)", css)
         self.assertIn("prefers-reduced-motion: reduce", css)
 
@@ -112,6 +124,8 @@ class NarrativeConstellationTests(unittest.TestCase):
         self.assertIn("<svg", populated)
         self.assertIn("AI / Tech Growth", populated)
         self.assertIn("X-Ray View", populated)
+        self.assertIn("Infrastructure demand connection", populated)
+        self.assertIn("AI infrastructure growth is connected to rising power demand.", populated)
         single = template.render(view={"narrative_constellation": build_constellation_context({"group_scores": {"Macro Pressure": 2}})})
         self.assertEqual(single.count("constellation-node-group"), 1)
         empty = template.render(view={"narrative_constellation": build_constellation_context({"group_scores": {"broken": "nope"}})})
