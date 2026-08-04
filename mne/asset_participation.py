@@ -52,6 +52,9 @@ def classify_assets_for_run(run: dict[str, Any], asset_map: Any, registry: dict[
     rows = {}
     for mapping in dict(asset_map.narratives).get(narrative, ()):
         asset = registry["assets"].get(mapping.ticker)
-        result = classify_asset_participation(mapping, snapshot.get(mapping.ticker), asset, now=now)
+        record = snapshot.get(mapping.ticker)
+        if record is None and isinstance(asset, dict) and asset.get("asset_type") == "ETF" and asset.get("sector_key"):
+            record = snapshot.get(asset["sector_key"])
+        result = classify_asset_participation(mapping, record, asset, now=now)
         rows[mapping.ticker] = result
     return {"assets": rows}

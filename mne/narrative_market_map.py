@@ -1,3 +1,10 @@
+"""Deprecated legacy narrative map retained for persisted-output compatibility.
+
+Canonical real-instrument identity, structural narrative relevance, and market
+expression evaluation live in the versioned config registries. Do not add new
+consumers or mappings here; removal requires proof that no compatibility consumer remains.
+"""
+
 CONTEXT_NOTE = (
     "These assets are narrative-expression proxies and not trade recommendations."
 )

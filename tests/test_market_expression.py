@@ -124,6 +124,15 @@ class MarketExpressionTests(unittest.TestCase):
         self.assertFalse(loaded["valid"])
         self.assertEqual(loaded["narratives"], {})
 
+    def test_unknown_instrument_fails_closed(self):
+        payload = json.loads(DEFAULT_EXPRESSION_MAP_PATH.read_text(encoding="utf-8"))
+        payload["narratives"]["AI / Tech Growth"]["primary"][0]["asset"] = "TYPO"
+        path = Path("/tmp/mne-unknown-market-expression.json")
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        loaded = load_market_expression_map(path)
+        self.assertFalse(loaded["valid"])
+        self.assertIn("unknown instrument", loaded["errors"][0])
+
     def test_primary_asset_confirmation_detected(self):
         result = classify_instrument_expression(
             {"asset": "QQQ", "label": "growth", "confirming_direction": "UP"},

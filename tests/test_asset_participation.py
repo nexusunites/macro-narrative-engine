@@ -50,5 +50,36 @@ class AssetParticipationTests(unittest.TestCase):
         self.assertNotIn("yfinance", source)
         self.assertNotIn("requests", source)
 
+    def test_sector_etf_falls_back_to_persisted_sector_slug(self):
+        mapping_type = type(next(iter(dict(self.asset_map.narratives).values()))[0])
+        direct_sector_map = type(self.asset_map)(self.asset_map.version, (("AI / Tech Growth", (mapping_type("XLK", "PRIMARY", "Technology sector.", True, "UP"),)),))
+        rows = classify_assets_for_run({"market_snapshot": {"technology": record(.5)}}, direct_sector_map, self.registry, "AI / Tech Growth", now=NOW)["assets"]
+        self.assertEqual("PARTICIPATING", rows["XLK"]["participation_state"])
+
+    def test_company_assets_do_not_reuse_sector_slug_records(self):
+        rows = classify_assets_for_run({"market_snapshot": {"technology": record(1.5)}}, self.asset_map, self.registry, "AI / Tech Growth", now=NOW)["assets"]
+        self.assertEqual("UNAVAILABLE", rows["MSFT"]["participation_state"])
+
+    def test_new_tickers_use_only_their_own_persisted_records(self):
+        fixtures = {
+            "AI / Tech Growth": {"MSFT": record(.5)},
+            "Energy / Commodities": {"XOM": record(.5), "CVX": record(.5), "SLB": record(.5)},
+            "Macro Pressure": {"TLT": record(-.5), "HYG": record(-.5)},
+        }
+        for narrative, snapshot in fixtures.items():
+            with self.subTest(narrative=narrative):
+                rows = classify_assets_for_run({"market_snapshot": snapshot}, self.asset_map, self.registry, narrative, now=NOW)["assets"]
+                for ticker in snapshot:
+                    self.assertEqual("PARTICIPATING", rows[ticker]["participation_state"])
+
+    def test_old_snapshot_keeps_all_six_new_assets_unavailable(self):
+        for narrative, tickers in {
+            "AI / Tech Growth": ("MSFT",),
+            "Energy / Commodities": ("XOM", "CVX", "SLB"),
+            "Macro Pressure": ("TLT", "HYG"),
+        }.items():
+            rows = classify_assets_for_run({"market_snapshot": {}}, self.asset_map, self.registry, narrative, now=NOW)["assets"]
+            self.assertTrue(all(rows[ticker]["participation_state"] == "UNAVAILABLE" for ticker in tickers))
+
 
 if __name__ == "__main__": unittest.main()

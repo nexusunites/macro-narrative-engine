@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from mne.market_context import classify_market_move
+from mne.asset_exploration import load_asset_registry, load_synthetic_concepts
 
 
 DEFAULT_EXPRESSION_MAP_PATH = (
@@ -78,6 +79,10 @@ def load_market_expression_map(path: str | Path | None = None) -> dict[str, Any]
     if not isinstance(narratives, dict) or not narratives:
         return _closed_config("Market expression map has no valid narratives.")
 
+    try:
+        valid_identifiers = set(load_asset_registry()["assets"]) | set(load_synthetic_concepts()["concepts"])
+    except ValueError as error:
+        return _closed_config(f"Instrument registries could not be loaded: {error}")
     normalized = {}
     for narrative_key, entry in narratives.items():
         if not isinstance(narrative_key, str) or not isinstance(entry, dict):
@@ -104,6 +109,10 @@ def load_market_expression_map(path: str | Path | None = None) -> dict[str, Any]
                 ):
                     return _closed_config(
                         f"{narrative_key}.{role} contains a malformed instrument."
+                    )
+                if instrument["asset"] not in valid_identifiers:
+                    return _closed_config(
+                        f"{narrative_key}.{role} references an unknown instrument."
                     )
                 normalized_entry[role].append(
                     {

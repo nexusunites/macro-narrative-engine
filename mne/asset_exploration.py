@@ -16,8 +16,9 @@ from mne.sector_isolation import SECTOR_KEYS
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ASSET_REGISTRY_PATH = ROOT / "config" / "asset_registry.json"
 DEFAULT_NARRATIVE_ASSET_MAP_PATH = ROOT / "config" / "narrative_asset_map.json"
+DEFAULT_SYNTHETIC_CONCEPTS_PATH = ROOT / "config" / "synthetic_market_concepts.json"
 ASSET_TYPES = frozenset({"ETF", "EQUITY", "INDEX"})
-BROAD_MARKET_ROLES = frozenset({"GROWTH_INDEX", "VOLATILITY", "CURRENCY", "BREADTH"})
+BROAD_MARKET_ROLES = frozenset({"GROWTH_INDEX", "VOLATILITY", "CURRENCY", "BREADTH", "RATES_DURATION", "CREDIT_SPREAD"})
 STRUCTURAL_ROLES = frozenset({"PRIMARY", "SECONDARY", "OFFSET", "CONTEXT"})
 _ROLE_ORDER = {"PRIMARY": 0, "SECONDARY": 1, "OFFSET": 2, "CONTEXT": 3}
 _SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
@@ -49,7 +50,32 @@ def _text(record: dict, key: str, location: str) -> str:
     return value.strip()
 
 
-def validate_asset_registry(data: Any) -> dict[str, Any]:
+def validate_synthetic_concepts(data: Any) -> dict[str, Any]:
+    if not isinstance(data, dict) or not isinstance(data.get("concepts"), dict):
+        raise AssetRegistryError("synthetic concept registry must contain a concepts object")
+    version = data.get("version")
+    if not isinstance(version, str) or not _SEMVER.fullmatch(version):
+        raise AssetRegistryError("synthetic concept version must use semantic versioning")
+    concepts = {}
+    for identifier, record in data["concepts"].items():
+        key = _text({"identifier": identifier}, "identifier", "concepts").upper()
+        if key in concepts or not isinstance(record, dict):
+            raise AssetRegistryError(f"concepts.{key} is duplicated or malformed")
+        description = _text(record, "description", f"concepts.{key}")
+        if record.get("tradable") is not False:
+            raise AssetRegistryError(f"concepts.{key}.tradable must be false")
+        concepts[key] = {"description": description, "tradable": False}
+    return {"version": version, "concepts": concepts}
+
+
+def load_synthetic_concepts(path: str | Path = DEFAULT_SYNTHETIC_CONCEPTS_PATH) -> dict[str, Any]:
+    try:
+        return validate_synthetic_concepts(json.loads(Path(path).read_text(encoding="utf-8")))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise AssetRegistryError(f"unable to load synthetic concept registry: {exc}") from exc
+
+
+def validate_asset_registry(data: Any, synthetic_concepts: dict[str, Any] | None = None) -> dict[str, Any]:
     if not isinstance(data, dict) or not isinstance(data.get("assets"), dict):
         raise AssetRegistryError("asset registry must contain an assets object")
     version = data.get("version")
@@ -76,13 +102,22 @@ def validate_asset_registry(data: Any) -> dict[str, Any]:
             raise AssetRegistryError(f"{location} must set exactly one of sector_key and broad_market_role")
         if not isinstance(record.get("display_enabled"), bool):
             raise AssetRegistryError(f"{location}.display_enabled must be boolean")
-        assets[ticker] = {"display_name": display_name, "asset_type": asset_type, "sector_key": sector_key, "broad_market_role": broad_role, "display_enabled": record["display_enabled"]}
+        if not isinstance(record.get("fetched"), bool):
+            raise AssetRegistryError(f"{location}.fetched must be boolean")
+        if not record["fetched"] and record["display_enabled"]:
+            raise AssetRegistryError(f"{location} cannot display an unfetched asset")
+        assets[ticker] = {"display_name": display_name, "asset_type": asset_type, "sector_key": sector_key, "broad_market_role": broad_role, "fetched": record["fetched"], "display_enabled": record["display_enabled"]}
+    concepts = (synthetic_concepts or {}).get("concepts", {})
+    collision = sorted(set(assets) & set(concepts))
+    if collision:
+        raise AssetRegistryError(f"real assets collide with synthetic concepts: {', '.join(collision)}")
     return {"version": version, "assets": assets}
 
 
 def load_asset_registry(path: str | Path = DEFAULT_ASSET_REGISTRY_PATH) -> dict[str, Any]:
     try:
-        return validate_asset_registry(json.loads(Path(path).read_text(encoding="utf-8")))
+        concepts = load_synthetic_concepts() if Path(path) == DEFAULT_ASSET_REGISTRY_PATH else None
+        return validate_asset_registry(json.loads(Path(path).read_text(encoding="utf-8")), concepts)
     except (OSError, json.JSONDecodeError) as exc:
         raise AssetRegistryError(f"unable to load asset registry: {exc}") from exc
 
@@ -110,6 +145,8 @@ def validate_narrative_asset_map(data: Any, registry: dict[str, Any] | None = No
             rationale = _text(item, "rationale", location)
             if ticker not in registry["assets"] or ticker in seen:
                 raise AssetRegistryError(f"{location}.ticker is unknown or duplicated")
+            if not registry["assets"][ticker].get("fetched"):
+                raise AssetRegistryError(f"{location}.ticker must be a fetched asset")
             if role not in STRUCTURAL_ROLES:
                 raise AssetRegistryError(f"{location}.role is invalid")
             expected = item.get("expected_expression")

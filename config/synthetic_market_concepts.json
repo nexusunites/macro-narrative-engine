@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "concepts": {
+    "RATES": {"description": "Interest-rate policy pressure, not backed by a single tradable instrument.", "tradable": false},
+    "CLOUD": {"description": "Cloud infrastructure spending as a conceptual aggregate.", "tradable": false},
+    "DATA_CENTER": {"description": "Data-center infrastructure demand as a conceptual aggregate.", "tradable": false},
+    "CRUDE_OIL": {"description": "Crude-oil market conditions as a conceptual aggregate.", "tradable": false},
+    "COMMODITY_FX": {"description": "Commodity-linked currency conditions as a conceptual aggregate.", "tradable": false},
+    "GROWTH_CONCERNS": {"description": "Market concern about economic growth as a conceptual aggregate.", "tradable": false}
+  }
+}

@@ -116,6 +116,15 @@ NASDAQ_TICKERS = {
     "DXY": "DX-Y.NYB",
 }
 
+ASSET_EXPANSION_TICKERS = {
+    "MSFT": "MSFT",
+    "XOM": "XOM",
+    "CVX": "CVX",
+    "SLB": "SLB",
+    "TLT": "TLT",
+    "HYG": "HYG",
+}
+
 TREND_LOOKBACK = 5
 TREND_EPSILON = 0.02
 ZERO_HEADLINE_WARNING = (
@@ -405,6 +414,7 @@ def main(args=None):
     total_mentions = concentration["total_mentions"]
     share = concentration["dominant_share"]
     concentration_gap = concentration["concentration_gap"]
+    # Legacy compatibility output; canonical mappings live in the versioned config registries.
     market_expression = get_market_expression(top_theme)
     signals = {}
     market_snapshot = {}
@@ -492,7 +502,7 @@ def main(args=None):
 
         sector_tickers = build_sector_ticker_map()
         market_snapshot = get_market_snapshot(
-            {**NASDAQ_TICKERS, **BREADTH_TICKERS, **sector_tickers},
+            {**NASDAQ_TICKERS, **BREADTH_TICKERS, **sector_tickers, **ASSET_EXPANSION_TICKERS},
             observed_at=stamp,
         )
         market_environment = classify_market_environment(

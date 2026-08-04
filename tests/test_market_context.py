@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from mne.market_context import get_market_snapshot
+from main import ASSET_EXPANSION_TICKERS
 
 
 class _Series:
@@ -34,6 +35,16 @@ class MarketContextTests(unittest.TestCase):
         result = get_market_snapshot({"technology": "XLK", "energy": "XLE"}, observed_at="stamp")
         self.assertIsNone(result["technology"])
         self.assertEqual(1.0, result["energy"]["pct_change"])
+
+    @patch("mne.market_context.yf.Ticker")
+    def test_expansion_fetch_order_timestamp_and_failure_isolation(self, ticker):
+        class GoodTicker:
+            def history(self, period): return _History([100, 101])
+        ticker.side_effect = [GoodTicker(), RuntimeError("missing"), GoodTicker(), GoodTicker(), GoodTicker(), GoodTicker()]
+        result = get_market_snapshot(ASSET_EXPANSION_TICKERS, observed_at="stamp")
+        self.assertEqual(list(ASSET_EXPANSION_TICKERS), list(result))
+        self.assertIsNone(result["XOM"])
+        self.assertTrue(all(record["observed_at"] == "stamp" for record in result.values() if record))
 
 
 if __name__ == "__main__":

@@ -3,13 +3,20 @@
   "narratives": {
     "AI / Tech Growth": {"assets": [
       {"ticker": "NVDA", "role": "PRIMARY", "expected_expression": "UP", "rationale": "NVIDIA is one of the clearest company-level expressions of the AI infrastructure narrative.", "display_enabled": true},
+      {"ticker": "MSFT", "role": "SECONDARY", "expected_expression": "UP", "rationale": "Microsoft adds a cloud, software, and OpenAI-partnership angle to the AI / Tech Growth narrative, distinct from NVIDIA's chip-focused position.", "display_enabled": true},
       {"ticker": "QQQ", "role": "SECONDARY", "expected_expression": "UP", "rationale": "QQQ provides broad exposure to large-cap growth and technology companies connected to the AI-led narrative.", "display_enabled": true},
       {"ticker": "VIX", "role": "OFFSET", "expected_expression": "DOWN", "rationale": "Falling volatility is consistent with confidence in growth-oriented narratives; rising volatility can pressure them.", "display_enabled": true}
     ]},
-    "Energy / Commodities": {"assets": []},
+    "Energy / Commodities": {"assets": [
+      {"ticker": "XOM", "role": "PRIMARY", "expected_expression": "UP", "rationale": "Exxon Mobil is a large integrated producer that provides a liquid, widely recognized Energy narrative proxy.", "display_enabled": true},
+      {"ticker": "CVX", "role": "PRIMARY", "expected_expression": "UP", "rationale": "Chevron adds a second integrated-major observation for breadth and robustness, reducing reliance on a single company's movement.", "display_enabled": true},
+      {"ticker": "SLB", "role": "SECONDARY", "expected_expression": "UP", "rationale": "SLB provides an oilfield-services and investment-cycle view, a distinct value-chain position from integrated producers.", "display_enabled": true}
+    ]},
     "Macro Pressure": {"assets": [
       {"ticker": "VIX", "role": "PRIMARY", "expected_expression": "UP", "rationale": "Rising volatility is a direct market expression of broad macro pressure.", "display_enabled": true},
       {"ticker": "DXY", "role": "PRIMARY", "expected_expression": "UP", "rationale": "Dollar strength can reflect tighter global financial conditions and defensive demand.", "display_enabled": true},
+      {"ticker": "TLT", "role": "PRIMARY", "expected_expression": "DOWN", "rationale": "TLT provides a direct long-duration rates observation, distinct from volatility and currency measures of Macro Pressure.", "display_enabled": true},
+      {"ticker": "HYG", "role": "SECONDARY", "expected_expression": "DOWN", "rationale": "HYG provides a credit-risk and spread observation, a distinct dimension from TLT's duration exposure.", "display_enabled": true},
       {"ticker": "QQQ", "role": "OFFSET", "expected_expression": "DOWN", "rationale": "Growth-sensitive equities can face pressure as macro and financial conditions tighten.", "display_enabled": true},
       {"ticker": "NVDA", "role": "OFFSET", "expected_expression": "DOWN", "rationale": "AI market leadership can weaken when broad macro pressure constrains growth-sensitive assets.", "display_enabled": true}
     ]}
