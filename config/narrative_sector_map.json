@@ -3,24 +3,24 @@
   "narratives": {
     "AI / Tech Growth": {
       "sectors": [
-        {"sector": "technology", "role": "PRIMARY", "rationale": "Semiconductors, cloud infrastructure, and software are direct expressions of AI investment.", "display_enabled": true},
-        {"sector": "communication_services", "role": "SECONDARY", "rationale": "Digital platforms and communications infrastructure are meaningful channels for AI adoption.", "display_enabled": true},
-        {"sector": "utilities", "role": "EMERGING", "rationale": "Data-center expansion is developing a structural connection through increased power demand.", "display_enabled": true},
-        {"sector": "industrials", "role": "EMERGING", "rationale": "Data-center construction and supporting infrastructure create a developing industrial connection.", "display_enabled": true}
+        {"sector": "technology", "role": "PRIMARY", "expected_expression": "UP", "rationale": "Semiconductors, cloud infrastructure, and software are direct expressions of AI investment.", "display_enabled": true},
+        {"sector": "communication_services", "role": "SECONDARY", "expected_expression": "UP", "rationale": "Digital platforms and communications infrastructure are meaningful channels for AI adoption.", "display_enabled": true},
+        {"sector": "utilities", "role": "EMERGING", "expected_expression": "UP", "rationale": "Data-center expansion is developing a structural connection through increased power demand.", "display_enabled": true},
+        {"sector": "industrials", "role": "EMERGING", "expected_expression": "UP", "rationale": "Data-center construction and supporting infrastructure create a developing industrial connection.", "display_enabled": true}
       ]
     },
     "Energy / Commodities": {
       "sectors": [
-        {"sector": "energy", "role": "PRIMARY", "rationale": "Energy producers and services are the most direct sector expression of energy and commodity developments.", "display_enabled": true},
-        {"sector": "materials", "role": "SECONDARY", "rationale": "Materials businesses are meaningfully connected through commodity production and input prices.", "display_enabled": true},
-        {"sector": "utilities", "role": "SECONDARY", "rationale": "Utilities are meaningfully connected through fuel costs and sensitivity to energy input prices.", "display_enabled": true}
+        {"sector": "energy", "role": "PRIMARY", "expected_expression": "UP", "rationale": "Energy producers and services are the most direct sector expression of energy and commodity developments.", "display_enabled": true},
+        {"sector": "materials", "role": "SECONDARY", "expected_expression": "UP", "rationale": "Materials businesses are meaningfully connected through commodity production and input prices.", "display_enabled": true},
+        {"sector": "utilities", "role": "SECONDARY", "expected_expression": "DOWN", "rationale": "Utilities are meaningfully connected through fuel costs and sensitivity to energy input prices.", "display_enabled": true}
       ]
     },
     "Macro Pressure": {
       "sectors": [
-        {"sector": "financials", "role": "PRIMARY", "rationale": "Financial businesses are directly exposed to interest rates, credit conditions, and the shape of the yield curve.", "display_enabled": true},
-        {"sector": "real_estate", "role": "SECONDARY", "rationale": "Real estate is meaningfully connected through financing costs and rate sensitivity.", "display_enabled": true},
-        {"sector": "consumer_discretionary", "role": "OFFSET", "rationale": "Discretionary spending can face counter-pressure when financial conditions tighten.", "display_enabled": true}
+        {"sector": "financials", "role": "PRIMARY", "expected_expression": "DOWN", "rationale": "Financial businesses are directly exposed to interest rates, credit conditions, and the shape of the yield curve.", "display_enabled": true},
+        {"sector": "real_estate", "role": "SECONDARY", "expected_expression": "DOWN", "rationale": "Real estate is meaningfully connected through financing costs and rate sensitivity.", "display_enabled": true},
+        {"sector": "consumer_discretionary", "role": "OFFSET", "expected_expression": "DOWN", "rationale": "Discretionary spending can face counter-pressure when financial conditions tighten.", "display_enabled": true}
       ]
     }
   }

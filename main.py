@@ -28,6 +28,7 @@ from mne.evidence import (
 )
 from mne.headline_deduplication import dedupe_headlines
 from mne.market_context import get_market_snapshot
+from mne.sector_market_context import build_sector_ticker_map
 from mne.market_expression import build_market_expression_for_run
 from mne.macro_calendar_ingestion import (
     auto_refresh_macro_calendar_enabled,
@@ -489,7 +490,11 @@ def main(args=None):
         signals = compute_narrative_signals(top_theme, share, concentration_gap, theme_scores)
         print_narrative_signals(signals)
 
-        market_snapshot = get_market_snapshot({**NASDAQ_TICKERS, **BREADTH_TICKERS})
+        sector_tickers = build_sector_ticker_map()
+        market_snapshot = get_market_snapshot(
+            {**NASDAQ_TICKERS, **BREADTH_TICKERS, **sector_tickers},
+            observed_at=stamp,
+        )
         market_environment = classify_market_environment(
             theme_scores=theme_scores,
             group_scores=group_scores,

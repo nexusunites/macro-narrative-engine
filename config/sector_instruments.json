@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "sectors": {
+    "technology": {"display_name": "Technology", "instrument": "XLK", "instrument_type": "sector_etf", "display_enabled": true},
+    "communication_services": {"display_name": "Communication Services", "instrument": "XLC", "instrument_type": "sector_etf", "display_enabled": true},
+    "consumer_discretionary": {"display_name": "Consumer Discretionary", "instrument": "XLY", "instrument_type": "sector_etf", "display_enabled": true},
+    "financials": {"display_name": "Financials", "instrument": "XLF", "instrument_type": "sector_etf", "display_enabled": true},
+    "industrials": {"display_name": "Industrials", "instrument": "XLI", "instrument_type": "sector_etf", "display_enabled": true},
+    "energy": {"display_name": "Energy", "instrument": "XLE", "instrument_type": "sector_etf", "display_enabled": true},
+    "materials": {"display_name": "Materials", "instrument": "XLB", "instrument_type": "sector_etf", "display_enabled": true},
+    "utilities": {"display_name": "Utilities", "instrument": "XLU", "instrument_type": "sector_etf", "display_enabled": true},
+    "real_estate": {"display_name": "Real Estate", "instrument": "XLRE", "instrument_type": "sector_etf", "display_enabled": true},
+    "consumer_staples": {"display_name": "Consumer Staples", "instrument": "XLP", "instrument_type": "sector_etf", "display_enabled": true},
+    "health_care": {"display_name": "Health Care", "instrument": "XLV", "instrument_type": "sector_etf", "display_enabled": true}
+  }
+}

@@ -44,7 +44,8 @@ from mne.historical_replay_admin import (
 from mne.narrative_signals import compute_group_scores
 from mne.narrative_constellation import build_constellation_context
 from mne.narrative_relationships import NarrativeRelationshipError, get_relationships_for_group
-from mne.sector_isolation import SectorIsolationError, build_sector_isolation_context, build_sector_isolation_preview
+from mne.sector_isolation import SectorIsolationError, build_sector_isolation_context, build_sector_isolation_preview, load_sector_map
+from mne.sector_market_context import NarrativeSectorInstrumentError, classify_sectors_for_run
 from mne.narrative_history import build_narrative_history
 from mne.historical_connection import load_current_and_historical_context
 from mne.explanation_layer import explain_lifecycle_state
@@ -1640,7 +1641,13 @@ def build_view_model(run, current_file):
         dynamics,
     )
     narrative_constellation = build_constellation_context(run)
-    sector_isolation_preview = build_sector_isolation_preview(run, run.get("dominant_group"))
+    sector_map = load_sector_map()
+    sector_participation = classify_sectors_for_run(
+        run, sector_map, run.get("dominant_group"), now=datetime.now().astimezone()
+    ) if run.get("dominant_group") else None
+    sector_isolation_preview = build_sector_isolation_preview(
+        run, run.get("dominant_group"), participation=sector_participation, config=sector_map
+    )
     from analysis.leadership_rotation import get_rotation
 
     try:
@@ -2008,6 +2015,7 @@ def build_investigation_context(request: Request, key: str, admin: bool = False)
         "notice": selection.notice,
         "investigation": None,
         "is_admin": admin,
+        "_run": run,
     }
     narrative_level, narrative_id = split_narrative_key(key)
     if not narrative_level:
@@ -2490,8 +2498,12 @@ def sector_isolation(request: Request, key: str):
         context["sector_isolation"] = None
     else:
         try:
-            context["sector_isolation"] = build_sector_isolation_context(narrative_id)
-        except SectorIsolationError:
+            sector_map = load_sector_map()
+            participation = classify_sectors_for_run(
+                context.get("_run") or {}, sector_map, narrative_id, now=datetime.now().astimezone()
+            )
+            context["sector_isolation"] = build_sector_isolation_context(narrative_id, sector_map, participation)
+        except (SectorIsolationError, NarrativeSectorInstrumentError):
             context["message"] = "Sector relationships are temporarily unavailable."
             context["sector_isolation"] = None
     return templates.TemplateResponse("sector_isolation.html", context)

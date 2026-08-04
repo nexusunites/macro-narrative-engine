@@ -4968,8 +4968,10 @@ input:focus-visible,
 .sector-role-offset { border-style:dashed; border-width:2px; }
 .sector-role-detached { border-color:var(--border); }
 .sector-participation-marker { width:28px; height:4px; border-radius:999px; background:var(--muted); }
+.participation-strong .sector-participation-marker,.participation-participating .sector-participation-marker,.participation-emerging .sector-participation-marker { background:var(--up); }
+.participation-contradicting .sector-participation-marker { background:var(--down); }
 .sector-role-label { color:var(--muted-strong); font-weight:650; }
-.sector-participation-label,.sector-rationale { color:var(--muted); font-size:12px; }
+.sector-participation-label,.sector-rationale,.sector-instrument { color:var(--muted); font-size:12px; }
 .sector-detail-fallback details { border-top:1px solid var(--border); padding:14px 0; }
 .sector-detail-fallback summary { cursor:pointer; min-height:44px; font-weight:700; }
 .sector-data-honesty { border-left:3px solid var(--muted); }

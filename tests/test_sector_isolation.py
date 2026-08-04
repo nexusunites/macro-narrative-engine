@@ -11,7 +11,6 @@ from mne.sector_isolation import (
     SectorIsolationError,
     build_sector_isolation_context,
     build_sector_isolation_preview,
-    classify_sector_participation,
     load_sector_map,
     validate_sector_map,
 )
@@ -44,10 +43,13 @@ class SectorIsolationTests(unittest.TestCase):
         context = build_sector_isolation_context("AI / Tech Growth", validate_sector_map(fixture))
         self.assertEqual((), context["sectors"])
 
-    def test_participation_is_unconditionally_unavailable(self):
+    def test_participation_is_passed_through_without_changing_structure(self):
         self.assertIn("UNAVAILABLE", PARTICIPATION_STATES)
-        for args in [(), ("AI / Tech Growth", "technology"), ({"price": 999},)]:
-            self.assertEqual("UNAVAILABLE", classify_sector_participation(*args))
+        participation = {"sectors": {"technology": {"participation_state": "STRONG", "data_freshness": "FRESH", "instrument": "XLK", "participation_label_key": "participation_STRONG", "participation_explanation_key": "participation_explanation_STRONG", "freshness_label_key": "freshness_FRESH"}}, "participation_breadth": {"state": "CONCENTRATED", "fresh_count": 1, "confirming_count": 1}}
+        row = build_sector_isolation_context("AI / Tech Growth", participation=participation)["sectors"][0]
+        self.assertEqual("PRIMARY", row["structural_role"])
+        self.assertEqual("STRONG", row["participation_state"])
+        self.assertEqual("XLK", row["instrument"])
 
     def test_structural_role_and_participation_are_separate_and_honest(self):
         context = build_sector_isolation_context("AI / Tech Growth")
@@ -79,7 +81,7 @@ class SectorIsolationTests(unittest.TestCase):
         partial = (ROOT / "templates" / "_partials" / "sector_heatmap.html").read_text()
         self.assertIn("data-sector-xray", source)
         self.assertIn("participation_explanation", source)
-        self.assertIn("Supporting sector instruments: none available", source)
+        self.assertIn("Supporting sector instrument:", source)
         self.assertIn("aria-label", partial)
         self.assertIn("sector.role_label", partial)
         self.assertIn("sector.participation_label", partial)

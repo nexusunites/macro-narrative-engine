@@ -1,7 +1,7 @@
 import yfinance as yf
 
 
-def get_market_snapshot(tickers):
+def get_market_snapshot(tickers, observed_at=None):
     snapshot = {}
 
     for name, ticker in tickers.items():
@@ -24,6 +24,7 @@ def get_market_snapshot(tickers):
             "ticker": ticker,
             "latest_close": round(float(latest_close), 2),
             "pct_change": round(float(pct_change), 2),
+            "observed_at": observed_at,
         }
 
     return snapshot
