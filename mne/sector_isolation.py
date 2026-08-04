@@ -133,7 +133,7 @@ def build_sector_isolation_context(narrative: str, config: SectorMapConfig | Non
             "participation_explanation": sector_isolation_copy(observed.get("participation_explanation_key", f"participation_explanation_{state}")),
             "available": freshness == "FRESH", "evidence_count": 0, "instruments": (instrument,) if instrument else (),
             "instrument": instrument, "pct_change": observed.get("pct_change"),
-            "href": f"/research/{encoded_key}/sectors#{mapping.sector}",
+            "href": f"/research/{encoded_key}/sectors/{mapping.sector}/assets",
         })
     sectors_tuple = tuple(sectors)
     participation_breadth = (participation or {}).get("participation_breadth", {"state": "UNAVAILABLE", "fresh_count": 0, "confirming_count": 0})

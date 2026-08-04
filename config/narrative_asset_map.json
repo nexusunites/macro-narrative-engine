@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "narratives": {
+    "AI / Tech Growth": {"assets": [
+      {"ticker": "NVDA", "role": "PRIMARY", "expected_expression": "UP", "rationale": "NVIDIA is one of the clearest company-level expressions of the AI infrastructure narrative.", "display_enabled": true},
+      {"ticker": "QQQ", "role": "SECONDARY", "expected_expression": "UP", "rationale": "QQQ provides broad exposure to large-cap growth and technology companies connected to the AI-led narrative.", "display_enabled": true},
+      {"ticker": "VIX", "role": "OFFSET", "expected_expression": "DOWN", "rationale": "Falling volatility is consistent with confidence in growth-oriented narratives; rising volatility can pressure them.", "display_enabled": true}
+    ]},
+    "Energy / Commodities": {"assets": []},
+    "Macro Pressure": {"assets": [
+      {"ticker": "VIX", "role": "PRIMARY", "expected_expression": "UP", "rationale": "Rising volatility is a direct market expression of broad macro pressure.", "display_enabled": true},
+      {"ticker": "DXY", "role": "PRIMARY", "expected_expression": "UP", "rationale": "Dollar strength can reflect tighter global financial conditions and defensive demand.", "display_enabled": true},
+      {"ticker": "QQQ", "role": "OFFSET", "expected_expression": "DOWN", "rationale": "Growth-sensitive equities can face pressure as macro and financial conditions tighten.", "display_enabled": true},
+      {"ticker": "NVDA", "role": "OFFSET", "expected_expression": "DOWN", "rationale": "AI market leadership can weaken when broad macro pressure constrains growth-sensitive assets.", "display_enabled": true}
+    ]}
+  }
+}

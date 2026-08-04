@@ -163,6 +163,41 @@ SECTOR_ISOLATION_COPY = {
 def sector_isolation_copy(key: str) -> str:
     return SECTOR_ISOLATION_COPY[key]
 
+ASSET_EXPLORATION_COPY = {
+    "role_PRIMARY": "Primary expression", "role_SECONDARY": "Secondary expression",
+    "role_OFFSET": "Offsetting expression", "role_CONTEXT": "Broader context",
+    "participation_STRONG": "Strong current participation",
+    "participation_PARTICIPATING": "Currently participating",
+    "participation_EMERGING": "Early current participation",
+    "participation_MUTED": "Current movement is limited",
+    "participation_CONTRADICTING": "Current move contradicts the expected expression",
+    "participation_UNAVAILABLE": "Current participation unavailable",
+    "participation_explanation_STRONG": "Fresh persisted data shows a strong move in the curated expected direction.",
+    "participation_explanation_PARTICIPATING": "Fresh persisted data is moving meaningfully in the curated expected direction.",
+    "participation_explanation_EMERGING": "Fresh persisted data shows a smaller move in the curated expected direction.",
+    "participation_explanation_MUTED": "Fresh persisted data exists, but current movement is limited.",
+    "participation_explanation_CONTRADICTING": "Fresh persisted data is moving meaningfully against the curated expected direction.",
+    "participation_explanation_UNAVAILABLE": "Current participation cannot be classified because data is missing, stale, malformed, or unsupported.",
+    "freshness_FRESH": "Based on the latest completed market session",
+    "freshness_STALE": "Older than the latest expected market session",
+    "freshness_UNAVAILABLE": "Observation time unavailable",
+    "breadth_CONTRADICTED": "Current asset participation includes a meaningful contradiction.",
+    "breadth_BROAD": "Current participation confirms across at least three mapped assets.",
+    "breadth_MODERATE": "Current participation confirms across two mapped assets.",
+    "breadth_CONCENTRATED": "Current participation confirms in one mapped asset.",
+    "breadth_LIMITED": "Only early current asset participation is visible.",
+    "breadth_UNAVAILABLE": "Current asset participation breadth is unavailable.",
+    "sector_etf_rationale": "This sector ETF represents the selected sector and reuses its current Sector Isolation observation.",
+    "curated_notice": "Asset relationships are curated from MNE's narrative model.",
+    "persisted_notice": "Current participation reflects available persisted market data.",
+    "unavailable_notice": "Unavailable assets are not assumed to be detached.",
+    "not_recommendation": "This view describes current market expression and is not a recommendation.",
+}
+
+
+def asset_exploration_copy(key: str) -> str:
+    return ASSET_EXPLORATION_COPY[key]
+
 HISTORICAL_COPY = {
     "archive_label": "Historical Narratives",
     "archive_intro": "Browse completed reconstructions of what the available evidence showed at an earlier market cutoff.",

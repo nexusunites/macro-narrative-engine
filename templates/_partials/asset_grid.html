@@ -1,0 +1,11 @@
+{% macro asset_grid(assets, label) -%}
+{% if assets %}<div class="asset-grid" role="list" aria-label="{{ label }}">
+{% for asset in assets %}<article class="asset-card participation-{{ asset.participation_state|lower }}" role="listitem" tabindex="0" aria-label="{{ asset.display_name }}: {{ asset.role_label }}; {{ asset.participation_label }}">
+  <p class="asset-rationale">{{ asset.rationale }}</p>
+  <h3>{{ asset.display_name }}</h3><small class="asset-ticker">{{ asset.ticker }} · {{ asset.asset_type }}</small>
+  <p><strong>{{ asset.role_label }}</strong><br>{{ asset.participation_label }}</p>
+  <p>{{ asset.participation_explanation }}</p>
+  <details data-asset-xray><summary>X-Ray View</summary><dl><dt>Ticker</dt><dd>{{ asset.ticker }}</dd><dt>Expected direction</dt><dd>{{ asset.expected_expression or "No separate directional claim" }}</dd><dt>Freshness</dt><dd>{{ asset.freshness_label }}</dd><dt>Sector relationship</dt><dd>{{ asset.sector_key|replace("_", " ")|title if asset.sector_key else "Broader market context" }}</dd><dt>Market Expression role</dt><dd>{{ asset.market_expression_role|title if asset.market_expression_role else "No matching role" }}</dd><dt>Latest persisted move</dt><dd>{{ (asset.pct_change|string + "%") if asset.pct_change is not none else "Unavailable" }}</dd></dl></details>
+  <a href="{{ asset.research_href }}">Return to narrative research →</a>
+</article>{% endfor %}</div>{% else %}<div class="section-empty">No supported assets are mapped in this section. Limited coverage is shown as unavailable rather than filled with unsupported instruments.</div>{% endif %}
+{%- endmacro %}
