@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 import json
+import math
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from mne.market_calendar import classify_session_freshness
 from mne.sector_isolation import SECTOR_KEYS, SectorMapConfig
 
 
 DEFAULT_SECTOR_INSTRUMENTS_PATH = Path(__file__).resolve().parents[1] / "config" / "sector_instruments.json"
-SECTOR_STALE_MAX_AGE = timedelta(hours=36)
 STRONG_MOVE_PCT = 1.0
 MEANINGFUL_MOVE_PCT = 0.25
 DETACHED_MOVE_EPSILON = 0.01
@@ -97,7 +98,7 @@ def _freshness(record: dict[str, Any] | None, now: Any) -> str:
     reference = _parse_timestamp(now) if now is not None else datetime.now(timezone.utc)
     if observed is None or reference is None:
         return "UNAVAILABLE"
-    return "STALE" if reference - observed > SECTOR_STALE_MAX_AGE else "FRESH"
+    return classify_session_freshness(observed, reference)
 
 
 def classify_sector_participation(mapping: Any, record: dict[str, Any] | None, instrument: dict[str, Any] | None, *, now: Any = None) -> dict[str, Any]:
@@ -110,16 +111,15 @@ def classify_sector_participation(mapping: Any, record: dict[str, Any] | None, i
         change = float(record.get("pct_change"))
     except (TypeError, ValueError):
         return base
+    if not math.isfinite(change):
+        return base
     absolute = abs(change)
-    role = mapping.role
     aligned = (change > 0 and mapping.expected_expression == "UP") or (change < 0 and mapping.expected_expression == "DOWN")
     if absolute < DETACHED_MOVE_EPSILON:
         state = "DETACHED"
-    elif role == "EMERGING":
-        state = "EMERGING" if aligned else "DETACHED"
-    elif not aligned and absolute >= MEANINGFUL_MOVE_PCT and role in {"PRIMARY", "SECONDARY"}:
+    elif not aligned and absolute >= MEANINGFUL_MOVE_PCT:
         state = "CONTRADICTING"
-    elif aligned and absolute >= STRONG_MOVE_PCT and role in {"PRIMARY", "SECONDARY"}:
+    elif aligned and absolute >= STRONG_MOVE_PCT:
         state = "STRONG"
     elif aligned and absolute >= MEANINGFUL_MOVE_PCT:
         state = "PARTICIPATING"

@@ -140,9 +140,9 @@ SECTOR_ISOLATION_COPY = {
     "participation_explanation_DETACHED": "Fresh sector ETF data is muted or is not expressing the curated direction meaningfully.",
     "participation_explanation_CONTRADICTING": "Fresh sector ETF data is moving meaningfully against the curated expected direction.",
     "participation_explanation_UNAVAILABLE": "Current sector-level market participation is unavailable because data is missing, stale, or not classifiable.",
-    "freshness_FRESH": "Fresh persisted data",
-    "freshness_STALE": "Stale persisted data",
-    "freshness_UNAVAILABLE": "Data freshness unavailable",
+    "freshness_FRESH": "Based on the latest completed market session",
+    "freshness_STALE": "Older than the latest expected market session",
+    "freshness_UNAVAILABLE": "Observation time unavailable",
     "breadth_CONTRADICTED": "Current participation includes a meaningful contradiction.",
     "breadth_BROAD": "Current participation is broad across the mapped sectors.",
     "breadth_MODERATE": "Current participation is visible across two mapped sectors.",
@@ -156,7 +156,7 @@ SECTOR_ISOLATION_COPY = {
     "separate_notice": "Structural relationships are curated separately from current market behavior.",
     "unavailable_not_detached": "Missing or stale data is shown as unavailable, not detached.",
     "not_forecast": "Sector participation describes current market expression, not a forecast.",
-    "calendar_limit": "Freshness uses elapsed time and does not yet account for exchange weekends or holidays.",
+    "calendar_limit": "Current sector data is from the most recent available session.",
 }
 
 
