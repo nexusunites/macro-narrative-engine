@@ -42,40 +42,6 @@ def print_narrative_signals(signals):
         print(f"{signal}: {value}")
 
 
-def append_market_expression(report_lines, market_expression):
-    if not isinstance(market_expression, dict):
-        return
-
-    report_lines.append("=== Market Expression Map ===")
-    report_lines.append("")
-    report_lines.append(f"Theme: {market_expression.get('display_theme') or 'Unavailable'}")
-    report_lines.append("")
-    report_lines.append("Primary Expressions:")
-    report_lines.extend(market_expression.get("primary") or ["None"])
-    report_lines.append("")
-    report_lines.append("Secondary Expressions:")
-    report_lines.extend(market_expression.get("secondary") or ["None"])
-    report_lines.append("")
-    report_lines.append("Potential Offsets:")
-    report_lines.extend(market_expression.get("offsets") or ["None"])
-    report_lines.append("")
-    report_lines.append("Description:")
-    report_lines.append(market_expression.get("description") or "Unavailable")
-    report_lines.append("")
-    report_lines.append("Context Only:")
-    report_lines.append(
-        market_expression.get("note")
-        or "These assets are narrative-expression proxies and not trade recommendations."
-    )
-
-
-def print_market_expression(market_expression):
-    print()
-    lines = []
-    append_market_expression(lines, market_expression)
-    print("\n".join(lines))
-
-
 def print_market_environment(environment):
     print()
     print("=== Market Environment ===")
@@ -431,7 +397,6 @@ def build_daily_report(
     theme_match_audit=None,
     operating_mode=None,
     mode_context=None,
-    market_expression=None,
 ):
     report_lines = []
 
@@ -456,10 +421,6 @@ def build_daily_report(
     report_lines.append("=== Narrative Signals ===")
     for signal, value in signals.items():
         report_lines.append(f"{signal}: {value}")
-
-    if market_expression:
-        report_lines.append("")
-        append_market_expression(report_lines, market_expression)
 
     if market_environment:
         report_lines.append("")

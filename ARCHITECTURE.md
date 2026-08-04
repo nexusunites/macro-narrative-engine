@@ -104,32 +104,32 @@ Examples:
 - AI narrative rising while QQQ/SMH are green and VIX is down suggests narrative support.
 - AI narrative rising while QQQ/SMH are red and VIX is up suggests narrative divergence.
 
-## Market Expression Map
+## Market Expression and Instrument Ownership
 
-`mne/narrative_market_map.py` owns the Phase 1 Market Expression Map. It is a
-curated static mapping from the dominant theme to common public-market
-expression proxies:
+Canonical Market Expression is owned by `mne/market_expression.py` and
+`config/market_expression_map.json`. Real instrument identity belongs to
+`config/asset_registry.json`, structural narrative-to-asset relevance belongs
+to `config/narrative_asset_map.json`, and non-tradable concepts belong to
+`config/synthetic_market_concepts.json`. The complete ownership contract is
+documented in `docs/instrument_mapping_architecture.md`.
 
-- primary expressions
-- secondary expressions
-- potential offsets
-- a plain-language description
+Canonical evaluation is persisted as `market_expression_context` and powers the
+dashboard Market Expression summary and Research detail. Asset Exploration and
+Sector Isolation retain their separate structural and participation behavior.
+These layers remain descriptive context, not signals, forecasts, or
+recommendations.
 
-The map is context only. It is not a signal, ranking, recommendation engine, or
-market-confirmation layer. It does not change theme scoring, narrative signals,
-concentration, momentum, persistence, crowding, market relationships, breadth
-confirmation, catalyst logic, or regime alignment.
+The former `mne/narrative_market_map.py` theme lookup and its persisted
+`market_expression` run field were retired after the repository-wide consumer
+audit in `docs/legacy_narrative_market_map_audit.md`. Loaders remain tolerant of
+old artifacts containing that unknown field; new runs and daily text reports do
+not produce it.
 
-`main.py` attaches the helper output to saved run JSON as `market_expression`.
-`mne/reporting.py` formats the same structure in the daily text report and
-terminal output. `dashboard.py` passes the optional field through the dashboard
-view model so future cards or pages can consume it without changing the saved
-JSON contract.
-
-The structure keeps simple symbol arrays for immediate report use and includes
-metadata such as `mapping_version`, `mapped`, `context_only`, and `is_signal` so
-future phases can add live prices, confirmation fields, dashboard cards, or
-expression performance tracking without redefining the top-level output.
+Two semantic-history notes are intentionally documentation-only: the legacy map
+treated MSFT as a primary AI expression while the canonical Narrative Asset Map
+uses a secondary role; and the legacy recession framing treated TLT as a
+flight-to-quality asset while canonical Macro Pressure uses the hawkish-rates,
+expected-down interpretation. Canonical roles and directions are authoritative.
 
 ## TradingView Role
 

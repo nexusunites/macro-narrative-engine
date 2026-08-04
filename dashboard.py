@@ -1622,7 +1622,6 @@ def build_view_model(run, current_file):
         "macro_calendar_message", ""
     )
     market_environment = run.get("market_environment")
-    market_expression = run.get("market_expression")
     positioning_environment = run.get("positioning_environment")
     dynamics = run.get("narrative_dynamics") or {}
     narrative_memory = run.get("narrative_memory") or {}
@@ -1763,7 +1762,6 @@ def build_view_model(run, current_file):
         "mode_context": mode_context,
         "presentation": presentation,
         "market_environment_card": market_environment_card,
-        "market_expression": market_expression if isinstance(market_expression, dict) else None,
         "market_expression_context": evaluated_market_expression,
         "market_expression_sentence": (
             market_expression_explanation.get("headline")

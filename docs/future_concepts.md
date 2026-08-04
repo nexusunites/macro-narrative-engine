@@ -170,7 +170,7 @@ Persist run assessments with source refs; persist daily lifecycle records keyed 
 
 ### 9. Dependencies on existing MNE modules
 
-`analysis/narrative_dynamics.py`, `mne/narrative_pulse.py`, `mne/narrative_market_relationship.py`, future Market Expression Confirmation, `mne/narrative_market_map.py`, and `mne/storage.py`.
+`analysis/narrative_dynamics.py`, `mne/narrative_pulse.py`, `mne/narrative_market_relationship.py`, canonical Market Expression, and `mne/storage.py`.
 
 ### 10. Risks / constraints
 
@@ -256,7 +256,7 @@ The current static Market Expression Map explains where a narrative may appear, 
 
 ### 3. Required inputs
 
-- Versioned static output from `mne/narrative_market_map.py`.
+- Versioned canonical mappings from `config/market_expression_map.json`.
 - Timestamped price changes for primary, secondary, and offset instruments.
 - Narrative share, pulse, acceleration, and state.
 - Market-wide context and data freshness/market-session metadata.
@@ -300,7 +300,7 @@ Persist per-run instrument observations and classification beside the run or as 
 
 ### 9. Dependencies on existing MNE modules
 
-`mne/narrative_market_map.py`, `mne/market_context.py`, `mne/narrative_market_relationship.py`, `mne/environment.py`, `mne/storage.py`, and future expanded symbol acquisition.
+`mne/market_expression.py`, `config/market_expression_map.json`, `mne/market_context.py`, `mne/narrative_market_relationship.py`, `mne/environment.py`, `mne/storage.py`, and future expanded symbol acquisition.
 
 ### 10. Risks / constraints
 
@@ -362,7 +362,7 @@ Use a version-controlled configuration file with immutable versions or effective
 
 ### 9. Dependencies on existing MNE modules
 
-`mne/narrative_market_map.py`, `mne/narrative_signals.py`, `config/theme_taxonomy.json`, `mne/storage.py`, and future Market Expression Confirmation.
+`mne/market_expression.py`, `config/market_expression_map.json`, `mne/narrative_signals.py`, `config/theme_taxonomy.json`, `mne/storage.py`, and future Market Expression Confirmation.
 
 ### 10. Risks / constraints
 

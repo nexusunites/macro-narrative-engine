@@ -94,10 +94,6 @@ def base_run():
             "score": 35,
             "confidence": "High",
         },
-        "market_expression": {
-            "mapped": True,
-            "primary": ["QQQ", "SMH"],
-        },
     }
 
 

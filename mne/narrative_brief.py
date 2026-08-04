@@ -543,7 +543,6 @@ def _make_sources(run):
         "breadth_confirmation",
         "narrative_market_relationship",
         "regime_alignment",
-        "market_expression",
     ):
         sources.setdefault(name, None)
     return sources
@@ -677,7 +676,6 @@ def _limitations(run, sections, conflict_log):
         "positioning_environment",
         "market_environment",
         "event_lifecycle",
-        "market_expression",
     )
     for field in optional_fields:
         if run.get(field) is None:

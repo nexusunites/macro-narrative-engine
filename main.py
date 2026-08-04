@@ -40,7 +40,6 @@ from mne.narrative_brief import ENGINE_VERSION as NARRATIVE_BRIEF_ENGINE_VERSION
 from mne.narrative_brief import generate_narrative_brief
 from mne.narrative_leadership import build_narrative_leadership
 from mne.narrative_memory import build_narrative_memory
-from mne.narrative_market_map import get_market_expression
 from mne.narrative_pulse import calculate_narrative_pulse
 from mne.narrative_market_relationship import classify_narrative_market_relationship
 from mne.narrative_signals import (
@@ -77,7 +76,6 @@ from mne.reporting import (
     print_group_scores,
     print_market_context,
     print_market_environment,
-    print_market_expression,
     print_narrative_market_relationship,
     print_narrative_concentration,
     print_narrative_dynamics,
@@ -414,8 +412,6 @@ def main(args=None):
     total_mentions = concentration["total_mentions"]
     share = concentration["dominant_share"]
     concentration_gap = concentration["concentration_gap"]
-    # Legacy compatibility output; canonical mappings live in the versioned config registries.
-    market_expression = get_market_expression(top_theme)
     signals = {}
     market_snapshot = {}
     market_environment = None
@@ -541,7 +537,6 @@ def main(args=None):
         "total_mentions": total_mentions,
         "dominant_share": round(float(share), 4),
         "concentration_gap": int(concentration_gap),
-        "market_expression": market_expression,
         "market_snapshot": market_snapshot,
         "market_environment": market_environment,
         "breadth_confirmation": breadth_confirmation,
@@ -618,7 +613,6 @@ def main(args=None):
         run["mode_context"] = mode_context
 
         print_market_environment(market_environment)
-        print_market_expression(market_expression)
         print_narrative_market_relationship(narrative_market_relationship)
         print_breadth_confirmation(breadth_confirmation)
         print_catalyst_environment(catalyst_environment)
@@ -677,7 +671,6 @@ def main(args=None):
         )
         run["operating_mode"] = operating_mode
         run["mode_context"] = mode_context
-        print_market_expression(market_expression)
         print_regime_alignment(regime_alignment)
         print_mode_context(mode_context)
 
@@ -791,8 +784,6 @@ def main(args=None):
             theme_match_audit=theme_match_audit,
             operating_mode=operating_mode,
             mode_context=mode_context,
-            market_expression=market_expression,
-
         )
         report_file = save_report(report_text, stamp)
         stage.set_result(
