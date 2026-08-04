@@ -1,0 +1,13 @@
+{% macro sector_heatmap(context, preview=false) -%}
+  {% if context and context.sectors %}
+    <div class="sector-heatmap{% if preview %} sector-heatmap-preview{% endif %}" role="list" aria-label="Sector structural connections">
+      {% for sector in context.sectors %}
+        <a id="{{ sector.sector_key }}" class="sector-tile sector-role-{{ sector.connection_role|lower }} participation-unavailable" href="{{ sector.href }}" role="listitem" aria-label="{{ sector.sector_name }}: {{ sector.role_label }}; {{ sector.participation_label }}">
+          <span class="sector-participation-marker" aria-hidden="true"></span><strong>{{ sector.sector_name }}</strong>
+          <span class="sector-role-label">{{ sector.role_label }}</span><span class="sector-participation-label">{{ sector.participation_label }}</span>
+          {% if not preview %}<span class="sector-rationale">{{ sector.rationale }}</span>{% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}<div class="section-empty">No curated sector relationships are available for this narrative. Current sector-level market participation is not yet available.</div>{% endif %}
+{%- endmacro %}

@@ -4957,3 +4957,21 @@ input:focus-visible,
   .story-card:hover, .market-row:hover, .event-row:hover { transform: none !important; }
   .constellation-node circle { transition: none !important; }
 }
+
+.sector-heatmap { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-top:18px; }
+.sector-tile { position:relative; display:grid; gap:7px; min-height:148px; padding:18px; border:1px solid var(--border-strong); border-radius:14px; background:var(--surface-1); color:var(--text-primary); text-decoration:none; }
+.sector-tile:hover { background:var(--surface-2); }
+.sector-tile:focus-visible { outline:2px solid var(--brand-accent); outline-offset:3px; }
+.sector-role-primary { border-width:3px; }
+.sector-role-secondary { border-width:2px; }
+.sector-role-emerging { border-color:var(--border-strong); }
+.sector-role-offset { border-style:dashed; border-width:2px; }
+.sector-role-detached { border-color:var(--border); }
+.sector-participation-marker { width:28px; height:4px; border-radius:999px; background:var(--muted); }
+.sector-role-label { color:var(--muted-strong); font-weight:650; }
+.sector-participation-label,.sector-rationale { color:var(--muted); font-size:12px; }
+.sector-detail-fallback details { border-top:1px solid var(--border); padding:14px 0; }
+.sector-detail-fallback summary { cursor:pointer; min-height:44px; font-weight:700; }
+.sector-data-honesty { border-left:3px solid var(--muted); }
+@media (max-width: 600px) { .sector-heatmap { grid-template-columns:1fr; } .sector-tile { min-height:0; } }
+@media (prefers-reduced-motion: reduce) { .sector-tile { transition:none !important; } }

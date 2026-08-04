@@ -44,6 +44,7 @@ from mne.historical_replay_admin import (
 from mne.narrative_signals import compute_group_scores
 from mne.narrative_constellation import build_constellation_context
 from mne.narrative_relationships import NarrativeRelationshipError, get_relationships_for_group
+from mne.sector_isolation import SectorIsolationError, build_sector_isolation_context, build_sector_isolation_preview
 from mne.narrative_history import build_narrative_history
 from mne.historical_connection import load_current_and_historical_context
 from mne.explanation_layer import explain_lifecycle_state
@@ -1639,6 +1640,7 @@ def build_view_model(run, current_file):
         dynamics,
     )
     narrative_constellation = build_constellation_context(run)
+    sector_isolation_preview = build_sector_isolation_preview(run, run.get("dominant_group"))
     from analysis.leadership_rotation import get_rotation
 
     try:
@@ -1775,6 +1777,7 @@ def build_view_model(run, current_file):
         "group_scores": group_scores,
         "narrative_leadership": narrative_leadership,
         "narrative_constellation": narrative_constellation,
+        "sector_isolation_preview": sector_isolation_preview,
         "dominant_share": pct(run.get("dominant_share")),
         "concentration_gap": run.get("concentration_gap"),
         "market_context": get_market_context(run),
@@ -2475,6 +2478,23 @@ async def ask_ai_analyst(request: Request):
 def narrative_history(request: Request, key: str):
     context = build_narrative_history_context(request, key)
     return templates.TemplateResponse("narrative_history.html", context)
+
+
+@app.get("/research/{key:path}/sectors", response_class=HTMLResponse)
+def sector_isolation(request: Request, key: str):
+    context = build_investigation_context(request, key, admin=False)
+    narrative_level, narrative_id = split_narrative_key(key)
+    context["narrative_key"] = key
+    if narrative_level != "group" or not narrative_id:
+        context["message"] = "Sector Isolation is available for narrative groups."
+        context["sector_isolation"] = None
+    else:
+        try:
+            context["sector_isolation"] = build_sector_isolation_context(narrative_id)
+        except SectorIsolationError:
+            context["message"] = "Sector relationships are temporarily unavailable."
+            context["sector_isolation"] = None
+    return templates.TemplateResponse("sector_isolation.html", context)
 
 
 @app.get("/research/{key:path}", response_class=HTMLResponse)

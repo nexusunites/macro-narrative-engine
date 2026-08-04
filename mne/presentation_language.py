@@ -116,6 +116,29 @@ NARRATIVE_RELATIONSHIP_COPY = {
 def narrative_relationship_copy(key: str) -> str:
     return NARRATIVE_RELATIONSHIP_COPY[key]
 
+
+SECTOR_ISOLATION_COPY = {
+    "section_eyebrow": "Sector Isolation",
+    "section_title": "Where this narrative connects",
+    "section_intro": "Structural sector connections from MNE's curated narrative model.",
+    "role_PRIMARY": "Primary connection",
+    "role_SECONDARY": "Secondary connection",
+    "role_EMERGING": "Developing connection",
+    "role_OFFSET": "Offsetting connection",
+    "role_DETACHED": "Structurally detached",
+    "participation_UNAVAILABLE": "Current participation unavailable",
+    "structural_connection": "This sector is meaningfully connected to the narrative.",
+    "participation_unavailable": "Current sector-level market participation is not yet available.",
+    "curated_notice": "Sector relationships are curated from MNE's narrative model.",
+    "persisted_notice": "Current participation reflects available persisted market data.",
+    "sector_data_unavailable": "Sector-level market data is not yet available.",
+    "unavailable_not_detached": "Unavailable sectors are not assumed to be detached.",
+}
+
+
+def sector_isolation_copy(key: str) -> str:
+    return SECTOR_ISOLATION_COPY[key]
+
 HISTORICAL_COPY = {
     "archive_label": "Historical Narratives",
     "archive_intro": "Browse completed reconstructions of what the available evidence showed at an earlier market cutoff.",

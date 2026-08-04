@@ -1,3 +1,4 @@
+{% from "_partials/sector_heatmap.html" import sector_heatmap -%}
 <!doctype html>
 <html lang="en">
 <head>
@@ -286,6 +287,11 @@
             {% endcall %}
           </footer>
         </div>
+      </section>
+
+      <section id="sector-isolation" class="dashboard-section sector-isolation-preview">
+        <header class="dashboard-section-heading split-heading"><div><p class="eyebrow">Sector Isolation</p><h2>Where this narrative connects</h2></div>{% if view.sector_isolation_preview.narrative %}<a class="accent-link" href="{{ view.sector_isolation_preview.sectors[0].href.split('#')[0] if view.sector_isolation_preview.sectors else '/research' }}">Open Sector Isolation →</a>{% endif %}</header>
+        <p>{{ view.sector_isolation_preview.breadth.summary }} {{ view.sector_isolation_preview.breadth.participation_note }}</p>{{ sector_heatmap(view.sector_isolation_preview, true) }}
       </section>
 
       <section id="events" class="dashboard-section">
