@@ -41,8 +41,7 @@ from mne.historical_replay_admin import (
     load_replay_summary_by_id,
     validate_replay_backfill_ids,
 )
-from mne.narrative_signals import compute_group_scores
-from mne.narrative_constellation import build_constellation_context
+from mne.narrative_signals import NARRATIVE_GROUPS, compute_group_scores
 from mne.narrative_relationships import NarrativeRelationshipError, get_relationships_for_group
 from mne.sector_isolation import SectorIsolationError, build_sector_isolation_context, build_sector_isolation_preview, load_sector_map
 from mne.sector_market_context import NarrativeSectorInstrumentError, classify_sectors_for_run
@@ -73,6 +72,14 @@ from mne.presentation_language import state as present_state
 from mne.presentation_language import support as present_support
 from mne.presentation_language import PERSONALIZATION_COPY, narrative_display_name
 from mne.presentation_language import ACCOUNT_COPY, ENTITLEMENT_COPY, entitlement_denial, usage_summary
+from mne.presentation_language import (
+    attention_cloud_copy,
+    attention_cloud_direction,
+    attention_cloud_evidence,
+    attention_cloud_trend,
+    attention_cloud_watch_for,
+    attention_cloud_why,
+)
 from mne.personalization import (
     SUPPORTED_ALERT_TYPES,
     build_default_preferences,
@@ -1231,6 +1238,101 @@ def build_narrative_leadership(group_scores, narrative_pulse=None, dynamics=None
     return leadership
 
 
+ATTENTION_CLOUD_COPY_KEYS = (
+    "eyebrow", "title", "framing", "research", "why_label", "tape_label",
+    "driving_label", "watch_label", "connected_label", "empty_title", "empty", "none",
+)
+
+
+def build_attention_cloud(run):
+    """Build the honest group-level interim cloud from persisted run inputs."""
+    raw_scores = run.get("group_scores") if isinstance(run.get("group_scores"), dict) else {}
+    groups = []
+    for group, raw_score in raw_scores.items():
+        if group not in NARRATIVE_GROUPS or not NARRATIVE_GROUPS[group]:
+            continue
+        try:
+            score = float(raw_score)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(score) or score <= 0:
+            continue
+        groups.append((group, score))
+    groups.sort(key=lambda item: (-item[1], item[0]))
+    groups = groups[:3]
+
+    copy = {key: attention_cloud_copy(key) for key in ATTENTION_CLOUD_COPY_KEYS}
+    if not groups:
+        return {"has_data": False, "entries": [], "copy": copy}
+
+    total = sum(score for _, score in groups)
+    maximum = max(score for _, score in groups)
+    visible_groups = {group for group, _ in groups}
+    theme_scores = run.get("theme_scores") or run.get("theme_counts")
+    theme_scores = theme_scores if isinstance(theme_scores, dict) else {}
+    pulse = run.get("narrative_pulse") if isinstance(run.get("narrative_pulse"), dict) else {}
+    dynamics = run.get("narrative_dynamics") if isinstance(run.get("narrative_dynamics"), dict) else {}
+    dynamic_groups = dynamics.get("groups") if isinstance(dynamics.get("groups"), dict) else {}
+    examples = run.get("examples") if isinstance(run.get("examples"), dict) else {}
+
+    entries = []
+    for group, score in groups:
+        pulse_record = pulse.get(group) if isinstance(pulse.get(group), dict) else {}
+        dynamic_record = dynamic_groups.get(group) if isinstance(dynamic_groups.get(group), dict) else {}
+        presented_direction = attention_cloud_direction(
+            dynamic_record.get("acceleration"), pulse_record.get("pulse_state")
+        )
+        positive_themes = []
+        for theme in NARRATIVE_GROUPS[group]:
+            try:
+                theme_score = float(theme_scores.get(theme, 0))
+            except (TypeError, ValueError):
+                continue
+            if math.isfinite(theme_score) and theme_score > 0:
+                positive_themes.append((theme, theme_score))
+        positive_themes.sort(key=lambda item: (-item[1], item[0]))
+        driving = [narrative_display_name(theme) for theme, _ in positive_themes]
+        watch_for = [attention_cloud_watch_for(name) for name in driving[:2]]
+
+        connected = []
+        try:
+            relationships = get_relationships_for_group(group)
+        except NarrativeRelationshipError:
+            relationships = ()
+        for relationship in relationships:
+            related = relationship.get("related_group")
+            if related in visible_groups:
+                display_name = narrative_display_name(related)
+                if display_name and display_name not in connected:
+                    connected.append(display_name)
+
+        tape = ""
+        for theme, _ in positive_themes:
+            headlines = examples.get(theme)
+            if isinstance(headlines, list):
+                tape = next(
+                    (attention_cloud_evidence(headline) for headline in headlines if attention_cloud_evidence(headline)),
+                    "",
+                )
+            if tape:
+                break
+
+        name = narrative_display_name(group)
+        share = (score / total) * 100 if total else 0
+        entries.append({
+            "name": name,
+            "weight": max(1, min(5, math.ceil((score / maximum) * 5))),
+            "direction": presented_direction["direction"],
+            "why": attention_cloud_why(name, presented_direction["label"], share),
+            "driving": driving,
+            "watch_for": watch_for,
+            "connected": connected,
+            "tape": tape,
+            "trend": attention_cloud_trend(presented_direction["label"]),
+        })
+    return {"has_data": bool(entries), "entries": entries, "copy": copy}
+
+
 def _snapshot_support_score(snapshot):
     if not isinstance(snapshot, dict):
         return None
@@ -1641,7 +1743,7 @@ def build_view_model(run, current_file):
         run.get("narrative_pulse"),
         dynamics,
     )
-    narrative_constellation = build_constellation_context(run)
+    cloud = build_attention_cloud(run)
     sector_map = load_sector_map()
     sector_participation = classify_sectors_for_run(
         run, sector_map, run.get("dominant_group"), now=datetime.now().astimezone()
@@ -1783,7 +1885,7 @@ def build_view_model(run, current_file):
         "theme_scores": theme_scores,
         "group_scores": group_scores,
         "narrative_leadership": narrative_leadership,
-        "narrative_constellation": narrative_constellation,
+        "cloud": cloud,
         "sector_isolation_preview": sector_isolation_preview,
         "dominant_share": pct(run.get("dominant_share")),
         "concentration_gap": run.get("concentration_gap"),

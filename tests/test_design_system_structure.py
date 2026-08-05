@@ -16,7 +16,7 @@ class DesignSystemStructureTests(unittest.TestCase):
         self.assertIn('_partials/narrative_constellation.html', source)
         constellation = Path("templates/_partials/narrative_constellation.html").read_text(encoding="utf-8")
         self.assertIn("Explore in Research", Path("mne/presentation_language.py").read_text(encoding="utf-8"))
-        self.assertIn("data-constellation", constellation)
+        self.assertIn("data-attention-cloud", constellation)
 
     def test_market_preview_uses_expression_roles_not_price_table(self):
         source = Path("templates/dashboard.html").read_text(encoding="utf-8")

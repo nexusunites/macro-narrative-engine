@@ -1,50 +1,41 @@
-{% set constellation = view.narrative_constellation %}
-<section id="narrative-discovery" class="dashboard-section narrative-constellation" data-constellation>
+<section id="narrative-discovery" class="dashboard-section attention-cloud-section" data-attention-cloud data-empty-label="{{ view.cloud['copy'].none }}">
   <header class="dashboard-section-heading split-heading">
-    <div><p class="eyebrow">{{ constellation["copy"]["eyebrow"] }}</p><h2>{{ constellation["copy"]["title"] }}</h2></div>
-    <a class="accent-link" href="/research">{{ constellation["copy"]["research"] }}</a>
+    <div><p class="eyebrow">{{ view.cloud['copy'].eyebrow }}</p><h2>{{ view.cloud['copy'].title }}</h2></div>
+    <a class="accent-link" href="/research">{{ view.cloud['copy'].research }}</a>
   </header>
-  <p class="section-read">{{ constellation["copy"]["framing"] }}</p>
-  {% if constellation.has_data %}
-    <p class="constellation-summary">{{ constellation.summary }}</p>
-    <div class="constellation-stage">
-      <svg viewBox="0 0 {{ constellation.width }} {{ constellation.height }}" role="img" aria-labelledby="constellation-title constellation-description">
-        <title id="constellation-title">{{ constellation["copy"]["title"] }}</title>
-        <desc id="constellation-description">{{ constellation["copy"]["framing"] }}</desc>
-        <g class="constellation-relationships" data-constellation-xray hidden>
-          {% for relation in constellation.relationships %}
-            {% set source = constellation.nodes|selectattr("key", "equalto", relation.source)|first %}
-            {% set target = constellation.nodes|selectattr("key", "equalto", relation.target)|first %}
-            <line class="relationship-{{ relation.type }}" x1="{{ source.x }}" y1="{{ source.y }}" x2="{{ target.x }}" y2="{{ target.y }}"></line>
-          {% endfor %}
-        </g>
-        {% for node in constellation.nodes %}
-          <a href="{{ node.href }}" class="constellation-node constellation-node-{{ node.level }} direction-{{ node.direction_tone }}{% if node.dominant %} is-dominant{% endif %}" aria-label="{{ node.sr_label }}" {% if node.level == "theme" %}data-constellation-xray hidden{% endif %} tabindex="0">
-            <circle cx="{{ node.x }}" cy="{{ node.y }}" r="{{ node.radius }}"></circle>
-            <text x="{{ node.x }}" y="{{ node.y - 5 }}" text-anchor="middle">{{ node.display_name }}</text>
-            <text class="constellation-node-state" x="{{ node.x }}" y="{{ node.y + 16 }}" text-anchor="middle">{{ node.direction_icon }} {{ node.direction }}</text>
-          </a>
-        {% endfor %}
-      </svg>
-      <aside class="constellation-card" aria-live="polite" data-constellation-card>
-        {% set leader = constellation.nodes|selectattr("level", "equalto", "group")|first %}
-        <strong data-card-name>{{ leader.display_name }}</strong>
-        <span data-card-state>{{ leader.lifecycle_state or "Current story" }} · {{ leader.direction }}</span>
-        <p data-card-explanation>{{ leader.explanation }}</p>
-        {% if leader.share is not none %}<small data-card-metric>{{ leader.share }}% of visible narrative attention</small>{% else %}<small data-card-metric></small>{% endif %}
-      </aside>
+  <p class="section-read">{{ view.cloud['copy'].framing }}</p>
+  {% if view.cloud.has_data %}
+    <div class="attention-cloud" role="group" aria-label="{{ view.cloud['copy'].title }}">
+      {% for entry in view.cloud.entries %}
+        <button type="button" class="cloud-chip cloud-weight-{{ entry.weight }} cloud-direction-{{ entry.direction }}" data-cloud-entry="{{ loop.index0 }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ entry.name }}</button>
+      {% endfor %}
     </div>
-    <details class="constellation-xray" data-constellation-toggle>
-      <summary>{{ constellation["copy"]["xray"] }}</summary>
-      <p>{{ constellation["copy"]["xray_explanation"] }}</p>
-      {% if not constellation.has_themes %}<p>{{ constellation["copy"]["themes_unavailable"] }}</p>{% endif %}
-      <div class="constellation-details">
-        {% for node in constellation.nodes %}<article><strong>{{ node.display_name }}</strong><span>{{ node.lifecycle_state or "Current story" }} · {{ node.direction }}</span><p>{{ node.explanation }}</p></article>{% endfor %}
-        {% for relation in constellation.relationships if relation.type == "cross_group" %}<article class="constellation-relationship-detail"><strong>{{ relation.label }}</strong><span>{{ relation.type_label }} · {{ relation.strength_label }}</span><p>{{ relation.explanation }}</p></article>{% endfor %}
+    {% set selected = view.cloud.entries[0] %}
+    <article class="cloud-detail" data-cloud-detail aria-live="polite" tabindex="-1">
+      <div class="cloud-detail-head">
+        <h3 data-cloud-name>{{ selected.name }}</h3>
+        <span class="cloud-detail-trend cloud-direction-{{ selected.direction }}" data-cloud-trend>{{ selected.trend }}</span>
       </div>
-    </details>
-    <script type="application/json" data-constellation-nodes>{{ constellation.nodes|tojson }}</script>
+      <span class="cloud-detail-label">{{ view.cloud['copy'].why_label }}</span>
+      <p class="cloud-detail-why" data-cloud-why>{{ selected.why }}</p>
+      <p class="cloud-tape" data-cloud-tape{% if not selected.tape %} hidden{% endif %}><span>{{ view.cloud['copy'].tape_label }}:</span> “<span data-cloud-tape-text>{{ selected.tape }}</span>”</p>
+      <div class="cloud-detail-columns">
+        <div class="cloud-detail-block">
+          <span class="cloud-detail-label">{{ view.cloud['copy'].driving_label }}</span>
+          <div class="cloud-mini-chips" data-cloud-driving>{% for item in selected.driving %}<span>{{ item }}</span>{% else %}<span>{{ view.cloud['copy'].none }}</span>{% endfor %}</div>
+        </div>
+        <div class="cloud-detail-block">
+          <span class="cloud-detail-label">{{ view.cloud['copy'].watch_label }}</span>
+          <div class="cloud-mini-chips" data-cloud-watch>{% for item in selected.watch_for %}<span>{{ item }}</span>{% else %}<span>{{ view.cloud['copy'].none }}</span>{% endfor %}</div>
+        </div>
+        <div class="cloud-detail-block">
+          <span class="cloud-detail-label">{{ view.cloud['copy'].connected_label }}</span>
+          <div class="cloud-mini-chips" data-cloud-connected>{% for item in selected.connected %}<button type="button" data-cloud-related="{{ item }}">{{ item }}</button>{% else %}<span>{{ view.cloud['copy'].none }}</span>{% endfor %}</div>
+        </div>
+      </div>
+    </article>
+    <script type="application/json" data-cloud-payload>{{ view.cloud.entries|tojson }}</script>
   {% else %}
-    <div class="section-empty"><strong>{{ constellation.empty_state.title }}</strong><p>{{ constellation.empty_state.body }}</p></div>
+    <div class="section-empty"><strong>{{ view.cloud['copy'].empty_title }}</strong><p>{{ view.cloud['copy'].empty }}</p></div>
   {% endif %}
 </section>

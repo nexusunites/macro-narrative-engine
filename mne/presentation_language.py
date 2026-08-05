@@ -96,6 +96,63 @@ def constellation_copy(key: str) -> str:
     return NARRATIVE_CONSTELLATION_COPY[key]
 
 
+ATTENTION_CLOUD_COPY = {
+    "eyebrow": "The Centerpiece",
+    "title": "What everyone's talking about",
+    "framing": "Story size reflects how much of the market's attention it holds. Choose a story for the detail.",
+    "research": "Explore in Research →",
+    "why_label": "Why it matters",
+    "tape_label": "From the tape",
+    "driving_label": "Currently driving",
+    "watch_label": "Watch for",
+    "connected_label": "Connected stories",
+    "empty_title": "No clear attention leader yet",
+    "empty": "No market story has enough current evidence to appear here yet.",
+    "none": "No current evidence",
+}
+
+
+def attention_cloud_copy(key: str) -> str:
+    """Return fixed user-facing copy for the interim attention cloud."""
+    return ATTENTION_CLOUD_COPY[key]
+
+
+def attention_cloud_direction(acceleration: Any = None, pulse: Any = None) -> dict[str, str]:
+    """Translate persisted movement signals into the dashboard's direction vocabulary."""
+    rising = {"ACCELERATING", "RISING", "BUILDING", "EMERGING", "STRONG"}
+    fading = {"COOLING", "FADING", "LOSING", "DORMANT"}
+    directions = set()
+    for value in (acceleration, pulse):
+        token = str(value or "").strip().upper().replace(" ", "_")
+        if token in rising:
+            directions.add("up")
+        elif token in fading:
+            directions.add("down")
+    direction = directions.pop() if len(directions) == 1 else "steady"
+    return {
+        "direction": direction,
+        "label": "Strengthening" if direction == "up" else "Fading" if direction == "down" else "Holding steady",
+    }
+
+
+def attention_cloud_why(name: str, direction_label: str, share: float) -> str:
+    """Explain one group-level chip using its persisted share and translated direction."""
+    return f"{name} holds {share:.1f}% of visible narrative attention and is {direction_label.lower()} in this update."
+
+
+def attention_cloud_watch_for(name: str) -> str:
+    return f"New evidence around {name}"
+
+
+def attention_cloud_trend(direction_label: str) -> str:
+    return f"{direction_label} in this update"
+
+
+def attention_cloud_evidence(value: Any) -> str:
+    """Pass persisted headline evidence through the presentation boundary."""
+    return str(value or "").strip()
+
+
 NARRATIVE_RELATIONSHIP_COPY = {
     "type_SUPPORTIVE": "Supportive connection",
     "type_DEPENDENCY": "Dependency",
