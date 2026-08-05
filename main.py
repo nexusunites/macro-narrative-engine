@@ -100,6 +100,8 @@ from mne.storage import (
     save_report,
     save_run_json,
 )
+from mne.story_extraction import build_story_extraction
+from mne.story_registry import load_story_registry
 from mne.theme_analysis import ENGINE_VERSION as NARRATIVE_INTELLIGENCE_ENGINE_VERSION
 from mne.theme_analysis import analyze_themes, load_themes
 from mne.trends import print_daily_count_trends, print_daily_share_trends, print_momentum
@@ -677,6 +679,13 @@ def main(args=None):
     prior_runs = get_recent_runs(RESULTS_DIR, 1)
     prior_run = prior_runs[-1] if prior_runs else None
     run["change_summary"] = build_change_summary(run, prior_run)
+    run["story_extraction"] = build_story_extraction(
+        headlines,
+        theme_attribution,
+        source_intelligence.get("accepted_evidence", []),
+        load_story_registry(),
+        prior_run,
+    )
 
     rotation_snapshots = load_daily_snapshots(limit=6)
     current_snapshot = build_daily_snapshot_preview(

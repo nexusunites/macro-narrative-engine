@@ -1,0 +1,140 @@
+{
+  "version": "1.0.0",
+  "stories": {
+    "oil_supply_shock": {
+      "display_name": "Oil Supply Shock",
+      "group": "Energy / Commodities",
+      "themes": ["energy"],
+      "keywords": {"strong": ["crude oil", "opec", "brent", "wti"], "medium": ["oil prices", "oil"], "weak": ["crude"]},
+      "driving_sectors": ["energy", "materials"],
+      "catalyst_names": [],
+      "connected": ["natural_gas", "opec_policy", "commodity_spikes"]
+    },
+    "natural_gas": {
+      "display_name": "Natural Gas",
+      "group": "Energy / Commodities",
+      "themes": ["energy"],
+      "keywords": {"strong": ["natural gas", "lng"], "medium": ["nat-gas", "gas prices"], "weak": ["gas"]},
+      "driving_sectors": ["energy", "utilities"],
+      "catalyst_names": [],
+      "connected": ["oil_supply_shock", "data_center_power"]
+    },
+    "ai_chips": {
+      "display_name": "AI Chips",
+      "group": "AI / Tech Growth",
+      "themes": ["ai"],
+      "keywords": {"strong": ["nvidia", "ai chip", "ai chips", "micron"], "medium": ["semiconductor", "ai server", "chips"], "weak": ["chip"]},
+      "driving_sectors": ["technology"],
+      "catalyst_names": ["NVDA Earnings"],
+      "connected": ["data_center_power", "cloud_spending"]
+    },
+    "data_center_power": {
+      "display_name": "Data Center Power",
+      "group": "AI / Tech Growth",
+      "themes": ["ai"],
+      "keywords": {"strong": ["data center", "data centre", "data centers"], "medium": ["ai server", "server demand"], "weak": ["power demand"]},
+      "driving_sectors": ["technology", "utilities", "industrials"],
+      "catalyst_names": [],
+      "connected": ["ai_chips", "cloud_spending", "natural_gas"]
+    },
+    "cloud_spending": {
+      "display_name": "Cloud Spending",
+      "group": "AI / Tech Growth",
+      "themes": ["ai"],
+      "keywords": {"strong": ["cloud backlog", "ai capex", "ai spending"], "medium": ["cloud", "capex"], "weak": ["spending boom"]},
+      "driving_sectors": ["technology", "communication_services"],
+      "catalyst_names": [],
+      "connected": ["ai_chips", "data_center_power"]
+    },
+    "fed_rate_path": {
+      "display_name": "Fed Rate Path",
+      "group": "Macro Pressure",
+      "themes": ["rates"],
+      "keywords": {"strong": ["fed rate cut", "fomc", "powell"], "medium": ["the fed", "fed funds"], "weak": ["fed", "hiking"]},
+      "driving_sectors": ["financials"],
+      "catalyst_names": ["FOMC"],
+      "connected": ["treasury_yields", "rate_cut_bets", "inflation_fears"]
+    },
+    "treasury_yields": {
+      "display_name": "Treasury Yields",
+      "group": "Macro Pressure",
+      "themes": ["rates"],
+      "keywords": {"strong": ["treasury yield", "treasury yields", "interest rates"], "medium": ["bond yields", "borrowing estimate", "borrowing costs"], "weak": ["yields", "treasury"]},
+      "driving_sectors": ["financials", "real_estate"],
+      "catalyst_names": ["FOMC"],
+      "connected": ["fed_rate_path", "rate_cut_bets"]
+    },
+    "inflation_fears": {
+      "display_name": "Inflation Fears",
+      "group": "Macro Pressure",
+      "themes": ["inflation"],
+      "keywords": {"strong": ["inflation", "cpi", "pce", "sticky inflation"], "medium": ["price pressures", "cost of living"], "weak": ["prices rise"]},
+      "driving_sectors": ["consumer_discretionary", "financials"],
+      "catalyst_names": ["CPI", "PPI"],
+      "connected": ["fed_rate_path", "disinflation_hopes", "commodity_spikes"]
+    },
+    "disinflation_hopes": {
+      "display_name": "Disinflation Hopes",
+      "group": "Macro Pressure",
+      "themes": ["inflation"],
+      "keywords": {"strong": ["disinflation"], "medium": ["cooling inflation", "softer inflation"], "weak": ["prices ease"]},
+      "driving_sectors": ["consumer_discretionary"],
+      "catalyst_names": ["CPI"],
+      "connected": ["inflation_fears", "rate_cut_bets"]
+    },
+    "consumer_stress": {
+      "display_name": "Consumer Stress",
+      "group": "Macro Pressure",
+      "themes": ["recession"],
+      "keywords": {"strong": ["consumer confidence"], "medium": ["retail sales", "consumer spending"], "weak": ["spending slump"]},
+      "driving_sectors": ["consumer_discretionary", "real_estate"],
+      "catalyst_names": ["Retail Sales", "Consumer Confidence"],
+      "connected": ["labor_market", "recession_watch"]
+    },
+    "labor_market": {
+      "display_name": "Labor Market",
+      "group": "Macro Pressure",
+      "themes": ["recession"],
+      "keywords": {"strong": ["unemployment", "layoffs", "payroll"], "medium": ["jobless", "job losses", "nonfarm payroll"], "weak": ["hiring"]},
+      "driving_sectors": ["consumer_discretionary", "financials"],
+      "catalyst_names": ["Nonfarm Payrolls"],
+      "connected": ["recession_watch", "consumer_stress"]
+    },
+    "recession_watch": {
+      "display_name": "Recession Watch",
+      "group": "Macro Pressure",
+      "themes": ["recession"],
+      "keywords": {"strong": ["recession", "hard landing", "economic weakness"], "medium": ["downturn", "slowdown", "contraction"], "weak": ["soft landing"]},
+      "driving_sectors": ["financials", "consumer_discretionary"],
+      "catalyst_names": ["Nonfarm Payrolls"],
+      "connected": ["labor_market", "consumer_stress"]
+    },
+    "commodity_spikes": {
+      "display_name": "Commodity Spikes",
+      "group": "Energy / Commodities",
+      "themes": ["energy"],
+      "keywords": {"strong": ["gold", "commodity prices"], "medium": ["wheat", "soybean", "corn", "copper"], "weak": ["metals"]},
+      "driving_sectors": ["materials", "energy"],
+      "catalyst_names": [],
+      "connected": ["oil_supply_shock", "inflation_fears"]
+    },
+    "opec_policy": {
+      "display_name": "OPEC Policy",
+      "group": "Energy / Commodities",
+      "themes": ["energy"],
+      "keywords": {"strong": ["opec", "opec+"], "medium": ["production cut", "output cut", "supply cut"], "weak": ["barrels"]},
+      "driving_sectors": ["energy"],
+      "catalyst_names": [],
+      "connected": ["oil_supply_shock"]
+    },
+    "rate_cut_bets": {
+      "display_name": "Rate Cut Bets",
+      "group": "Macro Pressure",
+      "themes": ["rates"],
+      "keywords": {"strong": ["rate cut", "rate cuts"], "medium": ["fed funds", "dovish"], "weak": ["easing"]},
+      "driving_sectors": ["financials", "real_estate"],
+      "catalyst_names": ["FOMC"],
+      "connected": ["fed_rate_path", "treasury_yields", "disinflation_hopes"]
+    }
+  }
+}

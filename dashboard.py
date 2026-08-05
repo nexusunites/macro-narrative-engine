@@ -43,7 +43,8 @@ from mne.historical_replay_admin import (
 )
 from mne.narrative_signals import NARRATIVE_GROUPS, compute_group_scores
 from mne.narrative_relationships import NarrativeRelationshipError, get_relationships_for_group
-from mne.sector_isolation import SectorIsolationError, build_sector_isolation_context, build_sector_isolation_preview, load_sector_map
+from mne.sector_isolation import SECTOR_KEYS, SectorIsolationError, build_sector_isolation_context, build_sector_isolation_preview, load_sector_map
+from mne.story_registry import StoryRegistryError, load_story_registry
 from mne.sector_market_context import NarrativeSectorInstrumentError, classify_sectors_for_run
 from mne.asset_exploration import AssetRegistryError, build_asset_exploration_context, load_asset_registry, load_narrative_asset_map
 from mne.asset_participation import classify_assets_for_run
@@ -1303,6 +1304,73 @@ def build_attention_cloud(run, rotation_map=None):
             "remove", "empty", "history", "investigate",
         )
     }
+    story_extraction = run.get("story_extraction")
+    story_rows = story_extraction.get("stories") if isinstance(story_extraction, dict) else None
+    if isinstance(story_rows, dict) and story_rows:
+        try:
+            registry = load_story_registry()
+        except StoryRegistryError:
+            registry = None
+        if registry is not None:
+            registry_by_slug = {story.slug: story for story in registry.stories}
+            visible_slugs = {
+                slug for slug, item in story_rows.items()
+                if slug in registry_by_slug and isinstance(item, dict)
+                and score_sort_value(item.get("score")) > 0
+            }
+            ranked = sorted(
+                visible_slugs,
+                key=lambda slug: (-score_sort_value(story_rows[slug].get("score")), slug),
+            )
+            if ranked:
+                total = sum(score_sort_value(story_rows[slug].get("score")) for slug in ranked)
+                maximum = max(score_sort_value(story_rows[slug].get("score")) for slug in ranked)
+                catalyst = run.get("catalyst_environment")
+                catalyst = catalyst if isinstance(catalyst, dict) else {}
+                catalyst_events = [
+                    event for key in ("red_events", "orange_events")
+                    for event in catalyst.get(key, [])
+                    if isinstance(event, dict) and isinstance(event.get("name"), str)
+                ]
+                catalyst_by_name = {
+                    event["name"].strip().lower(): event["name"].strip()
+                    for event in catalyst_events
+                }
+                entries = []
+                for slug in ranked:
+                    row = story_rows[slug]
+                    story = registry_by_slug[slug]
+                    score = score_sort_value(row.get("score"))
+                    share = (score / total) * 100 if total else 0
+                    presented_direction = attention_direction_from_share_delta(row.get("share_delta"))
+                    resolved_catalysts = [
+                        catalyst_by_name[name.lower()]
+                        for name in story.catalyst_names
+                        if name.lower() in catalyst_by_name
+                    ][:2]
+                    examples = row.get("examples") if isinstance(row.get("examples"), list) else []
+                    first_example = examples[0] if examples and isinstance(examples[0], dict) else {}
+                    entries.append({
+                        "name": story.display_name,
+                        "weight": max(1, min(5, math.ceil((score / maximum) * 5))),
+                        "direction": presented_direction["direction"],
+                        "why": attention_cloud_why(story.display_name, presented_direction["label"], share),
+                        "driving": [SECTOR_KEYS[key] for key in story.driving_sectors],
+                        "watch_for": resolved_catalysts or [attention_cloud_watch_for(story.display_name)],
+                        "connected": [
+                            registry_by_slug[connected].display_name
+                            for connected in story.connected if connected in visible_slugs
+                        ],
+                        "tape": attention_cloud_evidence(first_example.get("title")),
+                        "trend": attention_cloud_trend(presented_direction["label"]),
+                    })
+                return {
+                    "has_data": True,
+                    "entries": entries,
+                    "copy": {key: attention_cloud_copy(key) for key in ATTENTION_CLOUD_COPY_KEYS},
+                    "watchlist_copy": watchlist,
+                }
+
     raw_scores = run.get("group_scores") if isinstance(run.get("group_scores"), dict) else {}
     groups = []
     for group, raw_score in raw_scores.items():

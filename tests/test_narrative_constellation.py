@@ -130,6 +130,33 @@ class NarrativeConstellationTests(unittest.TestCase):
         self.assertIn("No market story has enough current evidence", empty)
         self.assertNotIn("<svg", empty)
 
+    def test_story_extraction_drives_nine_field_cloud_without_slug_leakage(self):
+        run = populated_run()
+        run["story_extraction"] = {
+            "registry_version": "1.0.0",
+            "stories": {
+                "ai_chips": {
+                    "slug": "ai_chips", "score": 6, "matched_count": 2,
+                    "share_delta": 0.1,
+                    "examples": [{"title": "Nvidia launches new AI chips", "source": "Wire", "timestamp": "2026-08-05T12:00:00Z"}],
+                },
+                "data_center_power": {
+                    "slug": "data_center_power", "score": 3, "matched_count": 1,
+                    "share_delta": -0.1,
+                    "examples": [{"title": "Data center power demand rises", "source": "Wire", "timestamp": "2026-08-05T12:00:00Z"}],
+                },
+            },
+        }
+        cloud = dashboard.build_attention_cloud(run)
+        self.assertEqual([entry["name"] for entry in cloud["entries"]], ["AI Chips", "Data Center Power"])
+        self.assertEqual(set(cloud["entries"][0]), {"name", "weight", "direction", "why", "driving", "watch_for", "connected", "tape", "trend"})
+        self.assertEqual(cloud["entries"][0]["connected"], ["Data Center Power"])
+        self.assertNotIn("ai_chips", json.dumps(cloud))
+
+    def test_run_without_story_extraction_keeps_group_fallback(self):
+        cloud = dashboard.build_attention_cloud(populated_run())
+        self.assertEqual([entry["name"] for entry in cloud["entries"]], ["AI / Tech Growth", "Macro Pressure", "Energy / Commodities"])
+
 
 if __name__ == "__main__":
     unittest.main()
