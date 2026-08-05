@@ -1,4 +1,4 @@
-<section id="narrative-discovery" class="dashboard-section attention-cloud-section" data-attention-cloud data-empty-label="{{ view.cloud['copy'].none }}">
+<section id="narrative-discovery" class="dashboard-section attention-cloud-section" data-attention-cloud data-empty-label="{{ view.cloud['copy'].none }}" data-watchlist-add="{{ view.cloud.watchlist_copy.add }}" data-watchlist-remove="{{ view.cloud.watchlist_copy.remove }}" data-watchlist-history="{{ view.cloud.watchlist_copy.history }}" data-watchlist-investigate="{{ view.cloud.watchlist_copy.investigate }}" data-watchlist-singular="{{ view.cloud.watchlist_copy.count_singular }}" data-watchlist-plural="{{ view.cloud.watchlist_copy.count_plural }}"{% if current_user %} data-watchlist-persist="/preferences/narratives" data-watchlist-csrf="{{ csrf_token }}"{% endif %}>
   <header class="dashboard-section-heading split-heading">
     <div><p class="eyebrow">{{ view.cloud['copy'].eyebrow }}</p><h2>{{ view.cloud['copy'].title }}</h2></div>
     <a class="accent-link" href="/research">{{ view.cloud['copy'].research }}</a>
@@ -15,6 +15,7 @@
       <div class="cloud-detail-head">
         <h3 data-cloud-name>{{ selected.name }}</h3>
         <span class="cloud-detail-trend cloud-direction-{{ selected.direction }}" data-cloud-trend>{{ selected.trend }}</span>
+        <button type="button" class="cloud-detail-star" data-cloud-star aria-pressed="{{ 'true' if selected.watched else 'false' }}" aria-label="{{ view.cloud.watchlist_copy.remove if selected.watched else view.cloud.watchlist_copy.add }}">{{ '★' if selected.watched else '☆' }}</button>
       </div>
       <span class="cloud-detail-label">{{ view.cloud['copy'].why_label }}</span>
       <p class="cloud-detail-why" data-cloud-why>{{ selected.why }}</p>

@@ -5,10 +5,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MNE Overview</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
   <script src="{{ url_for('static', path='chart.js') }}" defer></script>
   <script src="{{ url_for('static', path='ai_analyst.js') }}" defer></script>
   <script src="{{ url_for('static', path='attention_cloud.js') }}" defer></script>
+  <script src="{{ url_for('static', path='personalization.js') }}" defer></script>
 </head>
 <body class="user-dashboard">
   {% from "_partials/xray_disclosure.html" import xray_disclosure %}
@@ -89,6 +91,7 @@
     </section>
   {% endif %}
 
+  <div class="dashboard-content-shell" data-watchlist-shell>
   <main class="page-shell dashboard-shell">
     {% if message %}
       <section class="empty-state">
@@ -253,9 +256,9 @@
           <a class="accent-link" href="/preferences">Preferences{% if personalization is defined and personalization.notification_count %} · {{ personalization.notification_count }} new{% endif %}</a>
         </header>
         {% if personalization is defined and personalization["items"] %}
-          <div class="personalization-grid">
+          <div class="personalization-grid" data-personalization-grid>
           {% for item in personalization["items"] %}
-            <article class="personalization-card">
+            <article class="personalization-card" data-personalization-name="{{ item.display_name }}">
               <h3>{{ item.display_name }}</h3>
               <strong>{{ item.lifecycle_state|replace("_", " ")|title if item.lifecycle_state else "History unavailable" }}</strong>
               <p>{{ item.summary }}</p>
@@ -265,7 +268,7 @@
           {% endfor %}
           </div>
         {% else %}
-          <div class="section-empty">You aren't following any narratives yet — choose some in Preferences.</div>
+          <div class="section-empty" data-personalization-empty>You aren't following any narratives yet — choose some in Preferences.</div>
         {% endif %}
         {% if personalization is defined and personalization.recent_alerts %}
           <div class="personalization-alert-list"><h3>Recent meaningful changes</h3>
@@ -385,5 +388,21 @@
       </section>
     {% endif %}
   </main>
+  {% if view and view.cloud.has_data %}
+    <aside id="watchlist-panel" class="watchlist-panel" data-watchlist-panel aria-label="{{ view.cloud.watchlist_copy.title }}" hidden>
+      <div class="watchlist-head">
+        <span class="watchlist-title">{{ view.cloud.watchlist_copy.title }} <small data-watchlist-hint></small></span>
+        <button class="watchlist-close" data-watchlist-close type="button" aria-label="{{ view.cloud.watchlist_copy.close }}">×</button>
+      </div>
+      <div class="watchlist-list" data-watchlist-list></div>
+      <p class="watchlist-empty" data-watchlist-empty hidden>{{ view.cloud.watchlist_copy.empty }}</p>
+    </aside>
+  {% endif %}
+  </div>
+  {% if view and view.cloud.has_data %}
+    <button class="watchlist-tab" data-watchlist-toggle type="button" aria-expanded="false" aria-controls="watchlist-panel" aria-label="{{ view.cloud.watchlist_copy.open }}">
+      <span aria-hidden="true">★</span><span data-watchlist-count>0</span>
+    </button>
+  {% endif %}
 </body>
 </html>

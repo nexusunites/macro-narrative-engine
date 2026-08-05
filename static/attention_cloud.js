@@ -13,6 +13,7 @@
     const buttons = [...root.querySelectorAll("[data-cloud-entry]")];
     const byName = new Map(entries.map((entry, index) => [entry.name, index]));
     let highlightTimer;
+    let currentIndex = 0;
 
     const fillChips = (container, items, connected = false) => {
       container.replaceChildren();
@@ -41,6 +42,7 @@
     const select = (index, shouldReveal = true) => {
       const entry = entries[index];
       if (!entry) return;
+      currentIndex = index;
       buttons.forEach((button, buttonIndex) => button.setAttribute("aria-pressed", buttonIndex === index ? "true" : "false"));
       detail.querySelector("[data-cloud-name]").textContent = entry.name;
       const trend = detail.querySelector("[data-cloud-trend]");
@@ -53,8 +55,12 @@
       fillChips(detail.querySelector("[data-cloud-driving]"), entry.driving);
       fillChips(detail.querySelector("[data-cloud-watch]"), entry.watch_for);
       fillChips(detail.querySelector("[data-cloud-connected]"), entry.connected, true);
+      root.dispatchEvent(new CustomEvent("cloud-selection-changed", { detail: { entry, index } }));
       if (shouldReveal) reveal();
     };
+
+    root.selectCloudEntry = (index, shouldReveal = true) => select(index, shouldReveal);
+    root.getSelectedCloudEntry = () => entries[currentIndex];
 
     buttons.forEach((button, index) => button.addEventListener("click", () => select(index)));
     detail.addEventListener("click", (event) => {
@@ -63,5 +69,6 @@
       const index = byName.get(related.dataset.cloudRelated);
       if (index !== undefined) select(index);
     });
+    root.dispatchEvent(new CustomEvent("cloud-ready", { detail: { entry: entries[0], index: 0 } }));
   });
 })();

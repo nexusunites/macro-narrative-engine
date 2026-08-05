@@ -74,10 +74,11 @@ from mne.presentation_language import PERSONALIZATION_COPY, narrative_display_na
 from mne.presentation_language import ACCOUNT_COPY, ENTITLEMENT_COPY, entitlement_denial, usage_summary
 from mne.presentation_language import (
     attention_cloud_copy,
-    attention_cloud_direction,
+    attention_direction_from_share_delta,
     attention_cloud_evidence,
     attention_cloud_trend,
     attention_cloud_watch_for,
+    watchlist_copy,
     attention_cloud_why,
 )
 from mne.personalization import (
@@ -1244,8 +1245,15 @@ ATTENTION_CLOUD_COPY_KEYS = (
 )
 
 
-def build_attention_cloud(run):
+def build_attention_cloud(run, rotation_map=None):
     """Build the honest group-level interim cloud from persisted run inputs."""
+    watchlist = {
+        key: watchlist_copy(key)
+        for key in (
+            "title", "count_singular", "count_plural", "open", "close", "add",
+            "remove", "empty", "history", "investigate",
+        )
+    }
     raw_scores = run.get("group_scores") if isinstance(run.get("group_scores"), dict) else {}
     groups = []
     for group, raw_score in raw_scores.items():
@@ -1263,25 +1271,20 @@ def build_attention_cloud(run):
 
     copy = {key: attention_cloud_copy(key) for key in ATTENTION_CLOUD_COPY_KEYS}
     if not groups:
-        return {"has_data": False, "entries": [], "copy": copy}
+        return {"has_data": False, "entries": [], "copy": copy, "watchlist_copy": watchlist}
 
     total = sum(score for _, score in groups)
     maximum = max(score for _, score in groups)
     visible_groups = {group for group, _ in groups}
     theme_scores = run.get("theme_scores") or run.get("theme_counts")
     theme_scores = theme_scores if isinstance(theme_scores, dict) else {}
-    pulse = run.get("narrative_pulse") if isinstance(run.get("narrative_pulse"), dict) else {}
-    dynamics = run.get("narrative_dynamics") if isinstance(run.get("narrative_dynamics"), dict) else {}
-    dynamic_groups = dynamics.get("groups") if isinstance(dynamics.get("groups"), dict) else {}
+    rotation_map = rotation_map or {}
     examples = run.get("examples") if isinstance(run.get("examples"), dict) else {}
 
     entries = []
     for group, score in groups:
-        pulse_record = pulse.get(group) if isinstance(pulse.get(group), dict) else {}
-        dynamic_record = dynamic_groups.get(group) if isinstance(dynamic_groups.get(group), dict) else {}
-        presented_direction = attention_cloud_direction(
-            dynamic_record.get("acceleration"), pulse_record.get("pulse_state")
-        )
+        rotation = rotation_map.get(group) if isinstance(rotation_map.get(group), dict) else {}
+        presented_direction = attention_direction_from_share_delta(rotation.get("share_delta"))
         positive_themes = []
         for theme in NARRATIVE_GROUPS[group]:
             try:
@@ -1330,7 +1333,7 @@ def build_attention_cloud(run):
             "tape": tape,
             "trend": attention_cloud_trend(presented_direction["label"]),
         })
-    return {"has_data": bool(entries), "entries": entries, "copy": copy}
+    return {"has_data": bool(entries), "entries": entries, "copy": copy, "watchlist_copy": watchlist}
 
 
 def _snapshot_support_score(snapshot):
@@ -1743,7 +1746,6 @@ def build_view_model(run, current_file):
         run.get("narrative_pulse"),
         dynamics,
     )
-    cloud = build_attention_cloud(run)
     sector_map = load_sector_map()
     sector_participation = classify_sectors_for_run(
         run, sector_map, run.get("dominant_group"), now=datetime.now().astimezone()
@@ -1778,7 +1780,7 @@ def build_view_model(run, current_file):
             "crowding": present_state(item["crowding"], category="Crowding"),
             "confidence": present_confidence(item["pulse_confidence"]),
             "rotation": (
-                present_state(item["rotation_state"], category="Rotation")
+                attention_direction_from_share_delta(item["share_delta"])
                 if item["rotation_state"]
                 else None
             ),
@@ -1801,6 +1803,8 @@ def build_view_model(run, current_file):
         )
         item["story_count_label"] = pluralize(item["score"], "story")
         item["leader_gap_label"] = pluralize(item["leader_gap"], "story")
+
+    cloud = build_attention_cloud(run, rotation_map)
 
     configuration_report = build_configuration_report().to_dict()
     source_registry = build_source_registry_diagnostics()
@@ -2439,6 +2443,13 @@ def dashboard(request: Request, run: Optional[str] = Query(default=None)):
         user = get_current_user(request)
         context["personalization"] = build_personalization_context(
             context["view"]["run"], selected_path, user.user_id if user else None)
+        followed_names = {
+            item.get("display_name")
+            for item in context["personalization"].get("items", [])
+            if item.get("narrative_level") == "group"
+        }
+        for entry in context["view"].get("cloud", {}).get("entries", []):
+            entry["watched"] = entry.get("name") in followed_names
     if context.get("view"):
         analyst_context = build_ai_analyst_context(MODE_TODAY, view=context["view"])
         context["ai_analyst"] = build_analyst_panel(

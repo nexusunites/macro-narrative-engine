@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import dashboard
 from mne.presentation_language import (
+    attention_direction_from_share_delta,
     compose_sentence,
     confidence,
     metric,
@@ -16,6 +17,11 @@ from mne.presentation_language import (
 
 
 class PresentationLanguageTests(unittest.TestCase):
+    def test_coverage_share_delta_has_one_direction_vocabulary(self):
+        self.assertEqual(attention_direction_from_share_delta(1.2)["direction"], "up")
+        self.assertEqual(attention_direction_from_share_delta(-0.4)["label"], "Fading")
+        self.assertEqual(attention_direction_from_share_delta(None)["direction"], "steady")
+
     def test_canonical_copy_is_exact(self):
         self.assertEqual(metric("Regime Alignment")["label"], "Market Support")
         self.assertEqual(metric("Narrative Pulse")["label"], "Strength")

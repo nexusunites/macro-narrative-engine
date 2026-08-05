@@ -52,6 +52,16 @@ class DesignSystemStructureTests(unittest.TestCase):
         self.assertIn("--teal: var(--up)", css)
         self.assertIn("--amber: var(--down)", css)
 
+    def test_watchlist_uses_shared_shell_and_cloud_controls(self):
+        dashboard_source = Path("templates/dashboard.html").read_text(encoding="utf-8")
+        cloud_source = Path("templates/_partials/narrative_constellation.html").read_text(encoding="utf-8")
+        css = Path("static/styles.css").read_text(encoding="utf-8")
+        self.assertIn("dashboard-content-shell", dashboard_source)
+        self.assertIn("data-watchlist-panel", dashboard_source)
+        self.assertIn("data-cloud-star", cloud_source)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) 260px", css)
+        self.assertIn("max-width: 1484px", css)
+
 
 if __name__ == "__main__":
     unittest.main()

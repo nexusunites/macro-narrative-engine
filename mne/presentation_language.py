@@ -135,6 +135,20 @@ def attention_cloud_direction(acceleration: Any = None, pulse: Any = None) -> di
     }
 
 
+def attention_direction_from_share_delta(share_delta: Any = None) -> dict[str, str]:
+    """Translate the story-card coverage-share movement into shared UI direction copy."""
+    try:
+        delta = float(share_delta)
+    except (TypeError, ValueError):
+        delta = 0.0
+    direction = "up" if delta > 0 else "down" if delta < 0 else "steady"
+    return {
+        "direction": direction,
+        "label": "Strengthening" if direction == "up" else "Fading" if direction == "down" else "Holding steady",
+        "tone": "good" if direction == "up" else "caution" if direction == "down" else "neutral",
+    }
+
+
 def attention_cloud_why(name: str, direction_label: str, share: float) -> str:
     """Explain one group-level chip using its persisted share and translated direction."""
     return f"{name} holds {share:.1f}% of visible narrative attention and is {direction_label.lower()} in this update."
@@ -151,6 +165,25 @@ def attention_cloud_trend(direction_label: str) -> str:
 def attention_cloud_evidence(value: Any) -> str:
     """Pass persisted headline evidence through the presentation boundary."""
     return str(value or "").strip()
+
+
+WATCHLIST_COPY = {
+    "title": "Watchlist",
+    "count_singular": "narrative",
+    "count_plural": "narratives",
+    "open": "Open watchlist",
+    "close": "Close watchlist",
+    "add": "Add to watchlist",
+    "remove": "Remove from watchlist",
+    "empty": "No narratives watched yet. Star one from a story's detail panel to track it here.",
+    "history": "Recent narrative history is not available yet.",
+    "investigate": "Investigate history →",
+}
+
+
+def watchlist_copy(key: str) -> str:
+    """Return fixed user-facing copy for the in-page watchlist."""
+    return WATCHLIST_COPY[key]
 
 
 NARRATIVE_RELATIONSHIP_COPY = {
