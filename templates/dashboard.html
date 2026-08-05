@@ -61,6 +61,34 @@
     </div>
   </header>
 
+  {% if view %}
+    <section class="change-strip" aria-labelledby="changes-heading">
+      <div class="change-strip-heading">
+        <h2 id="changes-heading">{{ view.presentation.metrics["Change Summary"].label }}</h2>
+      </div>
+      <div class="change-viewport">
+        {% if view.change_summary and view.change_summary.has_changes %}
+          <div class="change-track">
+            {% for duplicate in range(2) %}
+              <div class="change-set"{% if duplicate %} aria-hidden="true"{% endif %}>
+              {% for key in ["major", "narratives", "market", "catalysts"] %}
+                {% for item in view.change_summary.changes[key] %}
+                  <span class="change-chip">
+                    <i class="change-arrow direction-{{ item.direction }}" aria-hidden="true">{{ "▲" if item.direction == "up" else "▼" if item.direction == "down" else "→" }}</i>
+                    {{ item.text }}
+                  </span>
+                {% endfor %}
+              {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p>No major changes since the last update.</p>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
   <main class="page-shell dashboard-shell">
     {% if message %}
       <section class="empty-state">
@@ -75,17 +103,8 @@
 
       <section id="overview" class="support-hero">
         <div class="support-hero-copy">
-          <p class="eyebrow">{{ view.presentation.metrics["Regime Alignment"].label }}</p>
-          <div class="support-value-row">
-            <strong class="support-score">{% if view.regime.score is defined and view.regime.score is not none %}{{ view.regime.score }}{% else %}—{% endif %}</strong>
-            <div class="support-state">
-              <span class="{% if view.presentation.regime.untranslated %}untranslated{% endif %}">{{ view.presentation.regime.label }}</span>
-              {% if view.support_delta %}
-                <span class="direction-chip direction-{{ view.support_delta.direction }}">{{ view.support_delta.label }}</span>
-              {% endif %}
-            </div>
-          </div>
-          <p class="support-subtitle">{{ view.presentation.hero_explanation or view.presentation.mode_context.label }}</p>
+          <p class="eyebrow">{{ view.presentation.metrics["Narrative Leadership"].question }}</p>
+          <h1 class="support-subtitle">{{ view.presentation.hero_explanation or view.presentation.mode_context.label }}</h1>
           {% if view.market_expression_sentence %}<p class="support-market-expression">{{ view.market_expression_sentence }}</p>{% endif %}
           {% if view.historical_context_sentence %}<p class="support-history-context">{{ view.historical_context_sentence }}</p>{% endif %}
           <p class="support-caption">{{ view.presentation.metrics["Regime Alignment"].question }}</p>
@@ -97,6 +116,18 @@
         </div>
 
         <div class="support-chart-panel" data-support-chart>
+          <div class="support-panel-top">
+            <div>
+              <p class="eyebrow">{{ view.presentation.metrics["Regime Alignment"].label }}</p>
+              <strong class="support-score">{% if view.regime.score is defined and view.regime.score is not none %}{{ view.regime.score }}{% else %}—{% endif %}</strong>
+              <div class="support-state">
+                <span class="{% if view.presentation.regime.untranslated %}untranslated{% endif %}">{{ view.presentation.regime.label }}</span>
+              </div>
+            </div>
+            {% if view.support_delta %}
+              <span class="direction-chip direction-{{ view.support_delta.direction }}">{{ view.support_delta.label }}</span>
+            {% endif %}
+          </div>
           <div class="chart-heading">
             <span>{{ view.presentation.metrics["Regime Alignment History"].label }}</span>
             {% if regime_history.has_chart %}<span>{{ regime_history.summary }}</span>{% endif %}
@@ -138,27 +169,6 @@
             <div class="chart-empty">
               <p>History starts today — the chart fills in as daily updates accrue.</p>
             </div>
-          {% endif %}
-        </div>
-      </section>
-
-      <section class="change-strip" aria-labelledby="changes-heading">
-        <div class="change-strip-heading">
-          <p class="eyebrow">{{ view.presentation.metrics["Change Summary"].question }}</p>
-          <h2 id="changes-heading">{{ view.presentation.metrics["Change Summary"].label }}</h2>
-        </div>
-        <div class="change-chips">
-          {% if view.change_summary and view.change_summary.has_changes %}
-            {% for key in ["major", "narratives", "market", "catalysts"] %}
-              {% for item in view.change_summary.changes[key] %}
-                <span class="change-chip">
-                  <i class="change-arrow direction-{{ item.direction }}" aria-hidden="true">{{ "▲" if item.direction == "up" else "▼" if item.direction == "down" else "→" }}</i>
-                  {{ item.text }}
-                </span>
-              {% endfor %}
-            {% endfor %}
-          {% else %}
-            <p>No major changes since the last update.</p>
           {% endif %}
         </div>
       </section>
