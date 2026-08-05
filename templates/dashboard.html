@@ -1,4 +1,3 @@
-{% from "_partials/sector_heatmap.html" import sector_heatmap -%}
 <!doctype html>
 <html lang="en">
 <head>
@@ -14,21 +13,19 @@
 </head>
 <body class="user-dashboard">
   {% from "_partials/xray_disclosure.html" import xray_disclosure %}
-  {% set active_tier = "live" %}
-  {% include "_partials/app_rail.html" %}
-
-  <header class="site-header user-header">
-    <div class="brand-row">
-      <a class="brand" href="/">Macro Narrative Engine</a>
-      <nav class="page-subnav" aria-label="Dashboard sections">
-        <a href="#stories">Stories</a>
-        <a href="#markets">Markets</a>
-        <a href="#events">Events</a>
-        <a href="#evidence">Headlines</a>
-      </nav>
-    </div>
-
-    <div class="utility-row">
+  {% set dashboard_copy = dashboard_copy|default(view.dashboard_copy|default({}), true) %}
+  <header class="dashboard-topbar">
+    <a class="dashboard-brand" href="/">
+      <span class="dashboard-wordmark">{{ dashboard_copy.brand_short }}</span>
+      <span class="dashboard-brand-full">{{ dashboard_copy.brand_full }}</span>
+    </a>
+    <nav class="dashboard-primary-nav" aria-label="Primary">
+      <a class="active" aria-current="page" href="/">{{ dashboard_copy.nav_overview }}</a><span aria-hidden="true">·</span>
+      <a href="/research">{{ dashboard_copy.nav_research }}</a><span aria-hidden="true">·</span>
+      <a href="/history">{{ dashboard_copy.nav_history }}</a><span aria-hidden="true">·</span>
+      <a href="/preferences">{{ dashboard_copy.nav_preferences }}</a>
+    </nav>
+    <div class="dashboard-utilities">
       {% if view and view.dashboard_trust_summary %}
         <details class="data-quality-pill {% if view.dashboard_trust_summary.state in ['Strong', 'Usable'] %}quality-healthy{% else %}quality-degraded{% endif %}">
           <summary>
@@ -60,6 +57,7 @@
           {% endfor %}
         </select>
       </form>
+      {% if not current_user %}<a class="dashboard-sign-in" href="/login">{{ dashboard_copy.nav_sign_in }}</a>{% endif %}
     </div>
   </header>
 
@@ -176,70 +174,33 @@
         </div>
       </section>
 
+      {% include "_partials/narrative_constellation.html" %}
+
       <section id="stories" class="dashboard-section">
-        <header class="dashboard-section-heading">
-          <div>
-            <p class="eyebrow">{{ view.presentation.metrics["Narrative Leadership"].question }}</p>
-            <h2>{{ view.presentation.metrics["Narrative Leadership"].label }}</h2>
-          </div>
+        <header class="dashboard-section-heading parity-section-head">
+          <p class="eyebrow">{{ dashboard_copy.big_picture_eyebrow }}</p>
+          <h2>{{ dashboard_copy.big_picture_title }}</h2>
+          <p>{{ dashboard_copy.big_picture_intro }}</p>
         </header>
 
         {% if view.narrative_leadership %}
-          <div class="story-grid">
+          <div class="story-grid parity-group-grid">
             {% for item in view.narrative_leadership %}
-              <article class="story-card{% if item.rank == 1 %} story-card-leader{% endif %}">
-                <span class="story-rank">0{{ item.rank }}</span>
-                <h3>{{ item.group }}</h3>
-                <p class="story-summary">{{ item.presentation.explanation }}</p>
-
-                <dl class="story-stats">
-                  <div>
-                    <dt>{{ view.presentation.metrics["Narrative Pulse"].label }}</dt>
-                    <dd class="tone-{{ item.presentation.pulse.tone }}{% if item.presentation.pulse.untranslated %} untranslated{% endif %}">{{ item.presentation.pulse.label }}</dd>
-                  </div>
-                  <div>
-                    <dt>{{ view.presentation.metrics["Acceleration"].label }}</dt>
-                    <dd class="tone-{{ item.presentation.acceleration.tone }}{% if item.presentation.acceleration.untranslated %} untranslated{% endif %}">{{ item.presentation.acceleration.label }}</dd>
-                  </div>
-                  {% if item.crowding %}
-                    <div>
-                      <dt>{{ view.presentation.metrics["Crowding"].label }}</dt>
-                      <dd class="tone-{{ item.presentation.crowding.tone }}{% if item.presentation.crowding.untranslated %} untranslated{% endif %}">{{ item.presentation.crowding.label }}</dd>
-                    </div>
-                  {% endif %}
-                </dl>
-
-                <div class="story-movement">
-                  {% if item.presentation.rotation %}
-                    <span class="rotation-chip tone-{{ item.presentation.rotation.tone }}">
-                      {% if item.share_delta is not none and item.share_delta > 0 %}<i class="direction-up">↑</i>{% elif item.share_delta is not none and item.share_delta < 0 %}<i class="direction-down">↓</i>{% endif %}
-                      {{ item.presentation.rotation.label }}
-                    </span>
-                  {% endif %}
-                  {% if item.share_delta is not none %}
-                    <span class="rotation-delta direction-{{ "up" if item.share_delta > 0 else "down" if item.share_delta < 0 else "flat" }}">
-                      {% if item.share_delta > 0 %}+{% endif %}{{ item.share_delta }} pts of coverage share
-                    </span>
-                  {% endif %}
-                  {% if item.rotation_streak and item.rotation_streak > 1 %}<span>{{ item.rotation_streak }}-day streak</span>{% endif %}
+              <article class="story-card parity-group-card{% if item.rank == 1 %} story-card-leader{% endif %}">
+                <div class="parity-group-top">
+                  <span class="parity-rank">{{ dashboard_copy.rank }} 0{{ item.rank }}</span>
+                  <span class="parity-status parity-status-{{ item.status_state }}">{{ item.status_label }}</span>
                 </div>
-
-                <div class="story-volume">
-                  <span>{{ item.story_count_label }} today</span>
-                  <span>{% if item.rank == 1 %}Current leader{% else %}{{ item.leader_gap_label }} behind #1{% endif %}</span>
+                <h3 class="parity-group-name">{{ item.display_name }}</h3>
+                <p class="parity-group-summary">{{ item.presentation.explanation }}</p>
+                <div class="parity-group-stats">
+                  <div><span>{{ dashboard_copy.strength }}</span><strong>{{ item.score }}</strong></div>
+                  <div><span>{{ dashboard_copy.momentum }}</span><strong class="cloud-direction-{{ item.direction }}" aria-label="{{ item.momentum_label }}">{{ "▲" if item.direction == "up" else "▼" if item.direction == "down" else "→" }}</strong></div>
+                  <div><span>{{ dashboard_copy.attention }}</span><strong>{{ item.attention_label }}</strong></div>
                 </div>
-                <div class="story-meter" aria-hidden="true"><span style="--meter-width: {{ item.relative_width }}%"></span></div>
-
-                <div class="story-actions">
-                  <details class="why-expander">
-                    <summary>Why?</summary>
-                    <p>{{ item.pulse_reason or item.presentation.pulse.meaning }}</p>
-                    {% if item.rotation_reason %}<p>{{ item.rotation_reason }}</p>{% endif %}
-                    {% if not item.crowding %}<p>Attention is measured for the leading story only.</p>{% endif %}
-                    <small>Engine signals: Narrative Pulse · {{ item.pulse_state or "Unavailable" }}; Acceleration · {{ item.acceleration or "Unavailable" }}; Crowding · {{ item.crowding or "Unavailable" }}{% if item.rotation_state %}; Rotation · {{ item.rotation_state }}{% endif %}</small>
-                  </details>
-                  <a class="investigate-link" href="{{ url_for('narrative_investigation', key=item.investigation_key) }}">Investigate narrative →</a>
-                </div>
+                <div class="parity-meter" aria-hidden="true"><span class="parity-meter-{{ item.direction }}" style="width: {{ item.attention_share }}%"></span></div>
+                <div class="parity-meter-row"><span>{{ dashboard_copy.share }}</span><span>{{ item.attention_label }}</span></div>
+                <a class="parity-investigate" href="{{ url_for('narrative_investigation', key=item.investigation_key) }}">{{ dashboard_copy.investigate }}</a>
               </article>
             {% endfor %}
           </div>
@@ -247,8 +208,6 @@
           <div class="section-empty">No leading market stories were found in this update.</div>
         {% endif %}
       </section>
-
-      {% include "_partials/narrative_constellation.html" %}
 
       <section id="my-narratives" class="dashboard-section personalization-section">
         <header class="dashboard-section-heading split-heading">
@@ -303,8 +262,28 @@
       </section>
 
       <section id="sector-isolation" class="dashboard-section sector-isolation-preview">
-        <header class="dashboard-section-heading split-heading"><div><p class="eyebrow">Sector Isolation</p><h2>Where this narrative connects</h2></div>{% if view.sector_isolation_preview.narrative %}<a class="accent-link" href="{{ view.sector_isolation_preview.sectors[0].href.split('#')[0] if view.sector_isolation_preview.sectors else '/research' }}">Open Sector Isolation →</a>{% endif %}</header>
-        <p>{{ view.sector_isolation_preview.breadth.summary }} {{ (view.sector_isolation_preview.participation_breadth|default({})).summary|default("Current participation breadth is unavailable.") }}</p>{{ sector_heatmap(view.sector_isolation_preview, true) }}
+        <header class="dashboard-section-heading parity-section-head">
+          <p class="eyebrow">{{ dashboard_copy.sector_eyebrow }}</p>
+          <h2>{{ dashboard_copy.sector_title }}</h2>
+          <p>{{ dashboard_copy.sector_intro }}</p>
+        </header>
+        {% if view.sector_isolation_preview.sectors %}
+          <div class="parity-sector-grid">
+            {% for sector in view.sector_isolation_preview.sectors %}
+              <a class="parity-sector-tile parity-sector-{{ sector.dashboard.state }}" href="{{ sector.href }}">
+                <span class="parity-sector-stripe" aria-hidden="true"></span>
+                <strong>{{ sector.sector_name }}</strong>
+                <span class="parity-sector-ticker">{{ sector.instrument or "—" }}</span>
+                <span class="parity-sector-participation">{{ sector.dashboard.label }}</span>
+              </a>
+            {% endfor %}
+          </div>
+          <div class="parity-sector-legend" aria-label="Sector participation legend">
+            <span><i class="legend-driving"></i>{{ dashboard_copy.sector_driving }}</span>
+            <span><i class="legend-steady"></i>{{ dashboard_copy.sector_steady }}</span>
+            <span><i class="legend-detached"></i>{{ dashboard_copy.sector_detached }}</span>
+          </div>
+        {% else %}<div class="section-empty">{{ dashboard_copy.sector_unavailable }}</div>{% endif %}
       </section>
 
       <section id="events" class="dashboard-section">
@@ -352,30 +331,29 @@
       </section>
 
       <section id="evidence" class="dashboard-section">
-        <header class="dashboard-section-heading">
-          <div>
-            <p class="eyebrow">{{ view.presentation.metrics["Example Headlines / Top Theme Evidence"].question }}</p>
-            <h2>{{ view.presentation.metrics["Example Headlines / Top Theme Evidence"].label }}</h2>
-          </div>
+        <header class="dashboard-section-heading parity-section-head">
+          <p class="eyebrow">{{ dashboard_copy.evidence_eyebrow }}</p>
+          <h2>{{ dashboard_copy.evidence_title }}</h2>
+          <p>{{ dashboard_copy.evidence_intro }}</p>
         </header>
-        {% if view.examples %}
-          <div class="evidence-grid">
-            {% for theme, headlines in view.examples.items() %}
-              <article class="evidence-group">
-                <h3>{{ theme|title }}</h3>
-                <ul>
-                  {% for headline in headlines %}<li>{{ headline }}</li>{% endfor %}
-                </ul>
+        {% if view.dashboard_evidence %}
+          <div class="parity-evidence-grid">
+            {% for group in view.dashboard_evidence %}
+              <article class="evidence-group parity-read-column">
+                <h3>{{ group.name }}</h3>
+                {% for item in group['items'] %}
+                  <div class="parity-read-item"><div>{{ item.headline }}</div><small>{{ item.meta }}</small></div>
+                {% endfor %}
                 <details class="why-expander">
                   <summary>Why?</summary>
-                  <p>These headlines contributed to today's read of this story.</p>
-                  <small>Engine signal: Top Theme Evidence · {{ theme }}</small>
+                  <p>{{ dashboard_copy.evidence_why }}</p>
+                  <small>Engine signal: Top Theme Evidence · {{ group.name }}</small>
                 </details>
               </article>
             {% endfor %}
           </div>
         {% else %}
-          <div class="section-empty">No supporting headlines were stored for the top stories in this update.</div>
+          <div class="section-empty">{{ dashboard_copy.evidence_empty }}</div>
         {% endif %}
       </section>
       {% include "_partials/ai_analyst.html" %}

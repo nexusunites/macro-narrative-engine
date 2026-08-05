@@ -883,7 +883,11 @@ class ResearchWorkspaceTests(unittest.TestCase):
     def test_dashboard_investigate_link_wording_and_route_remain(self):
         dashboard_template = (TEMPLATE_DIR / "dashboard.html").read_text()
 
-        self.assertIn("Investigate narrative", dashboard_template)
+        self.assertIn("dashboard_copy.investigate", dashboard_template)
+        self.assertIn(
+            '"investigate": "Investigate narrative →"',
+            Path("mne/presentation_language.py").read_text(encoding="utf-8"),
+        )
         self.assertIn("url_for('narrative_investigation'", dashboard_template)
 
     def test_events_can_use_existing_definition_lookup_by_event_id(self):

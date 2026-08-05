@@ -75,11 +75,15 @@ from mne.presentation_language import ACCOUNT_COPY, ENTITLEMENT_COPY, entitlemen
 from mne.presentation_language import (
     attention_cloud_copy,
     attention_direction_from_share_delta,
+    dashboard_attention_summary,
     attention_cloud_evidence,
     attention_cloud_trend,
     attention_cloud_watch_for,
     watchlist_copy,
     attention_cloud_why,
+    dashboard_evidence_meta,
+    dashboard_parity_copy,
+    dashboard_sector_presentation,
 )
 from mne.personalization import (
     SUPPORTED_ALERT_TYPES,
@@ -1245,6 +1249,51 @@ ATTENTION_CLOUD_COPY_KEYS = (
 )
 
 
+DASHBOARD_PARITY_COPY_KEYS = (
+    "brand_short", "brand_full", "nav_overview", "nav_research", "nav_history",
+    "nav_preferences", "nav_sign_in", "big_picture_eyebrow", "big_picture_title",
+    "big_picture_intro", "rank", "focus", "steady", "cooling", "strengthening",
+    "strength", "momentum", "attention", "share", "investigate", "sector_eyebrow",
+    "sector_title", "sector_intro", "sector_driving", "sector_steady",
+    "sector_detached", "sector_unavailable", "evidence_eyebrow", "evidence_title",
+    "evidence_intro", "evidence_why", "evidence_empty", "source_unavailable",
+)
+
+
+def build_dashboard_evidence(run, leadership):
+    """Group persisted example headlines and attribution for the three visible narratives."""
+    examples = run.get("examples") if isinstance(run.get("examples"), dict) else {}
+    source = run.get("source_intelligence") if isinstance(run.get("source_intelligence"), dict) else {}
+    accepted = source.get("accepted_evidence") if isinstance(source.get("accepted_evidence"), list) else []
+    by_title = {
+        str(item.get("title") or ""): item
+        for item in accepted
+        if isinstance(item, dict) and item.get("title")
+    }
+    groups = []
+    for item in leadership[:3]:
+        headlines = []
+        for theme in NARRATIVE_GROUPS.get(item["group"], ()):
+            for headline in examples.get(theme) or []:
+                if not isinstance(headline, str) or not headline.strip():
+                    continue
+                record = by_title.get(headline, {})
+                headlines.append({
+                    "headline": attention_cloud_evidence(headline),
+                    "meta": dashboard_evidence_meta(
+                        record.get("provider") or record.get("source_name"),
+                        record.get("published_at") or record.get("timestamp"),
+                    ),
+                })
+                if len(headlines) == 3:
+                    break
+            if len(headlines) == 3:
+                break
+        if headlines:
+            groups.append({"name": narrative_display_name(item["group"]), "items": headlines})
+    return groups
+
+
 def build_attention_cloud(run, rotation_map=None):
     """Build the honest group-level interim cloud from persisted run inputs."""
     watchlist = {
@@ -1760,6 +1809,7 @@ def build_view_model(run, current_file):
     except Exception:
         rotation_results = []
     rotation_map = {r["group"]: r for r in rotation_results}
+    total_group_score = sum(score_sort_value(item[1]) for item in group_scores[:3])
     for item in narrative_leadership:
         group_name = item["group"]
         item["investigation_key"] = narrative_key("group", group_name)
@@ -1803,8 +1853,36 @@ def build_view_model(run, current_file):
         )
         item["story_count_label"] = pluralize(item["score"], "story")
         item["leader_gap_label"] = pluralize(item["leader_gap"], "story")
+        movement = item["presentation"]["rotation"] or attention_direction_from_share_delta(None)
+        item["display_name"] = narrative_display_name(group_name)
+        item["direction"] = movement["direction"]
+        item["momentum_label"] = movement["label"]
+        item["presentation"]["explanation"] = dashboard_attention_summary(
+            item["display_name"], item["direction"]
+        )
+        item["attention_share"] = (
+            round((score_sort_value(item["score"]) / total_group_score) * 100, 1)
+            if total_group_score > 0 else 0
+        )
+        item["attention_label"] = f"{item['attention_share']:g}%"
+        item["status_label"] = (
+            dashboard_parity_copy("focus") if item["rank"] == 1
+            else dashboard_parity_copy("cooling") if item["direction"] == "down"
+            else dashboard_parity_copy("steady") if item["direction"] == "steady"
+            else dashboard_parity_copy("strengthening")
+        )
+        item["status_state"] = "focus" if item["rank"] == 1 else item["direction"]
 
     cloud = build_attention_cloud(run, rotation_map)
+
+    sector_rows = []
+    for sector in sector_isolation_preview.get("sectors", ()):
+        presented_sector = dashboard_sector_presentation(
+            sector.get("participation_state"), sector.get("participation_label")
+        )
+        sector_rows.append({**sector, "dashboard": presented_sector})
+    sector_isolation_preview = {**sector_isolation_preview, "sectors": sector_rows}
+    dashboard_evidence = build_dashboard_evidence(run, narrative_leadership)
 
     configuration_report = build_configuration_report().to_dict()
     source_registry = build_source_registry_diagnostics()
@@ -1867,6 +1945,9 @@ def build_view_model(run, current_file):
         "regime": regime,
         "mode_context": mode_context,
         "presentation": presentation,
+        "dashboard_copy": {
+            key: dashboard_parity_copy(key) for key in DASHBOARD_PARITY_COPY_KEYS
+        },
         "market_environment_card": market_environment_card,
         "market_expression_context": evaluated_market_expression,
         "market_expression_sentence": (
@@ -1891,6 +1972,7 @@ def build_view_model(run, current_file):
         "narrative_leadership": narrative_leadership,
         "cloud": cloud,
         "sector_isolation_preview": sector_isolation_preview,
+        "dashboard_evidence": dashboard_evidence,
         "dominant_share": pct(run.get("dominant_share")),
         "concentration_gap": run.get("concentration_gap"),
         "market_context": get_market_context(run),
@@ -2432,6 +2514,9 @@ def dashboard(request: Request, run: Optional[str] = Query(default=None)):
         meaningful_default=True,
         include_admin=False,
     )
+    context["dashboard_copy"] = {
+        key: dashboard_parity_copy(key) for key in DASHBOARD_PARITY_COPY_KEYS
+    }
     selected_timestamp = (
         context["view"]["run"].get("timestamp")
         if context.get("view")

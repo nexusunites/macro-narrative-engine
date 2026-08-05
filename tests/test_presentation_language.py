@@ -6,6 +6,7 @@ from unittest.mock import patch
 import dashboard
 from mne.presentation_language import (
     attention_direction_from_share_delta,
+    dashboard_attention_summary,
     compose_sentence,
     confidence,
     metric,
@@ -13,6 +14,8 @@ from mne.presentation_language import (
     present_change_summary,
     state,
     support,
+    dashboard_evidence_meta,
+    dashboard_sector_presentation,
 )
 
 
@@ -21,6 +24,66 @@ class PresentationLanguageTests(unittest.TestCase):
         self.assertEqual(attention_direction_from_share_delta(1.2)["direction"], "up")
         self.assertEqual(attention_direction_from_share_delta(-0.4)["label"], "Fading")
         self.assertEqual(attention_direction_from_share_delta(None)["direction"], "steady")
+
+    def test_card_summary_language_matches_unified_direction_state(self):
+        cases = {
+            "up": "Attention around Macro Pressure is building.",
+            "down": "Attention around Macro Pressure has been declining.",
+            "steady": "Attention around Macro Pressure is holding steady.",
+        }
+        for direction, expected in cases.items():
+            with self.subTest(direction=direction):
+                self.assertEqual(
+                    dashboard_attention_summary("Macro Pressure", direction), expected
+                )
+
+    def test_card_summary_matches_card_direction_from_coverage_share_delta(self):
+        run = {
+            "timestamp": "2026-08-05_120000",
+            "group_scores": {
+                "Energy / Commodities": 15,
+                "Macro Pressure": 11,
+                "AI / Tech Growth": 3,
+            },
+            "theme_scores": {"energy": 15, "rates": 7, "inflation": 4, "ai": 3},
+            "dominant_group": "Energy / Commodities",
+            "dominant_theme": "energy",
+        }
+        rotation = [
+            {"group": "Energy / Commodities", "rotation_state": "Emerging", "share_delta": 1, "rotation_streak": 1, "reason": "x"},
+            {"group": "Macro Pressure", "rotation_state": "Emerging", "share_delta": 2, "rotation_streak": 1, "reason": "x"},
+            {"group": "AI / Tech Growth", "rotation_state": "Fading", "share_delta": -3, "rotation_streak": 1, "reason": "x"},
+        ]
+        with (
+            patch("analysis.leadership_rotation.get_rotation", return_value=rotation),
+            patch.object(dashboard, "build_configuration_report"),
+            patch.object(dashboard, "build_source_registry_diagnostics", return_value={}),
+        ):
+            dashboard.build_configuration_report.return_value.to_dict.return_value = {}
+            view = dashboard.build_view_model(run, Path("2026-08-05_120000.json"))
+
+        cards = {item["group"]: item for item in view["narrative_leadership"]}
+        self.assertEqual(cards["Macro Pressure"]["direction"], "up")
+        self.assertEqual(cards["Macro Pressure"]["status_label"], "Strengthening")
+        self.assertIn("is building", cards["Macro Pressure"]["presentation"]["explanation"])
+        self.assertEqual(cards["AI / Tech Growth"]["direction"], "down")
+        self.assertEqual(cards["AI / Tech Growth"]["status_label"], "Cooling")
+        self.assertIn("has been declining", cards["AI / Tech Growth"]["presentation"]["explanation"])
+
+    def test_dashboard_sector_states_preserve_unavailable_data(self):
+        self.assertEqual(
+            dashboard_sector_presentation("UNAVAILABLE", "Current participation unavailable"),
+            {"state": "steady", "label": "No fresh data this session"},
+        )
+        self.assertEqual(dashboard_sector_presentation("STRONG")["state"], "driving")
+        self.assertEqual(dashboard_sector_presentation("DETACHED")["state"], "detached")
+
+    def test_dashboard_evidence_meta_uses_persisted_attribution(self):
+        self.assertEqual(
+            dashboard_evidence_meta("Reuters", "2026-08-04T18:54:56+00:00"),
+            "Reuters · Aug 4, 6:54 PM",
+        )
+        self.assertEqual(dashboard_evidence_meta(None, None), "Source unavailable")
 
     def test_canonical_copy_is_exact(self):
         self.assertEqual(metric("Regime Alignment")["label"], "Market Support")

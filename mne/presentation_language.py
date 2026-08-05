@@ -7,6 +7,7 @@ vocabulary is presented on the public dashboard.
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Any
 
 
@@ -149,6 +150,15 @@ def attention_direction_from_share_delta(share_delta: Any = None) -> dict[str, s
     }
 
 
+def dashboard_attention_summary(name: str, direction: str) -> str:
+    """Describe card movement from the unified coverage-share direction state."""
+    if direction == "up":
+        return f"Attention around {name} is building."
+    if direction == "down":
+        return f"Attention around {name} has been declining."
+    return f"Attention around {name} is holding steady."
+
+
 def attention_cloud_why(name: str, direction_label: str, share: float) -> str:
     """Explain one group-level chip using its persisted share and translated direction."""
     return f"{name} holds {share:.1f}% of visible narrative attention and is {direction_label.lower()} in this update."
@@ -184,6 +194,78 @@ WATCHLIST_COPY = {
 def watchlist_copy(key: str) -> str:
     """Return fixed user-facing copy for the in-page watchlist."""
     return WATCHLIST_COPY[key]
+
+
+DASHBOARD_PARITY_COPY = {
+    "brand_short": "MNE",
+    "brand_full": "Macro Narrative Engine",
+    "nav_overview": "Overview",
+    "nav_research": "Research",
+    "nav_history": "History",
+    "nav_preferences": "Preferences",
+    "nav_sign_in": "Sign in",
+    "big_picture_eyebrow": "The big picture",
+    "big_picture_title": "Three narratives running the tape",
+    "big_picture_intro": "How the day's stories cluster, ranked by how much they're moving markets.",
+    "rank": "Rank",
+    "focus": "Today's focus",
+    "steady": "Steady",
+    "cooling": "Cooling",
+    "strengthening": "Strengthening",
+    "strength": "Strength",
+    "momentum": "Momentum",
+    "attention": "Attention",
+    "share": "Share of attention",
+    "investigate": "Investigate narrative →",
+    "sector_eyebrow": "Where the story is landing",
+    "sector_title": "Which sectors are actually participating",
+    "sector_intro": "The stripe shows whether a sector is driving the day's story, steady, or detached from it.",
+    "sector_driving": "Driving the story",
+    "sector_steady": "Steady",
+    "sector_detached": "Detached",
+    "sector_unavailable": "No fresh data this session",
+    "evidence_eyebrow": "What we read",
+    "evidence_title": "The evidence behind the story",
+    "evidence_intro": "Every narrative above traces back to real headlines from the latest engine run.",
+    "evidence_why": "These headlines contributed to today's read of this story.",
+    "evidence_empty": "No supporting headlines were stored for the leading stories in this update.",
+    "source_unavailable": "Source unavailable",
+}
+
+
+def dashboard_parity_copy(key: str) -> str:
+    """Return approved mockup-parity copy for the user dashboard."""
+    return DASHBOARD_PARITY_COPY[key]
+
+
+def dashboard_sector_presentation(state: Any, existing_label: Any = None) -> dict[str, str]:
+    """Map persisted participation states to the three-state dashboard tile vocabulary."""
+    token = str(state or "UNAVAILABLE").upper()
+    if token in {"STRONG", "PARTICIPATING", "EMERGING"}:
+        visual = "driving"
+    elif token in {"DETACHED", "CONTRADICTING"}:
+        visual = "detached"
+    else:
+        visual = "steady"
+    label = (
+        DASHBOARD_PARITY_COPY["sector_unavailable"]
+        if token == "UNAVAILABLE"
+        else str(existing_label or DASHBOARD_PARITY_COPY[f"sector_{visual}"])
+    )
+    return {"state": visual, "label": label}
+
+
+def dashboard_evidence_meta(source: Any, timestamp: Any) -> str:
+    """Format persisted evidence attribution without manufacturing missing fields."""
+    source_label = str(source or DASHBOARD_PARITY_COPY["source_unavailable"]).strip()
+    if not timestamp:
+        return source_label
+    try:
+        parsed = datetime.fromisoformat(str(timestamp).replace("Z", "+00:00"))
+        time_label = parsed.strftime("%b %-d, %-I:%M %p")
+    except (TypeError, ValueError):
+        return source_label
+    return f"{source_label} · {time_label}"
 
 
 NARRATIVE_RELATIONSHIP_COPY = {

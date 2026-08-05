@@ -10,7 +10,7 @@ from mne.entitlements import EntitlementDenied
 class DesignSystemStructureTests(unittest.TestCase):
     def test_dashboard_hierarchy_and_discovery_preview_are_ordered(self):
         source = Path("templates/dashboard.html").read_text(encoding="utf-8")
-        ordered = ['id="overview"', 'id="stories"', '_partials/narrative_constellation.html', 'id="my-narratives"', 'id="markets"', 'id="events"', 'id="evidence"']
+        ordered = ['id="overview"', '_partials/narrative_constellation.html', 'id="stories"', 'id="my-narratives"', 'id="markets"', 'id="events"', 'id="evidence"']
         positions = [source.index(marker) for marker in ordered]
         self.assertEqual(positions, sorted(positions))
         self.assertIn('_partials/narrative_constellation.html', source)
@@ -61,6 +61,15 @@ class DesignSystemStructureTests(unittest.TestCase):
         self.assertIn("data-cloud-star", cloud_source)
         self.assertIn("grid-template-columns: minmax(0, 1fr) 260px", css)
         self.assertIn("max-width: 1484px", css)
+
+    def test_dashboard_uses_mockup_topbar_and_parity_sections(self):
+        source = Path("templates/dashboard.html").read_text(encoding="utf-8")
+        self.assertNotIn('_partials/app_rail.html', source)
+        self.assertIn('class="dashboard-topbar"', source)
+        for route in ('href="/"', 'href="/research"', 'href="/history"', 'href="/preferences"', 'href="/login"'):
+            self.assertIn(route, source)
+        for component in ("parity-group-card", "parity-sector-tile", "parity-read-column"):
+            self.assertIn(component, source)
 
 
 if __name__ == "__main__":
