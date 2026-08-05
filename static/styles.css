@@ -1,20 +1,28 @@
 :root {
   color-scheme: dark;
-  --bg: #090b0f;
+  --bg: #0b0e11;
   --bg-soft: #0f131a;
-  --panel: #11161d;
-  --panel-soft: #171d26;
-  --border: rgba(255, 255, 255, 0.075);
-  --border-strong: rgba(255, 255, 255, 0.16);
-  --text: #f2f5f8;
-  --muted: #9aa4b2;
-  --muted-strong: #c2cad4;
+  --panel: #12171d;
+  --panel-soft: #171d25;
+  --panel-raised: #171d25;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --line: var(--border);
+  --line-strong: var(--border-strong);
+  --text: #edf1f5;
+  --muted: #8b95a3;
+  --muted-strong: #b9c2cd;
   --accent: #68d391;
   --accent-soft: rgba(104, 211, 145, 0.12);
-  --warn: #d7b36a;
-  --up: #4ade80;
-  --down: #f87171;
-  --shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+  --warn: #f0a64b;
+  --up: #2dd4bf;
+  --down: #f16a5f;
+  --teal-bright: #5eead4;
+  --steady: #c9d2dc;
+  --steady-soft: rgba(201, 210, 220, 0.12);
+  --steady-line: rgba(201, 210, 220, 0.30);
+  --radius: 16px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   --shadow-soft: 0 12px 34px rgba(0, 0, 0, 0.18);
 
   /* Text tokens (fix: alias the undefined --color-text-* properties onto real values) */
@@ -60,7 +68,8 @@
   --text-size-display: clamp(2.5rem, 5vw, 4rem);
   --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif;
   --teal: var(--up);
-  --amber: var(--down);
+  --amber: #f0a64b;
+  --red: var(--down);
 
   /* Spacing scale (defined for later phases; do not re-point existing spacing values) */
   --space-1: 4px;
@@ -93,6 +102,54 @@ body {
   line-height: 1.48;
   text-rendering: optimizeLegibility;
 }
+
+/* Operational and research surfaces retain the pre-v2 palette. */
+body:not(.user-dashboard) {
+  --bg: #090b0f;
+  --panel: #11161d;
+  --panel-soft: #171d26;
+  --panel-raised: #171d26;
+  --border: rgba(255, 255, 255, 0.075);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --line: var(--border);
+  --line-strong: var(--border-strong);
+  --text: #f2f5f8;
+  --muted: #9aa4b2;
+  --muted-strong: #c2cad4;
+  --warn: #d7b36a;
+  --up: #4ade80;
+  --down: #f87171;
+  --amber: var(--down);
+  --shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+}
+
+body:not(.user-dashboard) .rotation-holding { background: rgba(133, 183, 235, 0.15); color: var(--status-info); }
+body:not(.user-dashboard) .rotation-dominant { background: rgba(90, 169, 199, 0.15); color: var(--status-lead); }
+body:not(.user-dashboard) .rotation-challenged { background: rgba(215, 179, 106, 0.15); color: var(--status-attention); }
+body:not(.user-dashboard) .rotation-challenging,
+body:not(.user-dashboard) .rotation-emerging { background: rgba(156, 143, 217, 0.15); color: var(--status-notable); }
+body:not(.user-dashboard) .rotation-losing { background: rgba(169, 143, 151, 0.15); color: var(--status-recede); }
+body:not(.user-dashboard) .rotation-stable { background: rgba(180, 178, 169, 0.15); color: var(--status-neutral); }
+body:not(.user-dashboard) .delta-up { color: var(--status-lead); }
+body:not(.user-dashboard) .delta-down { color: var(--status-recede); }
+body:not(.user-dashboard) .delta-flat { color: var(--status-neutral); }
+body:not(.user-dashboard) .state-upcoming { background: rgba(180, 178, 169, 0.16); color: var(--status-neutral); }
+body:not(.user-dashboard) .state-pre-positioning { background: rgba(133, 183, 235, 0.16); color: var(--status-info); }
+body:not(.user-dashboard) .state-immediate-pre-event { background: rgba(215, 179, 106, 0.18); color: var(--status-attention); }
+body:not(.user-dashboard) .state-active-release { background: rgba(169, 143, 151, 0.18); color: var(--status-recede); }
+body:not(.user-dashboard) .state-initial-digestion { background: rgba(90, 169, 199, 0.16); color: var(--status-lead); }
+body:not(.user-dashboard) .state-narrative-repricing { background: rgba(156, 143, 217, 0.18); color: var(--status-notable); }
+body:not(.user-dashboard) .state-complete { background: rgba(159, 185, 160, 0.16); color: var(--status-complete); }
+body:not(.user-dashboard) .memory-state-dominant,
+body:not(.user-dashboard) .memory-state-persistent { background: rgba(90, 169, 199, 0.16); color: var(--status-lead); }
+body:not(.user-dashboard) .memory-state-building,
+body:not(.user-dashboard) .memory-state-re-accelerating,
+body:not(.user-dashboard) .memory-state-emerging { background: rgba(156, 143, 217, 0.18); color: var(--status-notable); }
+body:not(.user-dashboard) .memory-state-fading,
+body:not(.user-dashboard) .memory-state-dormant { background: rgba(169, 143, 151, 0.18); color: var(--status-recede); }
+body:not(.user-dashboard) .memory-state-recurring { background: rgba(133, 183, 235, 0.16); color: var(--status-info); }
+body:not(.user-dashboard) .memory-state-absent { background: rgba(180, 178, 169, 0.16); color: var(--status-neutral); }
+body:not(.user-dashboard) .catalyst-calendar-warning .warning-label { color: var(--status-attention); }
 
 a {
   color: inherit;
@@ -3545,18 +3602,14 @@ input:focus-visible,
   border-radius: 20px;
 }
 
-.rotation-holding     { background: rgba(133, 183, 235, 0.15); color: var(--status-info); }
-.rotation-dominant    { background: rgba(90, 169, 199, 0.15);  color: var(--status-lead); }
-.rotation-challenged  { background: rgba(215, 179, 106, 0.15); color: var(--status-attention); }
-.rotation-challenging { background: rgba(156, 143, 217, 0.15); color: var(--status-notable); }
-.rotation-emerging    { background: rgba(156, 143, 217, 0.15); color: var(--status-notable); }
-.rotation-losing      { background: rgba(169, 143, 151, 0.15); color: var(--status-recede); }
-.rotation-stable      { background: rgba(180, 178, 169, 0.15); color: var(--status-neutral); }
+.rotation-holding, .rotation-stable { background: var(--steady-soft); color: var(--steady); }
+.rotation-dominant, .rotation-challenging, .rotation-emerging { background: rgba(45, 212, 191, 0.12); color: var(--up); }
+.rotation-challenged, .rotation-losing { background: rgba(241, 106, 95, 0.12); color: var(--down); }
 
 .rotation-delta { font-size: 11px; font-weight: 500; }
-.delta-up   { color: var(--status-lead); }
-.delta-down { color: var(--status-recede); }
-.delta-flat { color: var(--status-neutral); }
+.delta-up   { color: var(--up); }
+.delta-down { color: var(--down); }
+.delta-flat { color: var(--steady); }
 
 .rotation-streak { font-size: 11px; color: #5F5E5A; }
 
@@ -3604,13 +3657,9 @@ input:focus-visible,
   margin-top: 7px;
 }
 
-.state-upcoming             { background: rgba(180, 178, 169, 0.16); color: var(--status-neutral); }
-.state-pre-positioning      { background: rgba(133, 183, 235, 0.16); color: var(--status-info); }
-.state-immediate-pre-event  { background: rgba(215, 179, 106, 0.18); color: var(--status-attention); }
-.state-active-release       { background: rgba(169, 143, 151, 0.18); color: var(--status-recede); }
-.state-initial-digestion    { background: rgba(90, 169, 199, 0.16);  color: var(--status-lead); }
-.state-narrative-repricing  { background: rgba(156, 143, 217, 0.18); color: var(--status-notable); }
-.state-complete             { background: rgba(159, 185, 160, 0.16); color: var(--status-complete); }
+.state-upcoming, .state-pre-positioning, .state-immediate-pre-event,
+.state-active-release, .state-initial-digestion, .state-narrative-repricing,
+.state-complete { background: var(--steady-soft); color: var(--steady); }
 
 .narrative-memory-card {
   display: grid;
@@ -3675,31 +3724,31 @@ input:focus-visible,
 
 .memory-state-dominant,
 .memory-state-persistent {
-  background: rgba(90, 169, 199, 0.16);
-  color: var(--status-lead);
+  background: rgba(45, 212, 191, 0.12);
+  color: var(--up);
 }
 
 .memory-state-building,
 .memory-state-re-accelerating,
 .memory-state-emerging {
-  background: rgba(156, 143, 217, 0.18);
-  color: var(--status-notable);
+  background: rgba(45, 212, 191, 0.12);
+  color: var(--up);
 }
 
 .memory-state-fading,
 .memory-state-dormant {
-  background: rgba(169, 143, 151, 0.18);
-  color: var(--status-recede);
+  background: rgba(241, 106, 95, 0.12);
+  color: var(--down);
 }
 
 .memory-state-recurring {
-  background: rgba(133, 183, 235, 0.16);
-  color: var(--status-info);
+  background: var(--steady-soft);
+  color: var(--steady);
 }
 
 .memory-state-absent {
-  background: rgba(180, 178, 169, 0.16);
-  color: var(--status-neutral);
+  background: var(--steady-soft);
+  color: var(--steady);
 }
 
 .memory-raw-details pre {
@@ -3718,7 +3767,7 @@ input:focus-visible,
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--status-attention);
+  color: var(--down);
   margin: 0 0 4px;
 }
 
@@ -3760,10 +3809,9 @@ input:focus-visible,
 
 /* User dashboard — Sprint B */
 .user-dashboard {
-  --dashboard-surface: #11161d;
-  --dashboard-surface-hover: #171d26;
-  --dashboard-line: rgba(255, 255, 255, 0.08);
-  --brand-accent: var(--up);
+  --dashboard-surface: var(--panel);
+  --dashboard-surface-hover: var(--panel-raised);
+  --dashboard-line: var(--line);
   font-variant-numeric: tabular-nums;
 }
 
@@ -4983,3 +5031,117 @@ input:focus-visible,
 .asset-card h3,.asset-card p { margin:0; }.asset-rationale { font-size:15px; line-height:1.55; }.asset-ticker { color:var(--muted); font-size:11px; }.asset-card details { border-top:1px solid var(--border); padding-top:10px; }.asset-card summary { min-height:44px; cursor:pointer; font-weight:700; }.asset-card dl { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.5fr); gap:8px; }.asset-card dd { margin:0; overflow-wrap:anywhere; }.asset-data-honesty { border-left:3px solid var(--muted); }
 @media (max-width: 600px) { .asset-grid { grid-template-columns:1fr; }.asset-card { min-height:0; }.asset-card dl { grid-template-columns:1fr; } }
 @media (prefers-reduced-motion: reduce) { .asset-card { transition:none !important; } }
+
+/* Dashboard visual rework v2 — Sprint A foundation. */
+.user-dashboard .story-card,
+.user-dashboard .market-row,
+.user-dashboard .sector-tile,
+.user-dashboard .event-row,
+.user-dashboard .evidence-group {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.user-dashboard .story-card:hover,
+.user-dashboard .market-row:hover,
+.user-dashboard .sector-tile:hover,
+.user-dashboard .event-row:hover,
+.user-dashboard .evidence-group:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.user-dashboard .story-card-leader {
+  border-color: var(--line);
+  box-shadow: inset 0 2px 0 var(--up);
+}
+
+.user-dashboard .market-list,
+.user-dashboard .event-list {
+  display: grid;
+  gap: 12px;
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
+}
+
+.user-dashboard .market-role-group {
+  display: grid;
+  gap: 12px;
+}
+
+.user-dashboard .market-role-group + .market-role-group {
+  border-top: 0;
+}
+
+.user-dashboard .market-role-group h3 {
+  padding-inline: 0;
+}
+
+.user-dashboard .tone-neutral,
+.user-dashboard .direction-flat,
+.user-dashboard .delta-flat {
+  color: var(--steady) !important;
+}
+
+.user-dashboard .rotation-chip,
+.user-dashboard .countdown-chip {
+  border: 1px solid var(--steady-line);
+  background: var(--steady-soft);
+  color: var(--steady);
+}
+
+.user-dashboard .story-meter span {
+  background: linear-gradient(90deg, var(--muted), var(--muted-strong));
+}
+
+.user-dashboard .story-card-leader .story-meter span,
+.user-dashboard .quality-dot,
+.user-dashboard .ai-analyst-panel form button[type="submit"] {
+  background: var(--up);
+}
+
+.user-dashboard .app-rail-item.active {
+  box-shadow: inset 3px 0 0 var(--up);
+}
+
+.user-dashboard .support-chart,
+.user-dashboard .chart-range.active,
+.user-dashboard .investigate-link,
+.user-dashboard .investigate-link:hover,
+.user-dashboard .accent-link,
+.user-dashboard .data-quality-popover a {
+  color: var(--up);
+}
+
+.user-dashboard .support-chart .regime-line,
+.user-dashboard .chart-active-point {
+  stroke: var(--up);
+}
+
+.user-dashboard .support-chart .regime-point {
+  fill: var(--up);
+}
+
+.user-dashboard .personalization-alert {
+  border-left-color: var(--up);
+}
+
+.user-dashboard .sector-tile:focus-visible {
+  outline-color: var(--up);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-dashboard .story-card:hover,
+  .user-dashboard .market-row:hover,
+  .user-dashboard .sector-tile:hover,
+  .user-dashboard .event-row:hover,
+  .user-dashboard .evidence-group:hover {
+    transform: none !important;
+  }
+}
