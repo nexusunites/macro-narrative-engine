@@ -290,6 +290,20 @@ the research chrome (see 5.4) keeps its existing look.
   the existing route uses at `dashboard.py:2779-2802`. Validate `{ticker}` against the loaded asset
   registry; an unmapped ticker sets an honest `message` and a `None` execution context (same idiom
   as the sector-not-mapped branch at `dashboard.py:2792-2794`).
+
+**Ticker-symbol mapping (ratified).** The Sprint G candle store - and the Sprint I event store - are
+keyed by the **yfinance symbol** (the value `get_market_snapshot` stores as `"ticker"` and `main.py`
+passes to `upsert_daily_candle`), so the on-disk files are e.g. `^VIX.json` and `DX-Y.NYB.json`, not
+`VIX.json` / `DXY.json`. The asset registry, however, is keyed by canonical tickers (`VIX`, `DXY`,
+`NVDA`, ...). The execution builder must therefore **translate the registry ticker to its yfinance
+symbol before loading candles/events** - reuse the existing maps (`NASDAQ_TICKERS`,
+`ASSET_EXPANSION_TICKERS` in `main.py`, and `build_sector_ticker_map()`) as the single source of that
+mapping; do not hardcode a second copy. When a registry ticker has no yfinance symbol in those maps,
+or has a symbol but no persisted file yet (e.g. a `fetched: false` asset such as `SMH`, which the
+engine never fetches), fall to the **honest empty chart state** - never fabricate candles. Most
+tickers (NVDA, QQQ, XLK, MSFT, ...) have registry key == yfinance symbol and need no translation;
+only the special-symbol tickers (VIX, DXY) and unfetched assets are affected.
+
 - Add a context builder **`build_asset_execution_context(...)` in `mne/asset_exploration.py`**
   (alongside `build_asset_exploration_context` at `mne/asset_exploration.py:186`). **Decision: put it
   in `asset_exploration.py`, not a new module** - it reuses that file's registry loading, participation
