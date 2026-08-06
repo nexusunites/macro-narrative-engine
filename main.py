@@ -1,11 +1,12 @@
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from analysis.leadership_rotation import compute_rotation
 from analysis.narrative_dynamics import calculate_narrative_dynamics
 from config import DATA_DIR, OPERATING_MODE, RESULTS_DIR, ensure_data_dir
 from mne.breadth import BREADTH_TICKERS, classify_breadth_confirmation
+from mne.asset_price_history import Candle, upsert_daily_candle
 from mne.catalyst_environment import classify_catalyst_environment
 from mne.change_summary import build_change_summary
 from mne.config_diagnostics import build_configuration_report, format_startup_report
@@ -503,6 +504,17 @@ def main(args=None):
             {**NASDAQ_TICKERS, **BREADTH_TICKERS, **sector_tickers, **ASSET_EXPANSION_TICKERS},
             observed_at=stamp,
         )
+        today = date.today().isoformat()
+        for row in market_snapshot.values():
+            if not row or "candle" not in row:
+                continue
+            try:
+                upsert_daily_candle(
+                    row["ticker"],
+                    Candle(date=today, **row["candle"]),
+                )
+            except (OSError, ValueError):
+                continue
         market_environment = classify_market_environment(
             theme_scores=theme_scores,
             group_scores=group_scores,

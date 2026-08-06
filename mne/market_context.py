@@ -1,7 +1,29 @@
+from datetime import date
+
 import yfinance as yf
 
 
-def get_market_snapshot(tickers, observed_at=None):
+def latest_daily_candle(data, today=None):
+    """Return the latest complete OHLC row, rounded for persistence."""
+    if data is None or getattr(data, "empty", True) or len(data) < 2:
+        return None
+
+    try:
+        if data.index[-1].date() != (today or date.today()):
+            return None
+        row = data.iloc[-1]
+        values = {field: round(float(row[column]), 2) for field, column in (
+            ("open", "Open"),
+            ("high", "High"),
+            ("low", "Low"),
+            ("close", "Close"),
+        )}
+    except (AttributeError, KeyError, TypeError, ValueError, IndexError):
+        return None
+    return values
+
+
+def get_market_snapshot(tickers, observed_at=None, today=None):
     snapshot = {}
 
     for name, ticker in tickers.items():
@@ -26,6 +48,9 @@ def get_market_snapshot(tickers, observed_at=None):
             "pct_change": round(float(pct_change), 2),
             "observed_at": observed_at,
         }
+        candle = latest_daily_candle(data, today=today)
+        if candle is not None:
+            snapshot[name]["candle"] = candle
 
     return snapshot
 
