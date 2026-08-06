@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MNE Asset Execution Concept</title>
+<style>
+  :root {
+    --bg: #0B0E11;
+    --panel: #12171D;
+    --panel-raised: #171D25;
+    --line: rgba(255,255,255,0.07);
+    --line-strong: rgba(255,255,255,0.14);
+    --text: #EDF1F5;
+    --muted: #8B95A3;
+    --muted-strong: #B9C2CD;
+    --teal: #2DD4BF;
+    --teal-bright: #5EEAD4;
+    --amber: #F0A64B;
+    --red: #F16A5F;
+    --font: -apple-system, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+    --radius: 16px;
+    --shadow: 0 10px 30px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .num, .stat-num, .launch-num, .countdown, .day-change, .crumb-tick,
+  .rail-label, .readout, .launch-line-lbl, .asset-change {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+  a { color: inherit; }
+  button { font-family: inherit; cursor: pointer; }
+
+  :focus-visible {
+    outline: 2px solid var(--teal-bright);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* ---------- Uniform card system ---------- */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow);
+  }
+  .card.raised { background: var(--panel-raised); }
+
+  .glow-teal {
+    box-shadow: 0 0 0 1px rgba(45,212,191,0.18), 0 0 40px -12px rgba(45,212,191,0.35);
+    border-color: rgba(45,212,191,0.28);
+  }
+
+  /* ---------- Typography ---------- */
+  .eyebrow, .label {
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  h2.section-title {
+    font-size: 20px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin: 0 0 4px;
+  }
+  .section-head { margin-bottom: 20px; }
+  .section-sub { color: var(--muted); font-size: 14px; margin: 0; }
+
+  section { padding: 32px 0; }
+  section.pad-lg { padding: 36px 0; }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .wordmark { font-weight: 700; letter-spacing: 0.02em; font-size: 16px; color: var(--text); }
+  .brand-full { color: var(--muted); font-size: 13px; }
+  .app-nav { display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; }
+  .nav-link {
+    color: var(--muted);
+    font-size: 13px;
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 8px;
+    position: relative;
+    white-space: nowrap;
+    transition: color 150ms ease;
+  }
+  .nav-link:hover { color: var(--muted-strong); }
+  .nav-link.active { color: var(--text); }
+  .nav-link.active::after {
+    content: "";
+    position: absolute;
+    left: 10px; right: 10px; bottom: 1px;
+    height: 2px; border-radius: 2px;
+    background: var(--teal);
+  }
+  .nav-sep { color: var(--muted); font-size: 12px; opacity: 0.6; }
+  .clock { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
+  .dot.slate { background: #6B7685; }
+
+  /* ---------- Breadcrumb ---------- */
+  .crumb {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 12px 20px 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .crumb .sep { opacity: 0.55; margin: 0 6px; }
+  .crumb .here { color: var(--muted-strong); }
+
+  /* ---------- Hero ---------- */
+  .hero-grid { display: grid; grid-template-columns: 1.55fr 1fr; gap: 20px; align-items: stretch; }
+  .hero-headline {
+    font-size: clamp(34px, 5vw, 52px);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    line-height: 1.04;
+    margin: 12px 0 6px;
+    text-wrap: balance;
+  }
+  .hero-idline { font-family: var(--mono); color: var(--muted); font-size: 13.5px; margin: 0 0 14px; }
+  .hero-sub { color: var(--muted-strong); font-size: 16px; line-height: 1.55; max-width: 48ch; margin: 0 0 22px; }
+  .stat-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 14px; border-radius: 999px;
+    background: var(--panel-raised); border: 1px solid var(--line);
+    font-size: 13px; color: var(--muted-strong);
+  }
+  .chip.teal { color: var(--teal-bright); border-color: rgba(45,212,191,0.28); }
+  .chip.mono { font-family: var(--mono); }
+  .chip strong { color: var(--text); font-weight: 650; }
+  .glyph { font-weight: 700; }
+  .g-up { color: var(--teal); }
+  .g-down { color: var(--red); }
+  .g-steady { color: var(--muted-strong); }
+
+  /* ---------- Launch panel ---------- */
+  .launch-panel { display: flex; flex-direction: column; }
+  .launch-top { display: flex; align-items: baseline; justify-content: space-between; }
+  .launch-num { font-family: var(--mono); font-size: 56px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
+  .launch-line-lbl { color: var(--muted); font-size: 13px; font-family: var(--mono); margin-top: 8px; }
+  .launch-delta { color: var(--teal); font-size: 13px; font-family: var(--mono); }
+  .launch-spark { margin-top: 14px; width: 100%; height: 78px; display: block; }
+  .launch-cap { color: var(--muted); font-size: 12.5px; margin: 12px 0 0; line-height: 1.5; }
+
+  /* ---------- Tape chart ---------- */
+  .chart-head { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+  .chart-head-controls { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+  .range-row, .filter-row { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .range-btn, .filter-btn {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    color: var(--muted-strong);
+    transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+  }
+  .range-btn:hover, .filter-btn:hover { border-color: var(--line-strong); color: var(--text); }
+  .range-btn[aria-pressed="true"], .filter-btn[aria-pressed="true"] {
+    color: var(--teal-bright);
+    border-color: rgba(45,212,191,0.35);
+    background: rgba(45,212,191,0.08);
+  }
+  /* chart body becomes two columns when an event panel is docked */
+  .chart-main { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: start; }
+  .chart-main.has-panel { grid-template-columns: minmax(0, 1fr) 280px; }
+  .chart-col { min-width: 0; }
+  .event-panel {
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    align-self: start;
+  }
+  .ev-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .ev-panel-tag {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;
+    color: #C9D2DC;
+  }
+  .ev-panel-close {
+    font-size: 12px; padding: 5px 12px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--line-strong);
+    color: var(--muted-strong);
+    transition: color 150ms ease, border-color 150ms ease;
+  }
+  .ev-panel-close:hover { color: var(--text); border-color: var(--muted); }
+  .ev-panel-title { font-size: 16px; font-weight: 650; margin: 10px 0 4px; line-height: 1.3; }
+  .ev-panel-date { font-family: var(--mono); font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
+  .ev-panel-detail { font-size: 13.5px; color: var(--muted-strong); margin: 0 0 14px; }
+  .ev-panel-src { font-size: 11.5px; color: var(--muted); font-family: var(--mono); }
+  .lg-ev {
+    width: 15px; height: 15px; border-radius: 50%;
+    border: 1.3px solid #C9D2DC; color: #C9D2DC; background: var(--panel-raised);
+    font-size: 9px; font-weight: 700; font-family: var(--mono);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .chart-wrap { position: relative; }
+  .chart-svg { width: 100%; height: auto; display: block; touch-action: none; }
+  .readout {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: var(--panel-raised);
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted-strong);
+    pointer-events: none;
+    display: none;
+    box-shadow: var(--shadow);
+    white-space: nowrap;
+    z-index: 3;
+  }
+  .readout .rd-date { color: var(--text); font-weight: 600; margin-bottom: 3px; }
+  .readout .rd-up { color: var(--teal); }
+  .readout .rd-down { color: var(--red); }
+  .readout .rd-ev {
+    margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line-strong);
+    white-space: normal; max-width: 220px; font-family: var(--font);
+  }
+  .readout .rd-ev-tag { display: block; font-size: 9.5px; letter-spacing: 0.08em; color: #C9D2DC; font-weight: 700; margin-bottom: 3px; }
+  .readout .rd-ev-title { display: block; color: var(--text); font-weight: 600; margin-bottom: 2px; }
+  .readout .rd-ev-blurb { display: block; color: var(--muted); font-size: 11px; line-height: 1.4; }
+  .ev-marker { cursor: pointer; }
+  .chart-legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 16px; font-size: 12.5px; color: var(--muted); }
+  .chart-legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .lg-sq { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  .lg-teal { background: var(--teal); }
+  .lg-red { background: var(--red); }
+  .lg-dash { width: 20px; height: 0; border-top: 2px dashed var(--muted-strong); display: inline-block; }
+  .lg-rail { width: 20px; height: 0; border-top: 1px solid rgba(201,210,220,0.55); display: inline-block; }
+  .noscript-note { color: var(--muted); font-size: 13px; font-family: var(--mono); margin-top: 12px; }
+
+  /* ---------- Events ---------- */
+  .event-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .event-card { display: flex; flex-direction: column; position: relative; }
+  .event-tag {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;
+    color: var(--teal-bright); display: inline-flex; align-items: center; gap: 7px; margin-bottom: 10px;
+  }
+  .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); display: inline-block; }
+  .event-card.soon .pulse-dot { animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(45,212,191,0.5); opacity: 1; }
+    50% { box-shadow: 0 0 0 6px rgba(45,212,191,0); opacity: 0.75; }
+  }
+  .event-name { font-size: 16px; font-weight: 650; margin: 0 0 2px; }
+  .event-when { font-size: 12.5px; color: var(--muted); font-family: var(--mono); }
+  .countdown {
+    font-family: var(--mono); font-size: 26px; font-weight: 600;
+    letter-spacing: 0.01em; margin: 16px 0 4px; color: var(--text);
+  }
+  .event-why { font-size: 13px; color: var(--muted-strong); margin: 10px 0 12px; }
+  .event-src { font-size: 11.5px; color: var(--muted); font-family: var(--mono); margin-top: auto; }
+
+  /* ---------- Story it carries ---------- */
+  .story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .story-card { display: flex; flex-direction: column; }
+  .story-card h3 { font-size: 16px; font-weight: 650; margin: 10px 0 8px; }
+  .story-card p { color: var(--muted-strong); font-size: 14.5px; margin: 0 0 16px; }
+  .mini-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .mini-chip {
+    font-size: 12.5px; padding: 6px 12px; border-radius: 999px;
+    background: var(--panel-raised); border: 1px solid var(--line);
+    color: var(--muted-strong);
+    transition: border-color 150ms ease, color 150ms ease, transform 150ms ease;
+  }
+  .mini-chip:hover { transform: translateY(-1px); border-color: var(--line-strong); color: var(--text); }
+  .mini-chip.teal { color: var(--teal-bright); border-color: rgba(45,212,191,0.28); }
+  .state-pill {
+    align-self: flex-start;
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600;
+    padding: 7px 14px; border-radius: 999px;
+    color: var(--teal-bright);
+    background: rgba(45,212,191,0.10);
+    border: 1px solid rgba(45,212,191,0.30);
+    margin-bottom: 14px;
+  }
+  .state-pill.slate {
+    color: #C9D2DC; background: rgba(201,210,220,0.12); border-color: rgba(201,210,220,0.30);
+  }
+  .freshness { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: auto; }
+
+  /* ---------- Asset grid ---------- */
+  .asset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .asset-card {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 16px 16px;
+    overflow: hidden;
+    text-align: left;
+    color: var(--text);
+    display: flex; flex-direction: column;
+    transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .asset-card:hover { transform: translateY(-2px); border-color: var(--line-strong); box-shadow: var(--shadow); }
+  .asset-stripe { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .stripe-teal { background: var(--teal); }
+  .stripe-slate { background: #6B7685; }
+  .stripe-red { background: var(--amber); }
+  .asset-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .asset-name { font-size: 15px; font-weight: 650; margin: 3px 0 2px; }
+  .asset-ticker { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .asset-role { font-size: 12.5px; color: var(--muted-strong); margin: 12px 0 4px; }
+  .asset-part { font-size: 12.5px; color: var(--muted); margin: 0 0 12px; }
+  .asset-change { font-family: var(--mono); font-size: 13px; color: var(--teal); margin-top: auto; }
+  .asset-change.down { color: var(--red); }
+  .asset-change.flat { color: var(--muted-strong); }
+  .viewing {
+    font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;
+    color: var(--teal-bright); background: rgba(45,212,191,0.12);
+    border: 1px solid rgba(45,212,191,0.30); border-radius: 999px; padding: 3px 8px;
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; font-size: 12.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .dot { width: 9px; height: 9px; }
+  .dot.teal { background: var(--teal); }
+  .dot.red { background: var(--amber); }
+
+  /* ---------- Honesty + footer ---------- */
+  .honesty { color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+  .honesty h3 { color: var(--muted-strong); font-size: 14px; font-weight: 650; margin: 0 0 10px; }
+  .honesty p { margin: 0 0 8px; }
+  .honesty p:last-child { margin: 0; }
+  .foot { padding: 32px 0 48px; color: var(--muted); font-size: 12.5px; text-align: center; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 960px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .event-grid, .story-grid { grid-template-columns: 1fr; }
+    .asset-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-main.has-panel { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .brand-full { display: none; }
+    .nav-link.opt, .nav-sep.opt { display: none; }
+  }
+  @media (max-width: 560px) {
+    .asset-grid { grid-template-columns: 1fr; }
+    .topbar { flex-wrap: wrap; gap: 4px 8px; }
+    .clock { display: none; }
+    section { padding: 24px 0; }
+    .launch-num { font-size: 46px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .event-card.soon .pulse-dot { animation: none; }
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 1. TOP BAR -->
+<header class="topbar">
+  <div class="brand">
+    <span class="wordmark">MNE</span>
+    <span class="brand-full">Macro Narrative Engine</span>
+  </div>
+  <nav class="app-nav" aria-label="Primary">
+    <a href="#" class="nav-link">Dashboard</a>
+    <span class="nav-sep">&#183;</span>
+    <a href="#" class="nav-link active" aria-current="page">Research</a>
+    <span class="nav-sep opt">&#183;</span>
+    <a href="#" class="nav-link opt">Admin</a>
+  </nav>
+  <div class="clock">
+    <span class="dot slate"></span>
+    <span>Wed Aug 5, 2026 &#183; Markets closed</span>
+  </div>
+</header>
+
+<nav class="crumb" aria-label="Breadcrumb">
+  <a href="#" class="nav-link" style="padding:0">Dashboard</a>
+  <span class="sep">&rsaquo;</span>
+  <a href="#" class="nav-link" style="padding:0">AI Chips</a>
+  <span class="sep">&rsaquo;</span>
+  <span class="here">NVIDIA (NVDA)</span>
+</nav>
+
+<main class="wrap" id="top">
+
+  <!-- 2. ASSET HERO -->
+  <section class="pad-lg" aria-label="Asset overview">
+    <div class="hero-grid">
+      <div class="card">
+        <span class="eyebrow">Asset view</span>
+        <h1 class="hero-headline">NVIDIA</h1>
+        <p class="hero-idline">NVDA &middot; Equity &middot; Technology</p>
+        <p class="hero-sub">The market's primary way of expressing the AI Chips story. It has been moving with the story and is holding above today's launch line.</p>
+        <div class="stat-row">
+          <span class="chip">Primary expression</span>
+          <span class="chip teal"><span class="glyph g-up">&#9650;</span> Moving with the story</span>
+          <span class="chip teal mono"><span class="glyph g-up">&#9650;</span> +2.10% today</span>
+        </div>
+      </div>
+
+      <div class="card glow-teal launch-panel">
+        <div class="launch-top">
+          <div>
+            <span class="eyebrow">Today's launch</span>
+            <div class="launch-num">1,199.20</div>
+            <div class="launch-line-lbl">Launch line 1,182.40</div>
+          </div>
+          <div class="launch-delta"><span class="glyph g-up">&#9650;</span> +1.42% above launch</div>
+        </div>
+        <svg class="launch-spark" viewBox="0 0 300 78" preserveAspectRatio="none" role="img" aria-label="Intraday price, held above the launch line all day">
+          <defs>
+            <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#2DD4BF" stop-opacity="0.20"></stop>
+              <stop offset="1" stop-color="#2DD4BF" stop-opacity="0"></stop>
+            </linearGradient>
+          </defs>
+          <!-- dashed launch line at open level -->
+          <line x1="0" y1="52" x2="300" y2="52" stroke="#C9D2DC" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.55"></line>
+          <path d="M0,52 L24,49 L48,54 L72,46 L96,50 L120,41 L144,45 L168,37 L192,40 L216,31 L240,34 L264,26 L288,22 L300,18 L300,78 L0,78 Z" fill="url(#sparkFill)"></path>
+          <path d="M0,52 L24,49 L48,54 L72,46 L96,50 L120,41 L144,45 L168,37 L192,40 L216,31 L240,34 L264,26 L288,22 L300,18" fill="none" stroke="#2DD4BF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+          <circle cx="300" cy="18" r="3.5" fill="#5EEAD4"></circle>
+        </svg>
+        <p class="launch-cap">The launch line is where today's session opened. NVDA has held above it all day.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. THE TAPE, BOUNDED -->
+  <section aria-label="The tape in context">
+    <div class="section-head">
+      <span class="eyebrow">The tape</span>
+      <h2 class="section-title">The tape, in context</h2>
+      <p class="section-sub">Daily candles inside their recent range - so a move is always read against what came before.</p>
+    </div>
+    <div class="card">
+      <div class="chart-head">
+        <span class="label">NVDA daily candles</span>
+        <div class="chart-head-controls">
+          <div class="filter-row" role="group" aria-label="Event filter">
+            <button type="button" class="filter-btn" data-filter="all" aria-pressed="true">All events</button>
+            <button type="button" class="filter-btn" data-filter="earnings">Earnings</button>
+            <button type="button" class="filter-btn" data-filter="news">News</button>
+            <button type="button" class="filter-btn" data-filter="macro">Macro</button>
+            <button type="button" class="filter-btn" data-filter="hide">Hide</button>
+          </div>
+          <div class="range-row" role="group" aria-label="Chart range">
+            <button type="button" class="range-btn" data-range="1M">1M</button>
+            <button type="button" class="range-btn" data-range="3M" aria-pressed="true">3M</button>
+            <button type="button" class="range-btn" data-range="6M">6M</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-main" id="chartMain">
+        <div class="chart-col">
+          <div class="chart-wrap">
+            <svg class="chart-svg" id="chartSvg" viewBox="0 0 960 440" role="img" aria-label="NVIDIA daily candlestick chart with launch line, 20-day range rails, and event markers"></svg>
+            <div class="readout" id="readout" aria-hidden="true"></div>
+          </div>
+          <div class="chart-legend">
+            <span><span class="lg-sq lg-teal"></span> Up day</span>
+            <span><span class="lg-sq lg-red"></span> Down day</span>
+            <span><span class="lg-dash"></span> Today's launch</span>
+            <span><span class="lg-rail"></span> 20-day range</span>
+            <span><span class="lg-ev">E</span> Event on that day</span>
+          </div>
+          <noscript>
+            <p class="noscript-note">Chart requires JavaScript. Latest close: 1,199.20 (+2.1%).</p>
+          </noscript>
+        </div>
+        <aside class="event-panel" id="eventPanel" aria-label="Event details" hidden></aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. ON THE CLOCK -->
+  <section aria-label="On the clock for NVDA">
+    <div class="section-head">
+      <span class="eyebrow">On the clock</span>
+      <h2 class="section-title">On the clock</h2>
+      <p class="section-sub">The scheduled prints most likely to move this story.</p>
+    </div>
+    <div class="event-grid" id="eventGrid"></div>
+  </section>
+
+  <!-- 5. THE STORY IT CARRIES -->
+  <section aria-label="The story this asset carries">
+    <div class="section-head">
+      <span class="eyebrow">The story it carries</span>
+      <h2 class="section-title">The story this asset carries</h2>
+      <p class="section-sub">What NVDA stands for in the narrative, and how it has actually been behaving.</p>
+    </div>
+    <div class="story-grid">
+      <div class="card story-card">
+        <span class="label">Role in the narrative</span>
+        <h3>The primary read on AI Chips</h3>
+        <p>NVDA is the primary way traders express the AI Chips story. When that story strengthens, this is where it shows first.</p>
+        <span class="label" style="margin-bottom:8px;display:block">Connected stories</span>
+        <div class="mini-chips">
+          <button type="button" class="mini-chip teal">AI Chips</button>
+          <button type="button" class="mini-chip">Fed Rate Path</button>
+          <button type="button" class="mini-chip">Semiconductor Supply</button>
+        </div>
+      </div>
+      <div class="card story-card">
+        <span class="label">How it's been participating</span>
+        <span class="state-pill" style="margin-top:10px"><span class="glyph g-up">&#9650;</span> Moving with the story</span>
+        <p>Price has confirmed the story's direction in each of the last three sessions. The move is broad, not a single-day spike.</p>
+        <span class="freshness">Last verified close: Aug 5, 4:00 PM ET</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. ALL INSTRUMENTS IN THIS SECTOR -->
+  <section aria-label="Technology instruments">
+    <div class="section-head">
+      <span class="eyebrow">The sector</span>
+      <h2 class="section-title">Technology instruments</h2>
+      <p class="section-sub">Every instrument mapped to this sector, restyled - click one to load its view.</p>
+    </div>
+    <div class="asset-grid" id="assetGrid"></div>
+    <div class="legend">
+      <span><span class="dot teal"></span> Moving with the story</span>
+      <span><span class="dot slate"></span> Steady / sitting out</span>
+      <span><span class="dot red"></span> Moving against</span>
+    </div>
+  </section>
+
+  <!-- 7. WHAT THIS VIEW IS NOT -->
+  <section aria-label="What this view is not">
+    <div class="card honesty">
+      <h3>What this view is not</h3>
+      <p>This describes how the market has been behaving around NVDA. It does not advise buying, selling, or holding.</p>
+      <p>Prices shown are the engine's last verified data, not a live quote - the latest verified close is Aug 5, 4:00 PM ET.</p>
+      <p>When data is missing or stale, the view says so rather than filling the gap with a guess.</p>
+    </div>
+  </section>
+
+  <p class="foot">Concept mockup - Asset Execution View - illustrative data</p>
+</main>
+
+<script>
+  (function () {
+    "use strict";
+
+    function prefersReducedMotion() {
+      return typeof window !== "undefined" && window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+    function pad(n) { return (n < 10 ? "0" : "") + n; }
+    function fmt(n) {
+      var parts = n.toFixed(2).split(".");
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      return parts[0] + "." + parts[1];
+    }
+
+    // ---------- Deterministic OHLC (literal; identical every load) ----------
+    // Each row: [date, open, high, low, close]
+    var OHLC = [
+      ["2026-02-03",954.0,962.4,949.6,958.0], ["2026-02-04",962.96,971.03,956.98,965.05], ["2026-02-05",963.77,979.0,956.6,971.83], ["2026-02-06",967.2,985.77,959.51,978.08],
+      ["2026-02-09",980.55,991.0,973.15,983.6], ["2026-02-10",987.6,994.62,981.22,988.25], ["2026-02-11",984.75,996.8,979.88,991.93], ["2026-02-12",988.84,1000.22,983.29,994.67],
+      ["2026-02-13",998.96,1005.86,989.62,996.52], ["2026-02-16",998.5,1006.13,990.01,997.63], ["2026-02-17",992.83,1005.76,985.26,998.2], ["2026-02-18",997.45,1005.17,990.72,998.44],
+      ["2026-02-19",1003.44,1008.76,993.27,998.59], ["2026-02-20",998.05,1003.99,992.94,998.88], ["2026-02-23",994.02,1006.06,987.45,999.5], ["2026-02-24",1001.29,1008.79,993.09,1000.58],
+      ["2026-02-25",1004.98,1012.64,994.55,1002.22], ["2026-02-26",999.29,1011.44,992.25,1004.4], ["2026-02-27",1000.76,1012.84,995.0,1007.08], ["2026-03-02",1010.95,1015.6,1005.48,1010.12],
+      ["2026-03-03",1012.77,1019.54,1006.57,1013.35], ["2026-03-04",1008.8,1023.84,1001.49,1016.53], ["2026-03-05",1015.06,1027.16,1007.36,1019.46], ["2026-03-06",1024.38,1031.67,1014.61,1021.9],
+      ["2026-03-09",1022.1,1029.83,1015.93,1023.66], ["2026-03-10",1018.68,1029.22,1014.06,1024.6], ["2026-03-11",1025.68,1031.47,1018.86,1024.65], ["2026-03-12",1029.35,1036.4,1016.74,1023.79],
+      ["2026-03-13",1021.5,1029.77,1013.83,1022.1], ["2026-03-16",1017.99,1027.21,1010.51,1019.72], ["2026-03-17",1023.08,1029.62,1010.31,1016.86], ["2026-03-18",1020.11,1025.19,1008.67,1013.75],
+      ["2026-03-19",1009.56,1016.02,1004.21,1010.67], ["2026-03-20",1008.5,1015.25,1001.14,1007.89], ["2026-03-23",1012.63,1020.21,998.08,1005.66], ["2026-03-24",1006.6,1014.22,996.56,1004.18],
+      ["2026-03-25",999.19,1010.5,992.32,1003.62], ["2026-03-26",1003.96,1009.57,998.43,1004.04], ["2026-03-27",1008.95,1013.84,1000.56,1005.45], ["2026-03-30",1003.85,1014.17,997.45,1007.78],
+      ["2026-03-31",1003.29,1018.28,995.87,1010.87], ["2026-04-01",1013.63,1022.23,1005.94,1014.54], ["2026-04-02",1018.32,1025.72,1011.16,1018.56], ["2026-04-03",1014.82,1028.63,1008.87,1022.68],
+      ["2026-04-06",1019.86,1031.09,1015.43,1026.66], ["2026-04-07",1031.12,1037.13,1024.3,1030.31], ["2026-04-08",1031.98,1040.66,1024.79,1033.47], ["2026-04-09",1028.58,1043.73,1020.88,1036.04],
+      ["2026-04-10",1035.63,1045.39,1028.24,1038.0], ["2026-04-13",1043.0,1049.35,1033.05,1039.4], ["2026-04-14",1038.52,1045.2,1033.69,1040.37], ["2026-04-15",1035.6,1046.64,1030.01,1041.05],
+      ["2026-04-16",1043.16,1050.08,1034.76,1041.67], ["2026-04-17",1045.9,1053.53,1034.82,1042.45], ["2026-04-20",1039.26,1051.17,1031.7,1043.61], ["2026-04-21",1040.21,1052.05,1033.5,1045.34],
+      ["2026-04-22",1049.41,1054.71,1042.49,1047.78], ["2026-04-23",1050.13,1056.16,1044.99,1051.02], ["2026-04-24",1046.35,1061.67,1039.76,1055.08], ["2026-04-27",1053.93,1067.39,1046.43,1059.88],
+      ["2026-04-28",1064.86,1072.97,1057.2,1065.3], ["2026-04-29",1065.17,1078.17,1058.15,1071.15], ["2026-04-30",1066.21,1082.91,1060.48,1077.18], ["2026-05-01",1078.59,1087.81,1073.91,1083.13],
+      ["2026-05-04",1087.7,1094.95,1081.48,1088.73], ["2026-05-05",1086.14,1101.06,1078.83,1093.74], ["2026-05-06",1089.83,1105.65,1082.13,1097.95], ["2026-05-07",1101.54,1108.82,1093.93,1101.21],
+      ["2026-05-08",1104.19,1110.33,1097.29,1103.44], ["2026-05-11",1099.07,1109.24,1094.49,1104.65], ["2026-05-12",1102.79,1110.72,1096.98,1104.9], ["2026-05-13",1109.75,1116.82,1097.29,1104.35],
+      ["2026-05-14",1104.96,1112.64,1095.53,1103.2], ["2026-05-15",1098.2,1109.16,1090.73,1101.68], ["2026-05-18",1102.36,1108.89,1093.53,1100.05], ["2026-05-19",1104.88,1109.93,1093.5,1098.55],
+      ["2026-05-20",1096.63,1102.78,1091.25,1097.4], ["2026-05-21",1093.07,1103.55,1086.31,1096.78], ["2026-05-22",1099.82,1107.4,1089.2,1096.78], ["2026-05-25",1100.33,1107.94,1089.85,1097.46],
+      ["2026-05-26",1093.51,1105.63,1086.65,1098.77], ["2026-05-27",1096.24,1106.11,1090.74,1100.61], ["2026-05-28",1105.21,1110.14,1097.9,1102.82], ["2026-05-29",1104.17,1111.63,1097.74,1105.21],
+      ["2026-06-01",1100.26,1114.98,1092.84,1107.56], ["2026-06-02",1107.49,1117.33,1099.8,1109.64], ["2026-06-03",1114.61,1121.75,1104.12,1111.27], ["2026-06-04",1110.06,1118.22,1104.13,1112.29],
+      ["2026-06-05",1107.64,1117.08,1103.18,1112.62], ["2026-06-08",1115.03,1121.07,1106.2,1112.23], ["2026-06-09",1116.27,1123.47,1103.97,1111.18], ["2026-06-10",1107.73,1117.29,1100.04,1109.59],
+      ["2026-06-11",1106.45,1115.02,1099.07,1107.65], ["2026-06-12",1111.91,1118.24,1099.25,1105.58], ["2026-06-15",1107.63,1112.43,1098.84,1103.65], ["2026-06-16",1098.86,1107.72,1093.25,1102.11],
+      ["2026-06-17",1101.3,1108.23,1094.27,1101.21], ["2026-06-18",1106.21,1113.84,1093.52,1101.15], ["2026-06-19",1100.68,1109.64,1093.13,1102.09], ["2026-06-22",1097.22,1110.78,1090.53,1104.09],
+      ["2026-06-23",1105.82,1112.42,1100.56,1107.16], ["2026-06-24",1111.59,1116.75,1106.05,1111.22], ["2026-06-25",1108.34,1122.72,1101.73,1116.11], ["2026-06-26",1112.43,1129.16,1104.91,1121.65],
+      ["2026-06-29",1125.47,1135.23,1117.82,1127.57], ["2026-06-30",1130.28,1140.63,1123.28,1133.63], ["2026-07-01",1129.11,1145.27,1123.41,1139.57], ["2026-07-02",1138.03,1149.85,1133.32,1145.14],
+      ["2026-07-03",1150.06,1164.24,1143.81,1158], ["2026-07-06",1158.27,1179.33,1150.94,1172], ["2026-07-07",1167.01,1196.7,1159.31,1189], ["2026-07-08",1190.02,1212.26,1182.75,1205],
+      ["2026-07-09",1209.72,1214.8,1203.6,1211], ["2026-07-10",1208.77,1214.8,1203.44,1208], ["2026-07-13",1203.85,1209.69,1187.16,1193], ["2026-07-14",1196.3,1203.39,1163.91,1171],
+      ["2026-07-15",1174.3,1181.97,1134.32,1142], ["2026-07-16",1137.85,1145.31,1100.54,1108], ["2026-07-17",1105.77,1112.27,1072.5,1079], ["2026-07-20",1083.73,1088.75,1052.98,1058],
+      ["2026-07-21",1059.01,1064.42,1048.3,1051], ["2026-07-22",1048.8,1072.79,1048.3,1066], ["2026-07-23",1066.27,1096.59,1058.69,1089], ["2026-07-24",1093.92,1121.61,1086.31,1114],
+      ["2026-07-27",1112.46,1145.84,1105.62,1139], ["2026-07-28",1134.48,1165.48,1129.01,1160], ["2026-07-29",1162.71,1179.95,1157.75,1175], ["2026-07-30",1178.82,1192.44,1172.38,1186],
+      ["2026-07-31",1182.31,1199.44,1174.87,1192], ["2026-08-03",1189.13,1204.68,1181.45,1197], ["2026-08-04",1201.43,1210.06,1165.9,1174.53], ["2026-08-05",1182.4,1206.9,1176.1,1199.2]
+    ];
+
+    var LAUNCH = OHLC[OHLC.length - 1][1]; // last candle's open = today's launch line
+
+    var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    function niceDate(iso) {
+      var p = iso.split("-");
+      return MONTHS[parseInt(p[1], 10) - 1] + " " + parseInt(p[2], 10);
+    }
+
+    // ---------- Chart geometry ----------
+    var VB_W = 960, VB_H = 440;
+    var PAD_L = 12, PAD_R = 156, PAD_T = 18, PAD_B = 34;
+    var svg = document.getElementById("chartSvg");
+    var readout = document.getElementById("readout");
+    var chartWrap = svg ? svg.parentNode : null;
+
+    var RANGES = { "1M": 21, "3M": 63, "6M": 126 };
+    var currentRange = "3M";
+    var currentFilter = "all";
+    var view = { bars: [], x0: PAD_L, slot: 0, priceMin: 0, priceMax: 0, hi20: 0, lo20: 0, markers: [] };
+
+    // ---------- Deterministic chart events (literal; keyed to dates in OHLC) ----------
+    var CHART_EVENTS = [
+      { date: "2026-03-12", type: "macro",
+        title: "Inflation eased in early spring",
+        blurb: "An in-line inflation report kept the interest-rate outlook stable.",
+        detail: "Consumer prices matched expectations, offering little surprise to markets. A predictable inflation path helped keep the broader uptrend intact. The stock drifted higher after the release.",
+        source: "Bureau of Labor Statistics" },
+      { date: "2026-04-30", type: "earnings",
+        title: "Earnings: results topped expectations",
+        blurb: "Quarterly results came in ahead of forecasts and the stock extended its climb.",
+        detail: "The company reported stronger sales and margins than analysts had penciled in. Management pointed to steady demand for its data-center chips. The reaction added to an already firm advance.",
+        source: "Company investor relations" },
+      { date: "2026-05-13", type: "macro",
+        title: "Inflation reading came in cooler",
+        blurb: "Consumer prices rose less than expected, easing pressure on interest rates.",
+        detail: "The monthly inflation report undershot forecasts across most categories. Softer inflation tends to support faster-growing technology names. Trading stayed orderly through the print.",
+        source: "Bureau of Labor Statistics" },
+      { date: "2026-06-17", type: "macro",
+        title: "Fed held interest rates steady",
+        blurb: "The central bank left rates unchanged and struck a patient tone.",
+        detail: "Policymakers kept borrowing costs where they were and signaled no rush to move. A steady-rate backdrop is generally friendly for pricier growth stocks. Price action was muted on the day.",
+        source: "Federal Reserve" },
+      { date: "2026-07-06", type: "news",
+        title: "New chip lineup unveiled",
+        blurb: "The company introduced a next-generation accelerator family at its summer showcase.",
+        detail: "The reveal highlighted a faster line of chips aimed at large data-center customers. Early demand commentary from partners was upbeat. The announcement helped power a sharp multi-day advance.",
+        source: "Company press release" },
+      { date: "2026-07-13", type: "earnings",
+        title: "Earnings: guidance disappointed",
+        blurb: "Results were solid but the outlook came in soft, and the stock rolled over.",
+        detail: "The quarter itself beat, yet management's forward guidance landed below expectations. Investors fixed on the cautious tone about the next few quarters. The shares began a steep multi-day pullback from here.",
+        source: "Company investor relations" },
+      { date: "2026-07-15", type: "macro",
+        title: "Inflation reading ran hot",
+        blurb: "Consumer prices climbed more than expected, adding pressure to growth stocks.",
+        detail: "The inflation report came in above forecasts, reviving worries about higher-for-longer rates. High-multiple technology names bore the brunt of the selling. The reading deepened the ongoing decline.",
+        source: "Bureau of Labor Statistics" },
+      { date: "2026-07-24", type: "news",
+        title: "Major cloud partnership announced",
+        blurb: "A large cloud provider committed to a multi-year chip supply agreement.",
+        detail: "The deal locks in sizable orders for the company's newest accelerators. Analysts framed it as a vote of confidence after the recent slide. The news helped steady the stock and fuel a recovery.",
+        source: "Company press release" },
+      { date: "2026-07-29", type: "macro",
+        title: "Fed signaled a possible rate cut",
+        blurb: "The central bank held steady but opened the door to easing later this year.",
+        detail: "Officials kept rates unchanged while acknowledging cooling inflation. The hint at future cuts lifted appetite for risk across growth sectors. The tone supported the ongoing rebound.",
+        source: "Federal Reserve" }
+    ];
+    function typeLabel(t) { return t === "earnings" ? "EARNINGS" : (t === "news" ? "NEWS" : "MACRO"); }
+    function typeGlyph(t) { return t === "earnings" ? "E" : (t === "news" ? "N" : "M"); }
+    function markerByDate(d) {
+      for (var i = 0; i < view.markers.length; i++) { if (view.markers[i].date === d) return view.markers[i]; }
+      return null;
+    }
+
+    function trailingExtremes(bars) {
+      var seg = bars.slice(Math.max(0, bars.length - 20));
+      var hi = -Infinity, lo = Infinity;
+      seg.forEach(function (b) { if (b[2] > hi) hi = b[2]; if (b[3] < lo) lo = b[3]; });
+      return { hi: hi, lo: lo };
+    }
+
+    function yFor(p) {
+      return PAD_T + (view.priceMax - p) / (view.priceMax - view.priceMin) * (VB_H - PAD_T - PAD_B);
+    }
+
+    function esc(s) { return String(s); }
+
+    function renderChart(range) {
+      currentRange = range;
+      var n = RANGES[range];
+      var bars = OHLC.slice(Math.max(0, OHLC.length - n));
+      var ext = trailingExtremes(bars);
+      var hi = -Infinity, lo = Infinity;
+      bars.forEach(function (b) { if (b[2] > hi) hi = b[2]; if (b[3] < lo) lo = b[3]; });
+      // keep both 20-day rails and the launch line inside the plotted domain,
+      // so their y positions always land within the plot area.
+      hi = Math.max(hi, ext.hi, LAUNCH);
+      lo = Math.min(lo, ext.lo, LAUNCH);
+      var padP = (hi - lo) * 0.04;
+      view.bars = bars;
+      view.priceMax = hi + padP;
+      view.priceMin = lo - padP;
+      view.hi20 = ext.hi;
+      view.lo20 = ext.lo;
+      var plotW = VB_W - PAD_L - PAD_R;
+      view.slot = plotW / bars.length;
+      view.x0 = PAD_L;
+
+      var bodyW = Math.max(1.5, view.slot * 0.62);
+      var parts = [];
+
+      // faint bands between rails and the chart edges (heights clamped >= 0)
+      var yHi = yFor(view.hi20), yLo = yFor(view.lo20);
+      var topBandH = Math.max(0, yHi - PAD_T);
+      var lowBandH = Math.max(0, VB_H - PAD_B - yLo);
+      parts.push('<rect x="' + PAD_L + '" y="' + PAD_T.toFixed(1) + '" width="' + plotW.toFixed(1) +
+        '" height="' + topBandH.toFixed(1) + '" fill="rgba(201,210,220,0.04)"></rect>');
+      parts.push('<rect x="' + PAD_L + '" y="' + yLo.toFixed(1) + '" width="' + plotW.toFixed(1) +
+        '" height="' + lowBandH.toFixed(1) + '" fill="rgba(201,210,220,0.04)"></rect>');
+
+      // candles
+      bars.forEach(function (b, i) {
+        var cx = view.x0 + view.slot * (i + 0.5);
+        var up = b[4] >= b[1];
+        var wickColor = up ? "rgba(45,212,191,0.55)" : "rgba(241,106,95,0.55)";
+        var bodyColor = up ? "#2DD4BF" : "#F16A5F";
+        var yH = yFor(b[2]), yL = yFor(b[3]);
+        parts.push('<line x1="' + cx.toFixed(1) + '" y1="' + yH.toFixed(1) + '" x2="' + cx.toFixed(1) +
+          '" y2="' + yL.toFixed(1) + '" stroke="' + wickColor + '" stroke-width="1"></line>');
+        var yO = yFor(b[1]), yC = yFor(b[4]);
+        var top = Math.min(yO, yC), h = Math.max(0.8, Math.abs(yO - yC));
+        parts.push('<rect x="' + (cx - bodyW / 2).toFixed(1) + '" y="' + top.toFixed(1) + '" width="' +
+          bodyW.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + bodyColor + '" rx="0.6"></rect>');
+      });
+
+      var xRight = VB_W - PAD_R;
+
+      // 20-day high rail
+      parts.push('<line x1="' + PAD_L + '" y1="' + yHi.toFixed(1) + '" x2="' + xRight + '" y2="' + yHi.toFixed(1) +
+        '" stroke="rgba(201,210,220,0.45)" stroke-width="1"></line>');
+      parts.push('<text x="' + (xRight + 8) + '" y="' + (yHi + 3).toFixed(1) + '" fill="#8B95A3" font-size="11" font-family="' +
+        "ui-monospace, Menlo, monospace" + '">20-day high ' + fmt(view.hi20) + '</text>');
+
+      // 20-day low rail
+      parts.push('<line x1="' + PAD_L + '" y1="' + yLo.toFixed(1) + '" x2="' + xRight + '" y2="' + yLo.toFixed(1) +
+        '" stroke="rgba(201,210,220,0.45)" stroke-width="1"></line>');
+      parts.push('<text x="' + (xRight + 8) + '" y="' + (yLo - 5).toFixed(1) + '" fill="#8B95A3" font-size="11" font-family="' +
+        "ui-monospace, Menlo, monospace" + '">20-day low ' + fmt(view.lo20) + '</text>');
+
+      // launch line (dashed, bright) + raised chip label
+      var yLaunch = yFor(LAUNCH);
+      parts.push('<line x1="' + PAD_L + '" y1="' + yLaunch.toFixed(1) + '" x2="' + xRight + '" y2="' + yLaunch.toFixed(1) +
+        '" stroke="#E6ECF2" stroke-width="1.2" stroke-dasharray="5 4" stroke-opacity="0.9"></line>');
+      parts.push('<rect x="' + (xRight + 6) + '" y="' + (yLaunch - 11).toFixed(1) + '" width="112" height="20" rx="6" fill="#171D25" stroke="rgba(255,255,255,0.14)"></rect>');
+      parts.push('<text x="' + (xRight + 13) + '" y="' + (yLaunch + 3).toFixed(1) + '" fill="#EDF1F5" font-size="11" font-family="' +
+        "ui-monospace, Menlo, monospace" + '">Launch ' + fmt(LAUNCH) + '</text>');
+
+      // x-axis date labels (~5)
+      var ticks = 5;
+      for (var k = 0; k < ticks; k++) {
+        var idx = Math.round((bars.length - 1) * k / (ticks - 1));
+        var tx = view.x0 + view.slot * (idx + 0.5);
+        parts.push('<text x="' + tx.toFixed(1) + '" y="' + (VB_H - 12) + '" fill="#8B95A3" font-size="10.5" text-anchor="middle" font-family="' +
+          "ui-monospace, Menlo, monospace" + '">' + niceDate(bars[idx][0]) + '</text>');
+      }
+
+      // event markers (slate; above the high, flipped below the low near the top/rail)
+      view.markers = [];
+      if (currentFilter !== "hide") {
+        var dateIndex = {};
+        bars.forEach(function (b, i) { dateIndex[b[0]] = i; });
+        var groups = {}, order = [];
+        CHART_EVENTS.forEach(function (ev) {
+          if (currentFilter !== "all" && ev.type !== currentFilter) return;
+          if (!(ev.date in dateIndex)) return;
+          if (!groups[ev.date]) { groups[ev.date] = []; order.push(ev.date); }
+          groups[ev.date].push(ev);
+        });
+        order.forEach(function (date) {
+          var evs = groups[date];
+          var i = dateIndex[date];
+          var b = bars[i];
+          var mcx = view.x0 + view.slot * (i + 0.5);
+          var mr = 7.5, gap = 6;
+          var yHigh = yFor(b[2]), yLow = yFor(b[3]);
+          var mcy = yHigh - gap - mr; // above the candle high
+          var railBand = (mcy + mr) >= (yHi - 9) && (mcy - mr) <= (yHi + 5);
+          if ((mcy - mr) < PAD_T || railBand) {
+            mcy = yLow + gap + mr;    // fall back to below the candle low
+          }
+          if (mcy + mr > VB_H - PAD_B) mcy = VB_H - PAD_B - mr;
+          if (mcy - mr < PAD_T) mcy = PAD_T + mr;
+          var glyph = evs.length > 1 ? String(evs.length) : typeGlyph(evs[0].type);
+          parts.push('<g class="ev-marker" data-ev="' + date + '">' +
+            '<circle cx="' + mcx.toFixed(1) + '" cy="' + mcy.toFixed(1) + '" r="' + mr +
+            '" fill="#171D25" stroke="#C9D2DC" stroke-width="1.3"></circle>' +
+            '<text x="' + mcx.toFixed(1) + '" y="' + (mcy + 3.4).toFixed(1) +
+            '" fill="#C9D2DC" font-size="10" font-weight="700" text-anchor="middle" font-family="' +
+            "ui-monospace, Menlo, monospace" + '">' + glyph + '</text></g>');
+          view.markers.push({ date: date, cx: mcx, cy: mcy, r: mr, events: evs });
+        });
+      }
+
+      // crosshair group placeholder (updated on pointermove)
+      parts.push('<g id="crosshair" style="display:none"><line id="chX" y1="' + PAD_T + '" y2="' + (VB_H - PAD_B) +
+        '" stroke="rgba(230,236,242,0.35)" stroke-width="1"></line></g>');
+
+      svg.innerHTML = parts.join("");
+
+      // reflect pressed state on range buttons
+      var btns = document.querySelectorAll(".range-btn");
+      for (var j = 0; j < btns.length; j++) {
+        var on = btns[j].getAttribute("data-range") === range;
+        if (on) { btns[j].setAttribute("aria-pressed", "true"); }
+        else { btns[j].removeAttribute("aria-pressed"); }
+      }
+    }
+
+    // ---------- Crosshair ----------
+    function indexFromClientX(clientX) {
+      var rect = svg.getBoundingClientRect();
+      var scale = VB_W / rect.width;
+      var vx = (clientX - rect.left) * scale;
+      var i = Math.floor((vx - view.x0) / view.slot);
+      if (i < 0) i = 0;
+      if (i > view.bars.length - 1) i = view.bars.length - 1;
+      return i;
+    }
+    function showCrosshair(clientX) {
+      var i = indexFromClientX(clientX);
+      var b = view.bars[i];
+      if (!b) return;
+      var cx = view.x0 + view.slot * (i + 0.5);
+      var group = document.getElementById("crosshair");
+      var line = document.getElementById("chX");
+      if (group && line) {
+        group.style.display = "";
+        line.setAttribute("x1", cx.toFixed(1));
+        line.setAttribute("x2", cx.toFixed(1));
+      }
+      var up = b[4] >= b[1];
+      var cls = up ? "rd-up" : "rd-down";
+      var sign = (b[4] - b[1] >= 0) ? "+" : "";
+      var html =
+        '<div class="rd-date">' + niceDate(b[0]) + ' 2026</div>' +
+        'O ' + fmt(b[1]) + '  H ' + fmt(b[2]) + '<br>' +
+        'L ' + fmt(b[3]) + '  <span class="' + cls + '">C ' + fmt(b[4]) + '</span>';
+      var mk = markerByDate(b[0]);
+      if (mk) {
+        var ev0 = mk.events[0];
+        html += '<div class="rd-ev">' +
+          '<span class="rd-ev-tag">' + typeLabel(ev0.type) + '</span>' +
+          '<span class="rd-ev-title">' + ev0.title + '</span>' +
+          '<span class="rd-ev-blurb">' + ev0.blurb + '</span></div>';
+      }
+      readout.innerHTML = html;
+      readout.style.display = "block";
+    }
+    function hideCrosshair() {
+      readout.style.display = "none";
+      var group = document.getElementById("crosshair");
+      if (group) group.style.display = "none";
+    }
+    if (svg) {
+      svg.addEventListener("pointermove", function (e) { showCrosshair(e.clientX); });
+      svg.addEventListener("pointerleave", hideCrosshair);
+    }
+
+    // ---------- Range buttons ----------
+    var rangeButtons = document.querySelectorAll(".range-btn");
+    for (var r = 0; r < rangeButtons.length; r++) {
+      rangeButtons[r].addEventListener("click", function () {
+        hideCrosshair();
+        renderChart(this.getAttribute("data-range"));
+      });
+    }
+    // ---------- Event filter pills ----------
+    var filterButtons = document.querySelectorAll(".filter-btn");
+    function reflectFilter() {
+      for (var f = 0; f < filterButtons.length; f++) {
+        var on = filterButtons[f].getAttribute("data-filter") === currentFilter;
+        if (on) { filterButtons[f].setAttribute("aria-pressed", "true"); }
+        else { filterButtons[f].removeAttribute("aria-pressed"); }
+      }
+    }
+    for (var f2 = 0; f2 < filterButtons.length; f2++) {
+      filterButtons[f2].addEventListener("click", function () {
+        currentFilter = this.getAttribute("data-filter");
+        reflectFilter();
+        hideCrosshair();
+        renderChart(currentRange);
+      });
+    }
+
+    // ---------- Docked event panel ----------
+    var chartMain = document.getElementById("chartMain");
+    var eventPanel = document.getElementById("eventPanel");
+    function openPanel(ev) {
+      if (!eventPanel || !chartMain) return;
+      eventPanel.innerHTML =
+        '<div class="ev-panel-head">' +
+          '<span class="ev-panel-tag">' + typeLabel(ev.type) + '</span>' +
+          '<button type="button" class="ev-panel-close" id="evPanelClose" aria-label="Close event details">Close</button>' +
+        '</div>' +
+        '<h3 class="ev-panel-title">' + ev.title + '</h3>' +
+        '<div class="ev-panel-date">' + niceDate(ev.date) + ' 2026</div>' +
+        '<p class="ev-panel-detail">' + ev.detail + '</p>' +
+        '<div class="ev-panel-src">Source: ' + ev.source + '</div>';
+      eventPanel.hidden = false;
+      chartMain.classList.add("has-panel");
+      var closeBtn = document.getElementById("evPanelClose");
+      if (closeBtn) closeBtn.addEventListener("click", closePanel);
+    }
+    function closePanel() {
+      if (!eventPanel || !chartMain) return;
+      eventPanel.hidden = true;
+      eventPanel.innerHTML = "";
+      chartMain.classList.remove("has-panel");
+    }
+    if (svg) {
+      svg.addEventListener("click", function (e) {
+        var i = indexFromClientX(e.clientX);
+        var b = view.bars[i];
+        if (!b) return;
+        var mk = markerByDate(b[0]);
+        if (mk) openPanel(mk.events[0]);
+      });
+    }
+    document.addEventListener("keydown", function (e) {
+      if ((e.key === "Escape" || e.key === "Esc") && eventPanel && !eventPanel.hidden) closePanel();
+    });
+
+    if (svg) renderChart("3M");
+
+    // ---------- Events with live countdowns ----------
+    var now = new Date();
+    function futureOffset(days, hours, mins, secs) {
+      return new Date(now.getTime() + (((days * 24 + hours) * 60 + mins) * 60 + secs) * 1000);
+    }
+    var EVENTS = [
+      {
+        name: "NVIDIA earnings call",
+        when: "After the close",
+        target: futureOffset(2, 4, 12, 33),
+        why: "The clearest test of the AI Chips story - guidance here resets how the whole group trades.",
+        src: "Company investor relations"
+      },
+      {
+        name: "CPI print",
+        when: "8:30 AM ET",
+        target: futureOffset(0, 14, 22, 8),
+        why: "A hot inflation read can lift rates and pressure the high-growth names that carry this story.",
+        src: "Bureau of Labor Statistics"
+      },
+      {
+        name: "FOMC decision",
+        when: "2:00 PM ET",
+        target: futureOffset(6, 21, 40, 12),
+        why: "The rate decision sets the risk backdrop for every AI-linked name, NVDA included.",
+        src: "Federal Reserve"
+      }
+    ];
+    // soonest event gets the single teal ring
+    var soonIdx = 0;
+    for (var s = 1; s < EVENTS.length; s++) {
+      if (EVENTS[s].target.getTime() < EVENTS[soonIdx].target.getTime()) soonIdx = s;
+    }
+
+    var eventGrid = document.getElementById("eventGrid");
+    var countdownEls = [];
+    EVENTS.forEach(function (ev, i) {
+      var card = document.createElement("article");
+      card.className = "card event-card" + (i === soonIdx ? " soon glow-teal" : "");
+      var html = "";
+      if (i === soonIdx) {
+        html += '<span class="event-tag"><span class="pulse-dot"></span> Up next</span>';
+      }
+      html += '<div class="event-name">' + ev.name + '</div>';
+      html += '<div class="event-when">' + ev.when + '</div>';
+      html += '<div class="countdown" data-cd="' + i + '">--</div>';
+      html += '<p class="event-why">' + ev.why + '</p>';
+      html += '<div class="event-src">' + ev.src + '</div>';
+      card.innerHTML = html;
+      eventGrid.appendChild(card);
+      countdownEls.push({ el: card.querySelector(".countdown"), target: ev.target });
+    });
+
+    function tick() {
+      var t = Date.now();
+      countdownEls.forEach(function (c) {
+        var diff = c.target.getTime() - t;
+        if (diff <= 0) { c.el.textContent = "Live now"; return; }
+        var total = Math.floor(diff / 1000);
+        var days = Math.floor(total / 86400);
+        var hrs = Math.floor((total % 86400) / 3600);
+        var mins = Math.floor((total % 3600) / 60);
+        var secs = total % 60;
+        c.el.textContent = days + "d " + pad(hrs) + ":" + pad(mins) + ":" + pad(secs);
+      });
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    // ---------- Sector instruments grid ----------
+    var ASSETS = [
+      { name: "NVIDIA Corporation", tk: "NVDA", state: "teal", viewing: true,
+        role: "The primary way to express the AI Chips story.",
+        part: "Confirming the story in each of the last three sessions.",
+        change: 2.10 },
+      { name: "VanEck Semiconductor ETF", tk: "SMH", state: "teal",
+        role: "The semiconductor group NVDA leads.",
+        part: "The chip complex is moving with NVDA today.",
+        change: 1.62 },
+      { name: "Microsoft Corporation", tk: "MSFT", state: "slate",
+        role: "A cloud and software angle on the same story.",
+        part: "Holding its ground; not adding to the move today.",
+        change: -0.28 },
+      { name: "Invesco QQQ Trust", tk: "QQQ", state: "slate",
+        role: "Broad large-cap growth - an indirect read.",
+        part: "Drifting sideways with the broad market.",
+        change: 0.18 },
+      { name: "Technology Select Sector SPDR Fund", tk: "XLK", state: "slate",
+        role: "The whole technology sector in one basket.",
+        part: "Steady - roughly in line with the tape.",
+        change: 0.42 },
+      { name: "CBOE Volatility Index", tk: "VIX", state: "red",
+        role: "The market's fear gauge - an offsetting read.",
+        part: "Rising volatility is leaning against the story.",
+        change: 3.90 }
+    ];
+    var stateLabel = { teal: "Moving with the story", slate: "Steady", red: "Moving against" };
+    var assetGrid = document.getElementById("assetGrid");
+    ASSETS.forEach(function (a) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "asset-card" + (a.viewing ? " glow-teal" : "");
+      var changeCls = a.change < 0 ? "down" : (Math.abs(a.change) < 0.2 ? "flat" : "");
+      var sign = a.change >= 0 ? "+" : "";
+      var glyph = a.change > 0 ? "&#9650;" : (a.change < 0 ? "&#9660;" : "&#8594;");
+      var html = "";
+      html += '<div class="asset-stripe stripe-' + a.state + '"></div>';
+      html += '<div class="asset-top"><div class="asset-name">' + a.name + '</div>' +
+        (a.viewing ? '<span class="viewing">Viewing</span>' : '') + '</div>';
+      html += '<div class="asset-ticker">' + a.tk + ' &middot; ' + stateLabel[a.state] + '</div>';
+      html += '<div class="asset-role">' + a.role + '</div>';
+      html += '<div class="asset-part">' + a.part + '</div>';
+      html += '<div class="asset-change ' + changeCls + '"><span class="glyph">' + glyph + '</span> ' +
+        sign + a.change.toFixed(2) + '% today</div>';
+      btn.innerHTML = html;
+      btn.addEventListener("click", function () {
+        var top = document.getElementById("top");
+        if (top && top.scrollIntoView) {
+          top.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+        }
+      });
+      assetGrid.appendChild(btn);
+    });
+  })();
+</script>
+</body>
+</html>
