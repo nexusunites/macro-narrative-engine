@@ -255,6 +255,90 @@ def dashboard_sector_presentation(state: Any, existing_label: Any = None) -> dic
     return {"state": visual, "label": label}
 
 
+ASSET_EXECUTION_COPY = {
+    "page_title": "Asset Execution View",
+    "asset_view": "Asset view",
+    "dashboard": "Dashboard",
+    "primary_expression": "Primary expression",
+    "supporting_expression": "Supporting expression",
+    "moving_with": "Moving with the story",
+    "steady": "Steady / sitting out",
+    "moving_against": "Moving against the story",
+    "today": "today",
+    "todays_launch": "Today's launch",
+    "launch_line": "Launch line",
+    "above_launch": "above launch",
+    "below_launch": "below launch",
+    "at_launch": "at launch",
+    "launch_caption": "The Daily Launch Line is where the latest verified session opened.",
+    "launch_path_label": "Latest verified session, from open to close",
+    "unavailable": "Unavailable",
+    "tape_eyebrow": "The tape",
+    "tape_title": "The tape, in context",
+    "tape_intro": "Daily candles inside their recent range, so a move is always read against what came before.",
+    "daily_candles": "daily candles",
+    "chart_range": "Chart range",
+    "range_1m": "1M",
+    "range_3m": "3M",
+    "range_6m": "6M",
+    "no_history": "No price history yet for this instrument",
+    "up_day": "Up day",
+    "down_day": "Down day",
+    "todays_launch_legend": "Today's launch",
+    "recent_range": "20-day range",
+    "chart_requires_js": "Chart requires JavaScript.",
+    "latest_close": "Latest close",
+    "last_verified_close": "Last verified close",
+    "story_eyebrow": "The story it carries",
+    "story_title": "The story this asset carries",
+    "story_intro": "What this instrument stands for in the narrative, and how it has been participating.",
+    "role_in_narrative": "Role in the narrative",
+    "connected_stories": "Connected stories",
+    "participation_heading": "How it's been participating",
+    "sector_eyebrow": "The sector",
+    "sector_instruments": "instruments",
+    "sector_intro": "Every supported instrument mapped here links to its own execution view.",
+    "viewing": "Viewing",
+    "xray": "X-Ray View",
+    "ticker": "Ticker",
+    "expected_direction": "Expected direction",
+    "no_directional_claim": "No separate directional claim",
+    "freshness": "Freshness",
+    "sector_relationship": "Sector relationship",
+    "broader_context": "Broader market context",
+    "market_expression_role": "Market Expression role",
+    "no_matching_role": "No matching role",
+    "latest_persisted_move": "Latest persisted move",
+    "return_to_research": "Return to narrative research",
+    "assets_empty": "No supported assets are mapped in this section. Limited coverage is shown as unavailable.",
+    "honesty_title": "What this view is not",
+    "honesty_behavior": "This describes how the market has been behaving around the instrument. It does not advise buying, selling, or holding.",
+    "honesty_prices": "Prices shown are the engine's last verified data, not a live quote.",
+    "honesty_missing": "When data is missing or stale, the view says so rather than filling the gap with a guess.",
+    "unmapped_ticker": "This instrument is not mapped in the asset registry.",
+    "unavailable_relationships": "Asset relationships are temporarily unavailable.",
+    "group_only": "Asset Execution View is available for narrative groups.",
+    "sector_unmapped": "This sector is not mapped to the selected narrative.",
+    "instrument_sector_unmapped": "This instrument is not mapped to the selected sector.",
+    "rail_high": "20-day high",
+    "rail_low": "20-day low",
+    "open_short": "O",
+    "high_short": "H",
+    "low_short": "L",
+    "close_short": "C",
+}
+
+
+def asset_execution_copy(key: str) -> str:
+    """Return approved copy for the per-instrument execution view."""
+    return ASSET_EXECUTION_COPY[key]
+
+
+def asset_execution_copy_bundle() -> dict[str, str]:
+    """Return a detached template/JavaScript copy bundle."""
+    return dict(ASSET_EXECUTION_COPY)
+
+
 def dashboard_evidence_meta(source: Any, timestamp: Any) -> str:
     """Format persisted evidence attribution without manufacturing missing fields."""
     source_label = str(source or DASHBOARD_PARITY_COPY["source_unavailable"]).strip()

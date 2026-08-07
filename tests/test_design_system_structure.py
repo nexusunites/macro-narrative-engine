@@ -42,9 +42,12 @@ class DesignSystemStructureTests(unittest.TestCase):
 
     def test_reserved_and_unsafe_language_do_not_leak_to_ui(self):
         sources = "\n".join(Path(path).read_text(encoding="utf-8") for path in ["templates/dashboard.html", "mne/presentation_language.py"])
-        for term in ("Attention Velocity", "Primary-Source Support", "Daily Launch Line", "target price", "buy signal", "sell signal"):
+        for term in ("Attention Velocity", "Primary-Source Support", "target price", "buy signal", "sell signal"):
             self.assertNotIn(term.lower(), sources.lower())
         self.assertNotIn("Narrative Gravity", sources)
+        naming = Path("docs/ui_naming_framework.md").read_text(encoding="utf-8")
+        self.assertIn("| Daily Launch Line |", naming)
+        self.assertNotIn("**Daily Launch Line:** reserved", naming)
 
     def test_reduced_motion_and_two_hue_aliases_exist(self):
         css = Path("static/styles.css").read_text(encoding="utf-8")

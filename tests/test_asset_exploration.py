@@ -2,9 +2,10 @@ import json
 import unittest
 from pathlib import Path
 
-from mne.asset_exploration import (AssetRegistryError, build_asset_exploration_context,
+from mne.asset_exploration import (AssetRegistryError, build_asset_execution_context, build_asset_exploration_context,
     compute_asset_breadth, load_asset_registry, load_narrative_asset_map,
     validate_asset_registry, validate_narrative_asset_map)
+from mne.asset_price_history import AssetPriceHistory, Candle
 from mne.sector_isolation import build_sector_isolation_context, load_sector_map
 
 
@@ -73,6 +74,42 @@ class AssetExplorationTests(unittest.TestCase):
         self.assertNotIn("NVDA", {row["ticker"] for row in first["assets"]})
         self.assertEqual(json.dumps(first, sort_keys=True), json.dumps(second, sort_keys=True))
 
+    def test_execution_context_uses_yfinance_symbol_and_persisted_candles(self):
+        requested = []
+        def load_prices(symbol):
+            requested.append(symbol)
+            return AssetPriceHistory(symbol, "1.0.0", (
+                Candle("2026-08-05", 20.0, 22.0, 19.0, 21.0),
+                Candle("2026-08-06", 21.0, 24.0, 20.0, 23.1),
+            ))
+        context = build_asset_execution_context(
+            "AI / Tech Growth", "technology", "VIX",
+            registry=self.registry, asset_map=self.asset_map,
+            ticker_symbols={"VIX": "^VIX", "NVDA": "NVDA", "technology": "XLK"},
+            price_loader=load_prices,
+        )
+        self.assertEqual(["^VIX"], requested)
+        self.assertEqual("^VIX", context["yfinance_symbol"])
+        self.assertEqual(2, len(context["candles"]))
+        self.assertEqual(10.0, context["launch_delta_pct"])
+
+    def test_execution_context_missing_symbol_and_history_are_honest(self):
+        unloaded = build_asset_execution_context(
+            "AI / Tech Growth", "technology", "SMH",
+            registry=self.registry, asset_map=self.asset_map, ticker_symbols={},
+            price_loader=lambda symbol: self.fail("missing symbol must not load prices"),
+        )
+        self.assertIsNone(unloaded["yfinance_symbol"])
+        self.assertFalse(unloaded["has_candles"])
+        empty = build_asset_execution_context(
+            "AI / Tech Growth", "technology", "NVDA",
+            registry=self.registry, asset_map=self.asset_map,
+            ticker_symbols={"NVDA": "NVDA"},
+            price_loader=lambda symbol: AssetPriceHistory(symbol, "1.0.0", ()),
+        )
+        self.assertEqual([], empty["candles"])
+        self.assertIsNone(empty["latest_candle"])
+
     def test_breadth_precedence(self):
         def rows(*states): return [{"participation_state": state} for state in states]
         cases = ((rows("STRONG", "PARTICIPATING", "STRONG"), "BROAD"), (rows("STRONG", "PARTICIPATING"), "MODERATE"), (rows("STRONG"), "CONCENTRATED"), (rows("EMERGING"), "LIMITED"), (rows("STRONG", "CONTRADICTING"), "CONTRADICTED"), (rows("MUTED"), "UNAVAILABLE"))
@@ -80,16 +117,17 @@ class AssetExplorationTests(unittest.TestCase):
 
     def test_structural_live_boundary_and_safety_language(self):
         source = (ROOT / "mne" / "asset_exploration.py").read_text()
-        for prohibited in ("asset_participation", "market_context", "yfinance", "fetch_"): self.assertNotIn(prohibited, source)
+        for prohibited in ("asset_participation", "market_context", "import yfinance", "fetch_"): self.assertNotIn(prohibited, source)
         copy = (ROOT / "mne" / "presentation_language.py").read_text().lower()
         template = (ROOT / "templates" / "asset_exploration.html").read_text().lower() + (ROOT / "templates" / "_partials" / "asset_grid.html").read_text().lower()
         for prohibited in ("best asset", "top pick", "strongest opportunity", "likely winner", "expected return", "optimal entry", "conviction score"): self.assertNotIn(prohibited, copy + template)
 
     def test_route_order_template_and_design_contracts(self):
-        dashboard = (ROOT / "dashboard.py").read_text(); assets = dashboard.index('@app.get("/research/{key:path}/sectors/{sector}/assets"'); catch = dashboard.index('@app.get("/research/{key:path}"')
+        dashboard = (ROOT / "dashboard.py").read_text(); assets = dashboard.index('@app.get("/research/{key:path}/sectors/{sector}/assets"'); execution = dashboard.index('@app.get("/research/{key:path}/sectors/{sector}/assets/{ticker}"'); catch = dashboard.index('@app.get("/research/{key:path}"')
         self.assertLess(assets, catch)
+        self.assertLess(execution, catch)
         sector_template = (ROOT / "templates" / "sector_isolation.html").read_text(); asset_template = (ROOT / "templates" / "_partials" / "asset_grid.html").read_text(); css = (ROOT / "static" / "styles.css").read_text()
-        self.assertIn("Explore assets", sector_template); self.assertIn("asset-rationale", asset_template); self.assertLess(asset_template.index("asset-rationale"), asset_template.index("asset-ticker")); self.assertIn("data-asset-xray", asset_template)
+        self.assertIn("Explore assets", sector_template); self.assertIn("asset-rationale", asset_template); self.assertLess(asset_template.index("asset-rationale"), asset_template.index("asset-ticker")); self.assertIn("data-asset-xray", asset_template); self.assertIn("asset.execution_href", asset_template)
         self.assertIn(".asset-card:focus-visible", css); self.assertIn(".asset-grid { grid-template-columns:1fr; }", css); self.assertIn(".asset-card { transition:none !important; }", css)
 
 

@@ -46,8 +46,12 @@ from mne.narrative_relationships import NarrativeRelationshipError, get_relation
 from mne.sector_isolation import SECTOR_KEYS, SectorIsolationError, build_sector_isolation_context, build_sector_isolation_preview, load_sector_map
 from mne.story_registry import StoryRegistryError, load_story_registry
 from mne.sector_market_context import NarrativeSectorInstrumentError, classify_sectors_for_run
-from mne.asset_exploration import AssetRegistryError, build_asset_exploration_context, load_asset_registry, load_narrative_asset_map
+from mne.asset_exploration import AssetRegistryError, build_asset_execution_context, build_asset_exploration_context, load_asset_registry, load_narrative_asset_map
+from mne.asset_price_history import AssetPriceHistoryError
 from mne.asset_participation import classify_assets_for_run
+from mne.presentation_language import asset_execution_copy, asset_execution_copy_bundle
+from mne.sector_market_context import build_sector_ticker_map
+from main import ASSET_EXPANSION_TICKERS, NASDAQ_TICKERS
 from mne.narrative_history import build_narrative_history
 from mne.historical_connection import load_current_and_historical_context
 from mne.explanation_layer import explain_lifecycle_state
@@ -2801,6 +2805,55 @@ def asset_exploration(request: Request, key: str, sector: str):
             context["message"] = "Asset relationships are temporarily unavailable."
             context["asset_exploration"] = None
     return templates.TemplateResponse("asset_exploration.html", context)
+
+
+@app.get("/research/{key:path}/sectors/{sector}/assets/{ticker}", response_class=HTMLResponse)
+def asset_execution(request: Request, key: str, sector: str, ticker: str):
+    context = build_investigation_context(request, key, admin=False)
+    narrative_level, narrative_id = split_narrative_key(key)
+    context["narrative_key"] = key
+    context["asset_execution"] = None
+    context["asset_execution_copy"] = asset_execution_copy_bundle()
+    if narrative_level != "group" or not narrative_id:
+        context["message"] = asset_execution_copy("group_only")
+    else:
+        try:
+            sector_map = load_sector_map()
+            sector_participation = classify_sectors_for_run(context.get("_run") or {}, sector_map, narrative_id, now=datetime.now().astimezone())
+            sector_context = build_sector_isolation_context(narrative_id, sector_map, sector_participation)
+            sector_row = next((row for row in sector_context["sectors"] if row["sector_key"] == sector), None)
+            if sector_row is None:
+                context["message"] = asset_execution_copy("sector_unmapped")
+            else:
+                registry = load_asset_registry()
+                canonical_ticker = ticker.upper()
+                if canonical_ticker not in registry["assets"]:
+                    context["message"] = asset_execution_copy("unmapped_ticker")
+                else:
+                    asset_map = load_narrative_asset_map(registry=registry)
+                    run = context.get("_run") or {}
+                    participation = classify_assets_for_run(run, asset_map, registry, narrative_id, now=datetime.now().astimezone())
+                    ticker_symbols = {**NASDAQ_TICKERS, **ASSET_EXPANSION_TICKERS, **build_sector_ticker_map()}
+                    context["asset_execution"] = build_asset_execution_context(
+                        narrative_id,
+                        sector,
+                        canonical_ticker,
+                        registry=registry,
+                        asset_map=asset_map,
+                        participation=participation,
+                        sector_row=sector_row,
+                        market_expression=run.get("market_expression_context"),
+                        market_snapshot=run.get("market_snapshot"),
+                        ticker_symbols=ticker_symbols,
+                    )
+        except AssetRegistryError as exc:
+            if "not mapped to sector" in str(exc):
+                context["message"] = asset_execution_copy("instrument_sector_unmapped")
+            else:
+                context["message"] = asset_execution_copy("unavailable_relationships")
+        except (AssetPriceHistoryError, SectorIsolationError, NarrativeSectorInstrumentError):
+            context["message"] = asset_execution_copy("unavailable_relationships")
+    return templates.TemplateResponse("asset_execution.html", context)
 
 
 @app.get("/research/{key:path}", response_class=HTMLResponse)

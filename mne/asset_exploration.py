@@ -9,9 +9,16 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+from mne.asset_price_history import load_asset_price_history_or_empty
 from mne.narrative_signals import NARRATIVE_GROUPS
-from mne.presentation_language import asset_exploration_copy
+from mne.presentation_language import (
+    asset_execution_copy,
+    asset_execution_copy_bundle,
+    asset_exploration_copy,
+    dashboard_sector_presentation,
+)
 from mne.sector_isolation import SECTOR_KEYS
+from mne.story_registry import load_story_registry
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ASSET_REGISTRY_PATH = ROOT / "config" / "asset_registry.json"
@@ -183,6 +190,25 @@ def compute_asset_breadth(rows: tuple[dict, ...] | list[dict]) -> dict[str, Any]
     return {"state": state, "confirming_count": confirming, "summary": asset_exploration_copy(f"breadth_{state}")}
 
 
+def _execution_href(encoded_key: str, sector: str, ticker: str) -> str:
+    return f"/research/{encoded_key}/sectors/{quote(sector, safe='')}/assets/{quote(ticker, safe='')}"
+
+
+def _decorate_asset_row(row: dict[str, Any], encoded_key: str, sector: str) -> dict[str, Any]:
+    visual = dashboard_sector_presentation(row.get("participation_state"), row.get("participation_label"))
+    visual_label = asset_execution_copy({
+        "driving": "moving_with",
+        "steady": "steady",
+        "detached": "moving_against",
+    }[visual["state"]])
+    return {
+        **row,
+        "participation_visual_state": visual["state"],
+        "participation_visual_label": visual_label,
+        "execution_href": _execution_href(encoded_key, sector, row["ticker"]),
+    }
+
+
 def build_asset_exploration_context(narrative: str, sector: str, *, registry: dict[str, Any] | None = None, asset_map: NarrativeAssetMap | None = None, participation: dict | None = None, sector_row: dict | None = None, market_expression: dict | None = None) -> dict[str, Any]:
     registry = registry or load_asset_registry()
     asset_map = asset_map or load_narrative_asset_map(registry=registry)
@@ -200,13 +226,106 @@ def build_asset_exploration_context(narrative: str, sector: str, *, registry: di
             continue
         current = observed.get(mapping.ticker, {})
         state, freshness = current.get("participation_state", "UNAVAILABLE"), current.get("data_freshness", "UNAVAILABLE")
-        row = {**asset, "ticker": mapping.ticker, "structural_role": mapping.role, "role_label": asset_exploration_copy(f"role_{mapping.role}"), "expected_expression": mapping.expected_expression, "rationale": mapping.rationale, "participation_state": state, "participation_label": asset_exploration_copy(f"participation_{state}"), "participation_explanation": asset_exploration_copy(f"participation_explanation_{state}"), "data_freshness": freshness, "freshness_label": asset_exploration_copy(f"freshness_{freshness}"), "pct_change": current.get("pct_change"), "market_expression_role": expression_roles.get(mapping.ticker), "research_href": f"/research/{encoded_key}"}
+        row = _decorate_asset_row({**asset, "ticker": mapping.ticker, "structural_role": mapping.role, "role_label": asset_exploration_copy(f"role_{mapping.role}"), "expected_expression": mapping.expected_expression, "rationale": mapping.rationale, "participation_state": state, "participation_label": asset_exploration_copy(f"participation_{state}"), "participation_explanation": asset_exploration_copy(f"participation_explanation_{state}"), "data_freshness": freshness, "freshness_label": asset_exploration_copy(f"freshness_{freshness}"), "pct_change": current.get("pct_change"), "market_expression_role": expression_roles.get(mapping.ticker), "research_href": f"/research/{encoded_key}"}, encoded_key, sector)
         (context_assets if asset["sector_key"] is None else sector_assets).append(row)
     if sector_row and sector_row.get("instrument"):
         ticker = sector_row["instrument"]
         asset = registry["assets"].get(ticker)
         if asset and asset["display_enabled"] and not any(row["ticker"] == ticker for row in sector_assets):
             state, freshness = sector_row["participation_state"], sector_row["data_freshness"]
-            sector_assets.append({**asset, "ticker": ticker, "structural_role": sector_row["structural_role"], "role_label": sector_row["role_label"], "expected_expression": None, "rationale": asset_exploration_copy("sector_etf_rationale"), "participation_state": state, "participation_label": asset_exploration_copy(f"participation_{'MUTED' if state == 'DETACHED' else state}"), "participation_explanation": sector_row["participation_explanation"], "data_freshness": freshness, "freshness_label": sector_row["freshness_label"], "pct_change": sector_row.get("pct_change"), "market_expression_role": expression_roles.get(ticker), "research_href": f"/research/{encoded_key}", "sector_participation_reused": True})
+            sector_assets.append(_decorate_asset_row({**asset, "ticker": ticker, "structural_role": sector_row["structural_role"], "role_label": sector_row["role_label"], "expected_expression": None, "rationale": asset_exploration_copy("sector_etf_rationale"), "participation_state": state, "participation_label": asset_exploration_copy(f"participation_{'MUTED' if state == 'DETACHED' else state}"), "participation_explanation": sector_row["participation_explanation"], "data_freshness": freshness, "freshness_label": sector_row["freshness_label"], "pct_change": sector_row.get("pct_change"), "market_expression_role": expression_roles.get(ticker), "research_href": f"/research/{encoded_key}", "sector_participation_reused": True}, encoded_key, sector))
     all_rows = tuple(sector_assets + context_assets)
-    return {"narrative": narrative, "sector_key": sector, "sector_name": SECTOR_KEYS[sector], "sector": sector_row, "sector_assets": tuple(sector_assets), "context_assets": tuple(context_assets), "assets": all_rows, "breadth": compute_asset_breadth(all_rows), "has_assets": bool(all_rows), "limitations": tuple(asset_exploration_copy(key) for key in ("curated_notice", "persisted_notice", "unavailable_notice", "not_recommendation"))}
+    return {"narrative": narrative, "sector_key": sector, "sector_name": SECTOR_KEYS[sector], "sector": sector_row, "sector_assets": tuple(sector_assets), "context_assets": tuple(context_assets), "assets": all_rows, "breadth": compute_asset_breadth(all_rows), "has_assets": bool(all_rows), "limitations": tuple(asset_exploration_copy(key) for key in ("curated_notice", "persisted_notice", "unavailable_notice", "not_recommendation")), "grid_copy": asset_execution_copy_bundle()}
+
+
+def _yfinance_symbol(ticker: str, ticker_symbols: dict[str, str]) -> str | None:
+    if ticker in ticker_symbols:
+        return ticker_symbols[ticker]
+    if ticker in ticker_symbols.values():
+        return ticker
+    return None
+
+
+def build_asset_execution_context(
+    narrative: str,
+    sector: str,
+    ticker: str,
+    *,
+    registry: dict[str, Any] | None = None,
+    asset_map: NarrativeAssetMap | None = None,
+    participation: dict | None = None,
+    sector_row: dict | None = None,
+    market_expression: dict | None = None,
+    market_snapshot: dict | None = None,
+    ticker_symbols: dict[str, str] | None = None,
+    price_loader=load_asset_price_history_or_empty,
+    story_registry=None,
+) -> dict[str, Any]:
+    """Build the persisted, descriptive read model for one registry asset."""
+    registry = registry or load_asset_registry()
+    ticker = ticker.upper()
+    if ticker not in registry["assets"]:
+        raise AssetRegistryError(f"unknown asset ticker: {ticker}")
+    exploration = build_asset_exploration_context(
+        narrative,
+        sector,
+        registry=registry,
+        asset_map=asset_map,
+        participation=participation,
+        sector_row=sector_row,
+        market_expression=market_expression,
+    )
+    asset_row = next((row for row in exploration["assets"] if row["ticker"] == ticker), None)
+    asset = registry["assets"][ticker]
+    if asset_row is None:
+        if asset.get("sector_key") not in {sector, None}:
+            raise AssetRegistryError(f"asset {ticker} is not mapped to sector {sector}")
+        asset_row = _decorate_asset_row({
+            **asset,
+            "ticker": ticker,
+            "structural_role": "CONTEXT",
+            "role_label": asset_execution_copy("supporting_expression"),
+            "expected_expression": None,
+            "rationale": asset_execution_copy("honesty_missing"),
+            "participation_state": "UNAVAILABLE",
+            "participation_label": asset_exploration_copy("participation_UNAVAILABLE"),
+            "participation_explanation": asset_exploration_copy("participation_explanation_UNAVAILABLE"),
+            "data_freshness": "UNAVAILABLE",
+            "freshness_label": asset_exploration_copy("freshness_UNAVAILABLE"),
+            "pct_change": None,
+            "market_expression_role": None,
+            "research_href": f"/research/{quote(f'group:{narrative}', safe=':')}",
+        }, quote(f"group:{narrative}", safe=":"), sector)
+
+    symbol = _yfinance_symbol(ticker, ticker_symbols or {})
+    history = price_loader(symbol) if symbol else None
+    candles = [
+        {"date": item.date, "open": item.open, "high": item.high, "low": item.low, "close": item.close}
+        for item in (history.candles if history else ())
+    ]
+    latest = candles[-1] if candles else None
+    launch_delta = None
+    if latest and latest["open"]:
+        launch_delta = round((latest["close"] - latest["open"]) / latest["open"] * 100, 2)
+    snapshot = market_snapshot if isinstance(market_snapshot, dict) else {}
+    snapshot_record = snapshot.get(ticker)
+    if not isinstance(snapshot_record, dict) and asset.get("sector_key"):
+        snapshot_record = snapshot.get(asset["sector_key"])
+    observed_at = snapshot_record.get("observed_at") if isinstance(snapshot_record, dict) else None
+    stories = story_registry or load_story_registry()
+    connected_stories = tuple(
+        story.display_name for story in stories.stories if story.group == narrative
+    )
+    return {
+        **exploration,
+        "asset": asset_row,
+        "ticker": ticker,
+        "yfinance_symbol": symbol,
+        "candles": candles,
+        "has_candles": bool(candles),
+        "latest_candle": latest,
+        "launch_delta_pct": launch_delta,
+        "observed_at": observed_at,
+        "connected_stories": connected_stories,
+        "copy": asset_execution_copy_bundle(),
+    }
