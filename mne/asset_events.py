@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import asdict, dataclass
-from datetime import date, datetime
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable
 
@@ -15,12 +15,21 @@ from mne.company_catalysts import (
     get_historical_company_earnings_dates,
 )
 from mne.macro_catalysts import MACRO_CALENDAR_FILE, _load_macro_calendar
+from mne.sec_edgar import (
+    DEFAULT_SEC_EDGAR_MAP_PATH,
+    Edgar8K,
+    SecEdgarError,
+    fetch_8k_filings,
+    load_sec_edgar_map,
+)
 
 
 ASSET_EVENTS_DIR = DATA_DIR / "asset_events"
 STORE_VERSION = "1.0.0"
-EVENT_TYPES = frozenset({"earnings", "macro"})
+EVENT_TYPES = frozenset({"earnings", "macro", "news"})
 EVENT_FIELDS = frozenset({"date", "type", "title", "blurb", "detail", "source"})
+OPTIONAL_EVENT_FIELDS = frozenset({"url"})
+NEWS_WINDOW_DAYS = 183
 _SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 
 
@@ -36,6 +45,7 @@ class AssetEvent:
     blurb: str
     detail: str
     source: str
+    url: str = ""
 
 
 @dataclass(frozen=True)
@@ -76,11 +86,14 @@ def validate_asset_event_feed(data: Any) -> AssetEventFeed:
     events = []
     for index, raw in enumerate(data["events"]):
         location = f"events[{index}]"
-        if not isinstance(raw, dict) or set(raw) != EVENT_FIELDS:
-            raise AssetEventsError(f"{location} must contain exactly the ratified event fields")
+        if not isinstance(raw, dict) or not EVENT_FIELDS.issubset(raw) or set(raw) - EVENT_FIELDS - OPTIONAL_EVENT_FIELDS:
+            raise AssetEventsError(f"{location} must contain required event fields and only optional url")
         event_type = _required_text(raw.get("type"), f"{location}.type")
         if event_type not in EVENT_TYPES:
-            raise AssetEventsError(f"{location}.type must be earnings or macro")
+            raise AssetEventsError(f"{location}.type must be earnings, macro, or news")
+        url = raw.get("url", "")
+        if "url" in raw:
+            url = _required_text(url, f"{location}.url")
         events.append(AssetEvent(
             date=_iso_date(raw.get("date"), f"{location}.date"),
             type=event_type,
@@ -88,12 +101,27 @@ def validate_asset_event_feed(data: Any) -> AssetEventFeed:
             blurb=_required_text(raw.get("blurb"), f"{location}.blurb"),
             detail=_required_text(raw.get("detail"), f"{location}.detail"),
             source=_required_text(raw.get("source"), f"{location}.source"),
+            url=url,
         ))
     return AssetEventFeed(ticker, version, tuple(sorted(events, key=_event_key)))
 
 
-def _event_key(event: AssetEvent) -> tuple[str, str, str, str]:
-    return event.date, event.type, event.title.casefold(), event.source.casefold()
+def _event_key(event: AssetEvent) -> tuple[str, str, str, str, str]:
+    return event.date, event.type, event.title.casefold(), event.source.casefold(), event.url
+
+
+def _event_dict(event: AssetEvent) -> dict[str, str]:
+    data = {
+        "date": event.date,
+        "type": event.type,
+        "title": event.title,
+        "blurb": event.blurb,
+        "detail": event.detail,
+        "source": event.source,
+    }
+    if event.url:
+        data["url"] = event.url
+    return data
 
 
 def load_asset_events(ticker: str, path: str | Path | None = None) -> AssetEventFeed:
@@ -120,13 +148,13 @@ def write_asset_events(ticker: str, events: tuple[AssetEvent, ...] | list[AssetE
     feed = validate_asset_event_feed({
         "ticker": ticker,
         "version": STORE_VERSION,
-        "events": [asdict(event) for event in events],
+        "events": [_event_dict(event) for event in events],
     })
     event_path.parent.mkdir(parents=True, exist_ok=True)
     event_path.write_text(json.dumps({
         "ticker": feed.ticker,
         "version": feed.version,
-        "events": [asdict(event) for event in feed.events],
+        "events": [_event_dict(event) for event in feed.events],
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
@@ -174,6 +202,21 @@ def _earnings_event(symbol: str, earnings_date: date) -> AssetEvent:
     )
 
 
+def _news_event(edgar_8k: Edgar8K) -> AssetEvent:
+    return AssetEvent(
+        date=edgar_8k.filing_date,
+        type="news",
+        title=edgar_8k.title,
+        blurb="SEC 8-K filing (material event).",
+        detail=(
+            f"Filed {edgar_8k.filing_date}. Accession {edgar_8k.accession}. "
+            f"Items: {edgar_8k.title}."
+        ),
+        source="SEC EDGAR",
+        url=edgar_8k.url,
+    )
+
+
 def refresh_asset_event_feeds(
     ticker_symbols: dict[str, str],
     narrative_assets: Any,
@@ -183,6 +226,8 @@ def refresh_asset_event_feeds(
     calendar_file: str | Path = MACRO_CALENDAR_FILE,
     events_dir: str | Path = ASSET_EVENTS_DIR,
     earnings_loader: Callable = get_historical_company_earnings_dates,
+    news_fetcher: Callable = fetch_8k_filings,
+    sec_edgar_map_file: str | Path = DEFAULT_SEC_EDGAR_MAP_PATH,
 ) -> int:
     """Replace each registry ticker feed from current persisted source inputs."""
     as_of = as_of or date.today()
@@ -195,6 +240,13 @@ def refresh_asset_event_feeds(
         for mapping in mappings:
             groups_by_ticker.setdefault(mapping.ticker, set()).add(group)
     macro_inputs = [event for event in _load_macro_calendar(calendar_file) if isinstance(event, dict)]
+    try:
+        sec_config = load_sec_edgar_map(sec_edgar_map_file)
+        sec_ciks = sec_config.as_dict()
+    except SecEdgarError:
+        sec_config = None
+        sec_ciks = {}
+    news_since = as_of - timedelta(days=NEWS_WINDOW_DAYS)
     written = 0
     for canonical_ticker, groups in sorted(groups_by_ticker.items()):
         symbol = ticker_symbols.get(canonical_ticker)
@@ -209,6 +261,21 @@ def refresh_asset_event_feeds(
                     events.append(normalized)
         if canonical_ticker in MAJOR_COMPANY_CATALYSTS:
             events.extend(_earnings_event(canonical_ticker, value) for value in earnings_loader(symbol, as_of=as_of))
+        if sec_config is not None and canonical_ticker in sec_ciks:
+            try:
+                filings = news_fetcher(
+                    sec_ciks[canonical_ticker],
+                    contact=sec_config.contact,
+                    as_of=as_of,
+                    since=news_since,
+                )
+            except Exception:
+                filings = ()
+            events.extend(
+                _news_event(filing)
+                for filing in filings
+                if news_since <= date.fromisoformat(filing.filing_date) <= as_of
+            )
         deduped = {_event_key(event): event for event in events}
         write_asset_events(symbol, list(deduped.values()), Path(events_dir) / f"{symbol}.json")
         written += 1

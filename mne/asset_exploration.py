@@ -318,7 +318,15 @@ def build_asset_execution_context(
     stories = story_registry or load_story_registry()
     event_feed = event_loader(symbol) if symbol else None
     events = [
-        {"date": item.date, "type": item.type, "title": item.title, "blurb": item.blurb, "detail": item.detail, "source": item.source}
+        {
+            "date": item.date,
+            "type": item.type,
+            "title": item.title,
+            "blurb": item.blurb,
+            "detail": item.detail,
+            "source": item.source,
+            **({"url": item.url} if getattr(item, "url", "") else {}),
+        }
         for item in (event_feed.events if event_feed else ())
     ]
     upcoming = select_upcoming_asset_catalysts(

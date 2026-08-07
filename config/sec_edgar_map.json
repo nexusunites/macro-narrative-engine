@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "contact": "MNE company-news ingest macronarrativeengine@gmail.com",
+  "ciks": {
+    "NVDA": ["1045810"],
+    "MSFT": ["789019"],
+    "CVX": ["93410"],
+    "SLB": ["87347"],
+    "XOM": ["34088", "2115436"]
+  }
+}
