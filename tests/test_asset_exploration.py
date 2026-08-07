@@ -1,6 +1,7 @@
 import json
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from mne.asset_exploration import (AssetRegistryError, build_asset_execution_context, build_asset_exploration_context,
     compute_asset_breadth, load_asset_registry, load_narrative_asset_map,
@@ -87,11 +88,14 @@ class AssetExplorationTests(unittest.TestCase):
             registry=self.registry, asset_map=self.asset_map,
             ticker_symbols={"VIX": "^VIX", "NVDA": "NVDA", "technology": "XLK"},
             price_loader=load_prices,
+            event_loader=lambda symbol: SimpleNamespace(events=(SimpleNamespace(date="2026-08-05", type="earnings", title="NVDA Earnings", blurb="Calendar date.", detail="Persisted.", source="Source"),)),
+            upcoming_loader=lambda: (),
         )
         self.assertEqual(["^VIX"], requested)
         self.assertEqual("^VIX", context["yfinance_symbol"])
         self.assertEqual(2, len(context["candles"]))
         self.assertEqual(10.0, context["launch_delta_pct"])
+        self.assertEqual("earnings", context["events"][0]["type"])
 
     def test_execution_context_missing_symbol_and_history_are_honest(self):
         unloaded = build_asset_execution_context(

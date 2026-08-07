@@ -64,6 +64,39 @@ def _first_earnings_date_from_get_earnings_dates(ticker, as_of):
     return _next_date_on_or_after(dates, as_of)
 
 
+def _historical_earnings_dates_from_get_earnings_dates(ticker, as_of):
+    """Return unique earnings-calendar dates before ``as_of`` from one response."""
+    try:
+        earnings_dates = ticker.get_earnings_dates()
+    except Exception as error:
+        logger.debug("Unable to fetch historical earnings dates: %s", error)
+        return ()
+
+    if earnings_dates is None or getattr(earnings_dates, "empty", False):
+        return ()
+
+    dates = {
+        parsed
+        for value in getattr(earnings_dates, "index", [])
+        if (parsed := _coerce_date(value)) is not None and parsed < as_of
+    }
+    return tuple(sorted(dates))
+
+
+def get_historical_company_earnings_dates(symbol, as_of=None):
+    """Fetch persisted-marker inputs without changing forward catalyst behavior."""
+    as_of = as_of or date.today()
+    if isinstance(as_of, datetime):
+        as_of = as_of.date()
+    try:
+        import yfinance as yf
+        ticker = yf.Ticker(symbol)
+    except Exception as error:
+        logger.debug("Unable to initialize yfinance ticker %s: %s", symbol, error)
+        return ()
+    return _historical_earnings_dates_from_get_earnings_dates(ticker, as_of)
+
+
 def _calendar_values(calendar):
     if calendar is None:
         return []

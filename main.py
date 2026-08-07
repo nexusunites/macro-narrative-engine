@@ -6,6 +6,8 @@ from analysis.leadership_rotation import compute_rotation
 from analysis.narrative_dynamics import calculate_narrative_dynamics
 from config import DATA_DIR, OPERATING_MODE, RESULTS_DIR, ensure_data_dir
 from mne.breadth import BREADTH_TICKERS, classify_breadth_confirmation
+from mne.asset_events import refresh_asset_event_feeds
+from mne.asset_exploration import load_narrative_asset_map
 from mne.asset_price_history import Candle, upsert_daily_candle
 from mne.catalyst_environment import classify_catalyst_environment
 from mne.change_summary import build_change_summary
@@ -515,6 +517,15 @@ def main(args=None):
                 )
             except (OSError, ValueError):
                 continue
+        try:
+            refresh_asset_event_feeds(
+                {**NASDAQ_TICKERS, **sector_tickers, **ASSET_EXPANSION_TICKERS},
+                load_narrative_asset_map(),
+                load_story_registry(),
+                as_of=date.today(),
+            )
+        except (OSError, ValueError):
+            pass
         market_environment = classify_market_environment(
             theme_scores=theme_scores,
             group_scores=group_scores,

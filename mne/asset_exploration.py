@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+from mne.asset_events import load_asset_events_or_empty, select_upcoming_asset_catalysts
 from mne.asset_price_history import load_asset_price_history_or_empty
 from mne.narrative_signals import NARRATIVE_GROUPS
 from mne.presentation_language import (
@@ -259,6 +260,8 @@ def build_asset_execution_context(
     market_snapshot: dict | None = None,
     ticker_symbols: dict[str, str] | None = None,
     price_loader=load_asset_price_history_or_empty,
+    event_loader=load_asset_events_or_empty,
+    upcoming_loader=lambda: (),
     story_registry=None,
 ) -> dict[str, Any]:
     """Build the persisted, descriptive read model for one registry asset."""
@@ -313,6 +316,14 @@ def build_asset_execution_context(
         snapshot_record = snapshot.get(asset["sector_key"])
     observed_at = snapshot_record.get("observed_at") if isinstance(snapshot_record, dict) else None
     stories = story_registry or load_story_registry()
+    event_feed = event_loader(symbol) if symbol else None
+    events = [
+        {"date": item.date, "type": item.type, "title": item.title, "blurb": item.blurb, "detail": item.detail, "source": item.source}
+        for item in (event_feed.events if event_feed else ())
+    ]
+    upcoming = select_upcoming_asset_catalysts(
+        upcoming_loader() or [], narrative, ticker, stories
+    )
     connected_stories = tuple(
         story.display_name for story in stories.stories if story.group == narrative
     )
@@ -327,5 +338,9 @@ def build_asset_execution_context(
         "launch_delta_pct": launch_delta,
         "observed_at": observed_at,
         "connected_stories": connected_stories,
+        "events": events,
+        "has_events": bool(events),
+        "upcoming_catalysts": upcoming,
+        "has_upcoming_catalysts": bool(upcoming),
         "copy": asset_execution_copy_bundle(),
     }

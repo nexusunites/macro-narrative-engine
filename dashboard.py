@@ -46,6 +46,7 @@ from mne.narrative_relationships import NarrativeRelationshipError, get_relation
 from mne.sector_isolation import SECTOR_KEYS, SectorIsolationError, build_sector_isolation_context, build_sector_isolation_preview, load_sector_map
 from mne.story_registry import StoryRegistryError, load_story_registry
 from mne.sector_market_context import NarrativeSectorInstrumentError, classify_sectors_for_run
+from mne.asset_events import AssetEventsError
 from mne.asset_exploration import AssetRegistryError, build_asset_execution_context, build_asset_exploration_context, load_asset_registry, load_narrative_asset_map
 from mne.asset_price_history import AssetPriceHistoryError
 from mne.asset_participation import classify_assets_for_run
@@ -2834,6 +2835,11 @@ def asset_execution(request: Request, key: str, sector: str, ticker: str):
                     run = context.get("_run") or {}
                     participation = classify_assets_for_run(run, asset_map, registry, narrative_id, now=datetime.now().astimezone())
                     ticker_symbols = {**NASDAQ_TICKERS, **ASSET_EXPANSION_TICKERS, **build_sector_ticker_map()}
+                    catalyst_environment = run.get("catalyst_environment") or {}
+                    upcoming_catalysts = [
+                        *(catalyst_environment.get("red_events") or []),
+                        *(catalyst_environment.get("orange_events") or []),
+                    ]
                     context["asset_execution"] = build_asset_execution_context(
                         narrative_id,
                         sector,
@@ -2845,13 +2851,14 @@ def asset_execution(request: Request, key: str, sector: str, ticker: str):
                         market_expression=run.get("market_expression_context"),
                         market_snapshot=run.get("market_snapshot"),
                         ticker_symbols=ticker_symbols,
+                        upcoming_loader=lambda: upcoming_catalysts,
                     )
         except AssetRegistryError as exc:
             if "not mapped to sector" in str(exc):
                 context["message"] = asset_execution_copy("instrument_sector_unmapped")
             else:
                 context["message"] = asset_execution_copy("unavailable_relationships")
-        except (AssetPriceHistoryError, SectorIsolationError, NarrativeSectorInstrumentError):
+        except (AssetEventsError, AssetPriceHistoryError, SectorIsolationError, NarrativeSectorInstrumentError):
             context["message"] = asset_execution_copy("unavailable_relationships")
     return templates.TemplateResponse("asset_execution.html", context)
 
