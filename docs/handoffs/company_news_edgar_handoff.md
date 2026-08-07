@@ -112,7 +112,7 @@ ambiguity.
   that identifies the app and a real contact email; a missing or generic UA returns HTTP 403. The
   rate ceiling is 10 req/s - **design conservatively (<= ~5 req/s) with retry/backoff**. Send
   `Accept-Encoding: gzip, deflate`. Put the UA/contact string in config (seed value:
-  `"MNE company-news ingest danielpark1620@gmail.com"`) so it is not hardcoded - and **flag to the
+  `"MNE company-news ingest macronarrativeengine@gmail.com"`) so it is not hardcoded - and **flag to the
   owner that SEC requires a real contact address** (open decision 1). Mirror the existing network
   idiom in `mne/rss_fetch.py:1-14` (a `requests` call with an explicit `User-Agent` header
   constant) and its fail-soft error handling (`rss_fetch.py:92,140` - `requests.get(...)` wrapped so
@@ -185,7 +185,7 @@ code. Match the existing config shape - a top-level `"version"` semver string pl
 ```json
 {
   "version": "1.0.0",
-  "contact": "MNE company-news ingest danielpark1620@gmail.com",
+  "contact": "MNE company-news ingest macronarrativeengine@gmail.com",
   "ciks": {
     "NVDA": ["1045810"],
     "MSFT": ["789019"],
@@ -452,7 +452,7 @@ existing call site needs no change.
 ## 10. Open decisions for the owner (flag, do not decide silently - AGENTS.md rule 2)
 
 1. **SEC User-Agent contact.** Confirm the real contact email for the mandatory `User-Agent` header
-   (seed value `"MNE company-news ingest danielpark1620@gmail.com"`). SEC returns 403 without a valid
+   (seed value `"MNE company-news ingest macronarrativeengine@gmail.com"`). SEC returns 403 without a valid
    contact; a placeholder must not ship unverified.
 2. **2.02 earnings-item 8-Ks as News.** Ratified default: show them as News (different attributable
    source than the yfinance earnings marker) and let the existing same-day multi-event marker
