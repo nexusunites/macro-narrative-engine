@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MNE Research + Studio Concept</title>
+<style>
+  :root {
+    --bg: #0B0E11;
+    --panel: #12171D;
+    --panel-raised: #171D25;
+    --line: rgba(255,255,255,0.07);
+    --line-strong: rgba(255,255,255,0.14);
+    --text: #EDF1F5;
+    --muted: #8B95A3;
+    --muted-strong: #B9C2CD;
+    --teal: #2DD4BF;
+    --teal-bright: #5EEAD4;
+    --amber: #F0A64B;
+    --red: #F16A5F;
+    --font: -apple-system, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+    --radius: 16px;
+    --shadow: 0 10px 30px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .num, .stat-num, .saved-count, .grip { font-variant-numeric: tabular-nums; }
+
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+  a { color: inherit; }
+  button { font-family: inherit; cursor: pointer; }
+
+  :focus-visible {
+    outline: 2px solid var(--teal-bright);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* ---------- Uniform card system ---------- */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow);
+  }
+  .card.raised { background: var(--panel-raised); }
+
+  .glow-teal {
+    box-shadow: 0 0 0 1px rgba(45,212,191,0.18), 0 0 40px -12px rgba(45,212,191,0.35);
+    border-color: rgba(45,212,191,0.28);
+  }
+
+  /* ---------- Typography ---------- */
+  .eyebrow, .label {
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  h2.section-title { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .section-head { margin-bottom: 20px; }
+  .section-sub { color: var(--muted); font-size: 14px; margin: 0; }
+
+  section.view { padding: 32px 0 12px; }
+
+  .glyph { font-weight: 700; }
+  .g-up { color: var(--teal); }
+  .g-down { color: var(--amber); }
+  .g-steady { color: var(--muted-strong); }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    max-width: 1200px;
+    margin: 0 auto;
+    gap: 12px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: linear-gradient(150deg, rgba(45,212,191,0.22), rgba(45,212,191,0.05));
+    border: 1px solid rgba(45,212,191,0.30);
+    color: var(--teal-bright);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    align-self: center;
+  }
+  .wordmark { font-weight: 700; letter-spacing: 0.02em; font-size: 16px; color: var(--text); }
+  .brand-full { color: var(--muted); font-size: 13px; }
+  .app-nav { display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; }
+  .nav-link {
+    color: var(--muted);
+    background: transparent;
+    border: none;
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    position: relative;
+    white-space: nowrap;
+    transition: color 150ms ease;
+  }
+  .nav-link:hover { color: var(--muted-strong); }
+  .nav-link.active { color: var(--text); }
+  .nav-link.active::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 1px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--teal);
+  }
+  .nav-sep { color: var(--muted); font-size: 12px; opacity: 0.6; }
+  .signin {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: var(--panel-raised);
+    border: 1px solid var(--line-strong);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+  .signin:hover { border-color: rgba(45,212,191,0.40); color: var(--teal-bright); }
+  .signin .avatar {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--line-strong);
+    display: inline-block;
+  }
+
+  /* ---------- View header ---------- */
+  .view-eyebrow-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .status-line { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #6B7685; display: inline-block; }
+  .view-headline {
+    font-size: clamp(30px, 4.5vw, 46px);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    margin: 12px 0 12px;
+    text-wrap: balance;
+  }
+  .view-sub { color: var(--muted-strong); font-size: 16px; max-width: 60ch; margin: 0; }
+  .concept-tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 999px;
+    color: #C9D2DC;
+    background: rgba(201,210,220,0.12);
+    border: 1px solid rgba(201,210,220,0.30);
+  }
+
+  .state-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--muted-strong);
+    white-space: nowrap;
+  }
+  .state-chip.teal { color: var(--teal-bright); border-color: rgba(45,212,191,0.28); }
+  .state-chip.amber { color: var(--amber); border-color: rgba(240,166,75,0.28); }
+  .state-chip.steady { color: #C9D2DC; background: rgba(201,210,220,0.12); border-color: rgba(201,210,220,0.30); }
+
+  /* ---------- Research: group cards ---------- */
+  .saved-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 22px 0 18px;
+    color: var(--muted-strong);
+    font-size: 13.5px;
+  }
+  .saved-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: var(--panel-raised);
+    border: 1px solid var(--line-strong);
+    font-weight: 600;
+    color: var(--text);
+  }
+  .saved-pill .saved-star { color: var(--teal-bright); font-size: 14px; }
+
+  .group-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .group-card {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    color: inherit;
+    transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .group-card:hover { transform: translateY(-2px); border-color: var(--line-strong); box-shadow: var(--shadow); }
+  .group-card.selected { border-color: var(--line-strong); }
+  .group-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .group-name { font-size: 18px; font-weight: 650; margin: 0 0 8px; }
+  .group-one { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+  .group-open {
+    margin-top: auto;
+    color: var(--muted-strong);
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 150ms ease;
+  }
+  .group-card:hover .group-open { color: var(--teal-bright); }
+  .group-card.selected .group-open { color: var(--teal-bright); }
+
+  /* ---------- Research: story list ---------- */
+  .stories-wrap { margin-top: 28px; }
+  .stories-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .stories-head h3 { font-size: 17px; font-weight: 650; margin: 0; }
+  .stories-head .meta { color: var(--muted); font-size: 13px; }
+  .story-list { display: flex; flex-direction: column; gap: 14px; }
+  .story-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .story-row:hover { transform: translateY(-2px); border-color: var(--line-strong); box-shadow: var(--shadow); }
+  .story-main { flex: 1; min-width: 0; }
+  .story-name { font-size: 16px; font-weight: 650; margin: 0 0 5px; }
+  .story-why { color: var(--muted-strong); font-size: 14px; margin: 0 0 10px; max-width: 68ch; }
+  .story-tape { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .story-tape .tape-label { text-transform: uppercase; letter-spacing: 0.06em; margin-right: 6px; }
+  .star-btn {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    height: 38px;
+    padding: 0 14px 0 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--muted-strong);
+    font-size: 13px;
+    font-weight: 600;
+    transition: color 150ms ease, border-color 150ms ease, transform 150ms ease;
+  }
+  .star-btn:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+  .star-btn .star-ico { font-size: 15px; line-height: 1; }
+  .star-btn.on { color: var(--teal-bright); border-color: rgba(45,212,191,0.40); }
+  .star-btn.on .star-ico { color: var(--teal-bright); }
+
+  /* ---------- Studio layout ---------- */
+  .studio-grid { display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 24px; align-items: start; }
+
+  .rail { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 16px; }
+  .rail-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .rail-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .rail-head .label { font-size: 10.5px; }
+  .rail-note { font-size: 11.5px; color: var(--muted); margin: 2px 0 12px; line-height: 1.45; }
+  .rail-list { display: flex; flex-direction: column; gap: 2px; }
+  .rail-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 6px 8px 4px;
+    border-radius: 10px;
+    transition: background 150ms ease;
+  }
+  .rail-row:hover { background: var(--panel-raised); }
+  .grip {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1;
+    letter-spacing: -1px;
+    cursor: grab;
+    opacity: 0.55;
+    width: 10px;
+    text-align: center;
+  }
+  .rail-glyph { flex: 0 0 auto; width: 12px; text-align: center; font-size: 12px; font-weight: 700; }
+  .rail-name { flex: 1; min-width: 0; font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tracked-mark {
+    flex: 0 0 auto;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    color: var(--teal-bright);
+    background: rgba(45,212,191,0.10);
+    border: 1px solid rgba(45,212,191,0.28);
+    border-radius: 999px;
+    padding: 2px 7px;
+  }
+  .rail-count { color: var(--muted); font-size: 11.5px; font-weight: 600; }
+
+  /* ---------- Studio: artboard ---------- */
+  .studio-main { display: flex; flex-direction: column; gap: 22px; }
+  .head-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .artboard {
+    position: relative;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0) 0 0 / 22px 22px,
+      var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    min-height: 380px;
+    overflow: hidden;
+  }
+  .dropzone {
+    position: absolute;
+    inset: 20px;
+    border: 1.5px dashed rgba(255,255,255,0.10);
+    border-radius: 12px;
+    pointer-events: none;
+  }
+  .drop-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%);
+    color: var(--muted);
+    font-size: 12.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .connectors { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+  .conn-label {
+    fill: var(--muted-strong);
+    font-size: 11px;
+    font-family: var(--font);
+  }
+  .node {
+    position: absolute;
+    z-index: 2;
+    width: 190px;
+    background: var(--panel-raised);
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: var(--shadow);
+  }
+  .node .node-top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .node .node-glyph { font-size: 11px; font-weight: 700; }
+  .node .node-name { font-size: 13.5px; font-weight: 650; }
+  .node .node-line { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+  .node.n1 { top: 46px; left: 40px; }
+  .node.n2 { top: 210px; left: 300px; }
+  .node.n3 { top: 70px; right: 46px; }
+  .node.glow { border-color: rgba(45,212,191,0.30); box-shadow: 0 0 0 1px rgba(45,212,191,0.18), 0 0 34px -14px rgba(45,212,191,0.40); }
+
+  /* ---------- Studio: compare ---------- */
+  .compare-body { display: flex; flex-direction: column; gap: 16px; }
+  .compare-desc { color: var(--muted-strong); font-size: 14px; margin: 0; max-width: 62ch; }
+  .compare-pickers { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: stretch; }
+  .picker {
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .picker .label { display: block; margin-bottom: 8px; }
+  .picker .pick-date { font-size: 15px; font-weight: 600; color: var(--text); font-family: var(--mono); }
+  .picker .pick-state { font-size: 12.5px; color: var(--muted-strong); margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; }
+  .compare-vs { align-self: center; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+
+  /* ---------- Footer ---------- */
+  .foot { padding: 40px 0 48px; color: var(--muted); font-size: 12.5px; text-align: center; }
+
+  .hidden { display: none !important; }
+
+  /* ---------- Research finder ---------- */
+  .finder { margin: 22px 0 4px; }
+  .finder-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--panel-raised);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    padding: 14px 18px;
+    transition: border-color 150ms ease;
+  }
+  .finder-bar:focus-within { border-color: rgba(45,212,191,0.40); }
+  .finder-ico { color: var(--muted); font-size: 16px; flex: 0 0 auto; line-height: 1; }
+  .finder-input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 16px;
+  }
+  .finder-input::placeholder { color: var(--muted); }
+  .finder-input:focus { outline: none; }
+  .finder-clear {
+    flex: 0 0 auto;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1;
+    padding: 4px 6px;
+    border-radius: 999px;
+  }
+  .finder-clear:hover { color: var(--muted-strong); }
+  .finder-helper { color: var(--muted); font-size: 13px; margin: 10px 2px 0; }
+  .finder-note { color: var(--muted); font-size: 12.5px; margin: 6px 2px 0; max-width: 74ch; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+  .chip {
+    background: var(--panel-raised);
+    border: 1px solid var(--line-strong);
+    color: var(--muted-strong);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+  }
+  .chip:hover { color: var(--text); }
+  .chip.on { color: var(--teal-bright); border-color: rgba(45,212,191,0.45); background: rgba(45,212,191,0.08); }
+  .chip.disabled { color: var(--muted); opacity: 0.55; cursor: not-allowed; border-style: dashed; }
+  .chip.disabled:hover { color: var(--muted); }
+  .chip-hint { color: var(--muted); font-size: 12.5px; margin: 8px 2px 0; }
+
+  /* ---------- Narrative index ---------- */
+  .nrv-list { display: flex; flex-direction: column; gap: 16px; margin-top: 22px; }
+  .nrv-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .nrv-card:hover { transform: translateY(-2px); border-color: var(--line-strong); box-shadow: var(--shadow); }
+  .nrv-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+  .nrv-name { font-size: 18px; font-weight: 650; margin: 0 0 8px; }
+  .nrv-stats { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin: 0; }
+  .nrv-stat b { color: var(--text); font-weight: 650; }
+  .nrv-untracked {
+    font-size: 12px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed var(--line-strong);
+    border-radius: 999px;
+    padding: 5px 12px;
+    display: inline-block;
+    margin-top: 4px;
+  }
+  .nrv-stories { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .story-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 5px 6px 5px 12px;
+    font-size: 12.5px;
+    color: var(--muted-strong);
+  }
+  .story-chip .sc-glyph { font-size: 10px; font-weight: 700; }
+  .sc-star {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1;
+    padding: 3px 5px;
+    border-radius: 999px;
+    transition: color 150ms ease;
+  }
+  .sc-star:hover { color: var(--muted-strong); }
+  .sc-star.on { color: var(--teal-bright); }
+  .nrv-actions { display: flex; align-items: center; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .investigate-btn {
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    padding: 8px 16px;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: color 150ms ease, border-color 150ms ease, transform 150ms ease;
+  }
+  .investigate-btn:hover { color: var(--teal-bright); border-color: rgba(45,212,191,0.40); transform: translateY(-1px); }
+  .index-empty { color: var(--muted); font-size: 14px; padding: 26px 2px; }
+
+  /* ---------- Investigation ---------- */
+  .inv-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+  .back-link {
+    background: transparent;
+    border: none;
+    color: var(--muted-strong);
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 2px;
+    transition: color 150ms ease;
+  }
+  .back-link:hover { color: var(--teal-bright); }
+  .breadcrumb { color: var(--muted); font-size: 13px; }
+  .breadcrumb b { color: var(--muted-strong); font-weight: 600; }
+  .jump-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 22px; }
+  .jump-link {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 5px 11px;
+    transition: color 150ms ease, border-color 150ms ease;
+  }
+  .jump-link:hover { color: var(--muted-strong); border-color: var(--line-strong); }
+  .inv-stack { display: flex; flex-direction: column; gap: 22px; }
+
+  .inv-hero-name { font-size: clamp(26px, 3.5vw, 38px); font-weight: 650; letter-spacing: -0.02em; line-height: 1.08; margin: 10px 0 12px; text-wrap: balance; }
+  .inv-why { color: var(--muted-strong); font-size: 16px; max-width: 66ch; margin: 0; }
+  .inv-hero-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+
+  .mod-head { margin-bottom: 14px; }
+  .mod-title { font-size: 17px; font-weight: 650; margin: 0; }
+  .mod-sub { color: var(--muted); font-size: 13px; margin: 3px 0 0; }
+
+  .tile-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .tile { background: var(--panel-raised); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .tile .label { font-size: 10.5px; margin-bottom: 8px; display: block; }
+  .tile-val { font-size: 22px; font-weight: 650; letter-spacing: -0.01em; }
+  .tile-val.steady { color: #C9D2DC; }
+  .tile-sub { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+
+  .memory-strip { display: flex; flex-wrap: wrap; gap: 0; }
+  .mem-cell { flex: 1 1 130px; padding: 2px 18px; border-left: 1px solid var(--line); }
+  .mem-cell:first-child { padding-left: 0; border-left: none; }
+  .mem-k { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .mem-v { font-size: 18px; font-weight: 650; margin-top: 5px; }
+
+  .brief-p { color: var(--muted-strong); font-size: 15px; margin: 0 0 12px; max-width: 74ch; }
+  .completeness { color: var(--muted); font-size: 12.5px; margin: 0; }
+
+  .tape-list { display: flex; flex-direction: column; gap: 12px; }
+  .tape-item { padding: 12px 0 0; border-top: 1px solid var(--line); }
+  .tape-item:first-child { border-top: none; padding-top: 0; }
+  .tape-quote { font-size: 14px; color: var(--text); margin: 0 0 5px; }
+  .tape-meta { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  .tape-cover { color: var(--muted); font-size: 12.5px; margin: 14px 0 0; }
+  .tape-empty { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; font-style: italic; }
+
+  .cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .cat-card { background: var(--panel-raised); border: 1px solid var(--line); border-radius: 12px; padding: 15px 16px; }
+  .cat-card.soon { border-color: rgba(45,212,191,0.30); }
+  .cat-when { font-family: var(--mono); font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .cat-count { font-family: var(--mono); font-size: 22px; font-weight: 650; margin: 6px 0 2px; }
+  .cat-card.soon .cat-count { color: var(--teal-bright); }
+  .cat-name { font-size: 14px; font-weight: 650; margin: 2px 0 5px; }
+  .cat-why { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+  .inst-list { display: flex; flex-direction: column; }
+  .inst-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .inst-row:first-child { border-top: none; }
+  .inst-tkr { font-family: var(--mono); font-weight: 700; font-size: 14px; width: 60px; flex: 0 0 auto; }
+  .inst-role { color: var(--muted); font-size: 12.5px; flex: 1; min-width: 120px; }
+  .inst-move { font-family: var(--mono); font-weight: 650; font-size: 13.5px; flex: 0 0 auto; }
+  .inst-link { color: var(--muted-strong); font-size: 12.5px; font-weight: 600; flex: 0 0 auto; transition: color 150ms ease; }
+  .inst-link:hover { color: var(--teal-bright); }
+
+  .sector-strip { display: flex; flex-wrap: wrap; gap: 10px; }
+  .sector-tag { display: inline-flex; gap: 8px; align-items: center; padding: 8px 14px; border-radius: 10px; background: var(--panel-raised); border: 1px solid var(--line); font-size: 13px; color: var(--muted-strong); }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; color: var(--muted); font-size: 12px; }
+  .legend .lg { display: inline-flex; gap: 7px; align-items: center; }
+  .lg-dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .sector-link { color: var(--muted-strong); font-size: 12.5px; font-weight: 600; margin-top: 14px; display: inline-block; transition: color 150ms ease; }
+  .sector-link:hover { color: var(--teal-bright); }
+
+  .inv-story-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .inv-story-card { background: var(--panel-raised); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .inv-story-card .isc-name { font-size: 15px; font-weight: 650; margin: 0; }
+  .inv-story-card .isc-why { color: var(--muted); font-size: 12.5px; margin: 0; flex: 1; }
+
+  .q-suggest { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+  .q-btn { background: var(--panel-raised); border: 1px solid var(--line-strong); border-radius: 999px; padding: 8px 14px; font-size: 13px; color: var(--muted-strong); transition: color 150ms ease, border-color 150ms ease; }
+  .q-btn:hover { color: var(--text); }
+  .q-input-wrap { display: flex; gap: 10px; align-items: center; background: var(--panel-raised); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; opacity: 0.65; }
+  .q-input { flex: 1; min-width: 0; background: transparent; border: none; color: var(--muted); font-family: inherit; font-size: 14px; }
+  .q-send { flex: 0 0 auto; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; color: var(--muted); cursor: not-allowed; }
+  .analyst-note { color: var(--muted); font-size: 12px; margin: 12px 0 0; }
+
+  .related-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .related-chip { background: var(--panel-raised); border: 1px solid var(--line-strong); border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; color: var(--muted-strong); display: inline-flex; align-items: center; gap: 7px; transition: color 150ms ease, border-color 150ms ease; }
+  .related-chip:hover { color: var(--teal-bright); border-color: rgba(45,212,191,0.40); }
+
+  .limits { color: var(--muted); font-size: 13.5px; }
+  .limits p { margin: 0 0 8px; }
+  .limits .verified { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* ---------- Investigation: inline charts ---------- */
+  .strength-chart { margin: 0 0 20px; }
+  .chart-eyebrow { text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+  .chart-sub { color: var(--muted-strong); font-size: 12.5px; margin: 4px 0 10px; }
+  .spark-wrap { position: relative; width: 100%; }
+  .spark-svg { display: block; width: 100%; height: 90px; }
+  .spark-dot {
+    position: absolute;
+    left: 99.2%;
+    top: 23.2px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--teal-bright);
+    border: 2px solid var(--panel);
+    transform: translate(-50%, -50%);
+  }
+
+  .mini-candle { margin: 0 0 20px; }
+  .mini-candle-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .mini-candle-tkr { font-family: var(--mono); font-weight: 700; font-size: 13.5px; color: var(--text); }
+  .mini-candle-tkr .mc-role { font-family: var(--font); font-weight: 500; color: var(--muted); font-size: 12.5px; }
+  .mini-candle-link { color: var(--muted-strong); font-size: 12.5px; font-weight: 600; transition: color 150ms ease; }
+  .mini-candle-link:hover { color: var(--teal-bright); }
+  .mini-candle-frame { width: 100%; overflow: hidden; margin-top: 10px; }
+  .candle-svg { display: block; width: 100%; height: 140px; }
+  .mini-candle-cap { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 960px) {
+    .group-grid { grid-template-columns: 1fr; }
+    .studio-grid { grid-template-columns: 1fr; }
+    .rail { position: static; top: auto; }
+    .tile-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 720px) {
+    .compare-pickers { grid-template-columns: 1fr; }
+    .compare-vs { justify-self: start; }
+    .node { position: static; width: auto; margin-bottom: 12px; }
+    .connectors, .dropzone, .drop-hint { display: none; }
+    .artboard { min-height: 0; }
+    .cat-grid { grid-template-columns: 1fr; }
+    .inv-story-grid { grid-template-columns: 1fr; }
+    .mem-cell { flex-basis: 45%; border-left: none; padding-left: 0; }
+  }
+  @media (max-width: 640px) {
+    .brand-full { display: none; }
+    .story-row { flex-direction: column; gap: 12px; }
+    .star-btn { align-self: flex-start; }
+    .nrv-head { flex-direction: column; }
+  }
+  @media (max-width: 560px) {
+    .topbar { flex-wrap: wrap; gap: 8px; }
+    .app-nav { order: 3; width: 100%; justify-content: flex-start; }
+    .tile-grid { grid-template-columns: 1fr; }
+    .inv-hero-row { flex-direction: column; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+    .card:hover, .group-card:hover, .story-row:hover { transform: none; }
+    .star-btn:hover, .nrv-card:hover, .investigate-btn:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">MNE</span>
+    <span class="wordmark">Macro Narrative Engine</span>
+  </div>
+  <nav class="app-nav" aria-label="Primary">
+    <button type="button" class="nav-link" data-nav="overview">Overview</button>
+    <span class="nav-sep">&#183;</span>
+    <button type="button" class="nav-link active" data-nav="research" aria-current="page">Research</button>
+    <span class="nav-sep">&#183;</span>
+    <button type="button" class="nav-link" data-nav="studio">Studio</button>
+    <span class="nav-sep">&#183;</span>
+    <button type="button" class="nav-link" data-nav="preferences">Preferences</button>
+  </nav>
+  <button type="button" class="signin">
+    <span class="avatar"></span>
+    Sign in
+  </button>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ VIEW A: RESEARCH FINDER + INDEX ============ -->
+  <section class="view" id="view-research" aria-label="Research">
+    <div class="view-eyebrow-row">
+      <span class="eyebrow">Research</span>
+      <span class="status-line"><span class="dot"></span> Markets closed &#183; Thu Aug 6, 2026</span>
+    </div>
+    <h1 class="view-headline">Find the story you need</h1>
+    <p class="view-sub">Search the day's narratives and the stories inside them, then open one to investigate what changed and why. Anything you star carries over into Studio.</p>
+
+    <div class="saved-banner">
+      <span class="saved-pill"><span class="saved-star">&#9733;</span> Saved <span class="saved-count" id="savedCount">0</span></span>
+      <span>Star a story to add it to your collection.</span>
+    </div>
+
+    <!-- FINDER BAR -->
+    <div class="finder">
+      <div class="finder-bar">
+        <span class="finder-ico" aria-hidden="true">&#9906;</span>
+        <input type="text" id="finderInput" class="finder-input" autocomplete="off"
+               placeholder="Search narratives and stories&#8230;" aria-label="Search narratives and stories">
+        <button type="button" id="finderClear" class="finder-clear hidden" aria-label="Clear search">&#215;</button>
+      </div>
+      <p class="finder-helper">Find a narrative or a specific story by name, keyword, sector, or catalyst.</p>
+      <p class="finder-note">This is a deterministic finder &#8212; it matches what you type against the day's narratives and stories. For deeper questions, open a narrative and ask the AI&nbsp;Analyst on its page.</p>
+    </div>
+
+    <!-- TOPIC CHIPS -->
+    <div class="chip-row" id="chipRow" role="group" aria-label="Filter by topic">
+      <button type="button" class="chip" data-theme="ai">AI</button>
+      <button type="button" class="chip" data-theme="rates">Rates</button>
+      <button type="button" class="chip" data-theme="inflation">Inflation</button>
+      <button type="button" class="chip" data-theme="energy">Energy</button>
+      <button type="button" class="chip" data-theme="recession">Recession</button>
+      <button type="button" class="chip disabled" id="chipCrypto" aria-disabled="true">Crypto &#183; not tracked yet</button>
+    </div>
+    <p class="chip-hint" id="chipHint" aria-live="polite"></p>
+
+    <!-- NARRATIVE INDEX -->
+    <div class="section-head" style="margin-top:26px;">
+      <span class="eyebrow">The index</span>
+      <h2 class="section-title">Narratives in today's read</h2>
+      <p class="section-sub">Each narrative holds its own stories. Star to save; investigate to go deep.</p>
+    </div>
+    <div class="nrv-list" id="nrvList"></div>
+    <p class="index-empty hidden" id="indexEmpty">No narrative or story matches that. Try a different word, or clear the filters.</p>
+  </section>
+
+  <!-- ============ VIEW B: NARRATIVE INVESTIGATION (AI / Tech Growth) ============ -->
+  <section class="view hidden" id="view-investigation" aria-label="Narrative investigation">
+
+    <!-- 1. BACK + BREADCRUMB -->
+    <div class="inv-top">
+      <button type="button" class="back-link" id="invBack">&#8592; All narratives</button>
+      <span class="breadcrumb">Research &#183; <b>AI / Tech Growth</b></span>
+    </div>
+
+    <!-- IN-PAGE SECTION NAV -->
+    <nav class="jump-nav" aria-label="Sections on this page">
+      <a class="jump-link" href="#inv-vitals">What's happening</a>
+      <a class="jump-link" href="#inv-memory">Recent memory</a>
+      <a class="jump-link" href="#inv-why">Why</a>
+      <a class="jump-link" href="#inv-evidence">From the tape</a>
+      <a class="jump-link" href="#inv-clock">On the clock</a>
+      <a class="jump-link" href="#inv-market">Market</a>
+      <a class="jump-link" href="#inv-sectors">Sectors</a>
+      <a class="jump-link" href="#inv-stories">Stories</a>
+      <a class="jump-link" href="#inv-analyst">Ask the analyst</a>
+    </nav>
+
+    <div class="inv-stack">
+
+      <!-- 2. INVESTIGATION HERO (the single teal glow) -->
+      <div class="card glow-teal">
+        <div class="inv-hero-row">
+          <div>
+            <div class="view-eyebrow-row">
+              <span class="eyebrow">Narrative</span>
+              <span class="state-chip teal"><span class="glyph g-up">&#9650;</span> Strengthening</span>
+            </div>
+            <h1 class="inv-hero-name">Chip demand firms while the broad AI mood cools</h1>
+            <p class="inv-why">Money keeps concentrating in accelerators and the power to run them, even as the widest AI enthusiasm eases off its highs &#8212; a narrower, sturdier version of the trade.</p>
+          </div>
+          <button type="button" class="star-btn" id="invHeroStar" aria-pressed="false">
+            <span class="star-ico">&#9734;</span> Save
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. SNAPSHOT VITALS -->
+      <div class="card" id="inv-vitals">
+        <div class="mod-head">
+          <h2 class="mod-title">What's happening</h2>
+          <p class="mod-sub">A snapshot of the narrative as of today's read.</p>
+        </div>
+        <div class="tile-grid">
+          <div class="tile">
+            <span class="label">Attention</span>
+            <div class="tile-val"><span class="glyph g-up">&#9650;</span> 78</div>
+            <div class="tile-sub">Up 5 today &#183; top of the board</div>
+          </div>
+          <div class="tile">
+            <span class="label">Pulse</span>
+            <div class="tile-val teal">Strengthening</div>
+            <div class="tile-sub">High confidence</div>
+          </div>
+          <div class="tile">
+            <span class="label">Regime alignment</span>
+            <div class="tile-val">72 &#183; Aligned</div>
+            <div class="tile-sub">Fits the current risk-on tone</div>
+          </div>
+          <div class="tile">
+            <span class="label">Evidence breadth</span>
+            <div class="tile-val steady">Broad</div>
+            <div class="tile-sub">Many independent sources</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. RECENT MEMORY -->
+      <div class="card" id="inv-memory">
+        <div class="mod-head">
+          <h2 class="mod-title">How it's been behaving</h2>
+          <p class="mod-sub">The recent track record, in plain terms.</p>
+        </div>
+        <div class="strength-chart">
+          <div class="chart-eyebrow">Strength &#183; last 14 reads</div>
+          <p class="chart-sub">Trending up &#8212; firmer than two weeks ago.</p>
+          <div class="spark-wrap">
+            <svg class="spark-svg" viewBox="0 0 1000 90" preserveAspectRatio="none" role="img" aria-label="Narrative strength over the last 14 reads, drifting from the low 60s to the high 70s.">
+              <defs>
+                <linearGradient id="strengthFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#2DD4BF" stop-opacity="0.28"></stop>
+                  <stop offset="1" stop-color="#2DD4BF" stop-opacity="0"></stop>
+                </linearGradient>
+              </defs>
+              <path d="M8,35.6 L83.7,37.2 L159.4,34.1 L235.1,34.9 L310.8,31.7 L386.5,33.3 L462.2,30.2 L537.8,28.6 L613.5,31 L689.2,27.8 L764.9,26.3 L840.6,27.1 L916.3,24.7 L992,23.2 L992,88 L8,88 Z" fill="url(#strengthFill)"></path>
+              <path d="M8,35.6 L83.7,37.2 L159.4,34.1 L235.1,34.9 L310.8,31.7 L386.5,33.3 L462.2,30.2 L537.8,28.6 L613.5,31 L689.2,27.8 L764.9,26.3 L840.6,27.1 L916.3,24.7 L992,23.2" fill="none" stroke="#2DD4BF" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+            </svg>
+            <span class="spark-dot" aria-hidden="true"></span>
+          </div>
+        </div>
+        <div class="memory-strip">
+          <div class="mem-cell">
+            <div class="mem-k">Appearances</div>
+            <div class="mem-v">9 of last 10 reads</div>
+          </div>
+          <div class="mem-cell">
+            <div class="mem-k">Streak</div>
+            <div class="mem-v">6 days running</div>
+          </div>
+          <div class="mem-cell">
+            <div class="mem-k">Momentum</div>
+            <div class="mem-v"><span class="glyph g-up">&#9650;</span> Building</div>
+          </div>
+          <div class="mem-cell">
+            <div class="mem-k">Score change</div>
+            <div class="mem-v">+5 today</div>
+          </div>
+          <div class="mem-cell">
+            <div class="mem-k">Share change</div>
+            <div class="mem-v">+2 pts</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. WHY IT'S HAPPENING -->
+      <div class="card" id="inv-why">
+        <div class="mod-head">
+          <h2 class="mod-title">Why it's happening</h2>
+        </div>
+        <p class="brief-p">A fresh round of record accelerator orders and utility deals for data-center power pulled coverage back toward the supply side of AI, even as opinion pieces questioned how long the broad rally can last. The result is a narrative that is firming on hard demand signals while the softer enthusiasm thins &#8212; concentration, not collapse.</p>
+        <p class="completeness">Data completeness: high &#8212; built from 14 sources across today's read, with no major gaps flagged.</p>
+      </div>
+
+      <!-- 6. FROM THE TAPE / EVIDENCE -->
+      <div class="card" id="inv-evidence">
+        <div class="mod-head">
+          <h2 class="mod-title">What we read</h2>
+          <p class="mod-sub">The headlines behind this narrative today.</p>
+        </div>
+        <div class="tape-list">
+          <div class="tape-item">
+            <p class="tape-quote">&#8220;SK Hynix hits $1 trillion valuation as AI boom lifts chip stocks&#8221;</p>
+            <div class="tape-meta">FT &#183; Aug 6, 3:44 AM</div>
+          </div>
+          <div class="tape-item">
+            <p class="tape-quote">&#8220;AI data-center buildout drives a surge in forecast electricity demand&#8221;</p>
+            <div class="tape-meta">Bloomberg &#183; Aug 6, 7:10 AM</div>
+          </div>
+          <div class="tape-item">
+            <p class="tape-quote">&#8220;Hyperscaler cloud budgets hold up despite fresh AI-cost scrutiny&#8221;</p>
+            <div class="tape-meta">WSJ &#183; Aug 5, 5:20 PM</div>
+          </div>
+        </div>
+        <p class="tape-cover">Coverage: 14 sources today.</p>
+        <p class="tape-empty">When a narrative has no qualifying headlines on a given day, this section says so plainly rather than inventing evidence.</p>
+      </div>
+
+      <!-- 7. ON THE CLOCK / CATALYSTS -->
+      <div class="card" id="inv-clock">
+        <div class="mod-head">
+          <h2 class="mod-title">Catalysts for this narrative</h2>
+          <p class="mod-sub">Dated events that could move the story next.</p>
+        </div>
+        <div class="cat-grid">
+          <div class="cat-card soon">
+            <div class="cat-when">Soonest</div>
+            <div class="cat-count">2d 14h</div>
+            <div class="cat-name">NVDA earnings</div>
+            <p class="cat-why">The clearest read on real accelerator demand.</p>
+          </div>
+          <div class="cat-card">
+            <div class="cat-when">Upcoming</div>
+            <div class="cat-count">6d 09h</div>
+            <div class="cat-name">CPI print</div>
+            <p class="cat-why">A hot number pressures the high-multiple AI names.</p>
+          </div>
+          <div class="cat-card">
+            <div class="cat-when">Upcoming</div>
+            <div class="cat-count">12d 03h</div>
+            <div class="cat-name">Hyperscaler capex updates</div>
+            <p class="cat-why">Confirms or questions the cloud-spend leg.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. HOW THE MARKET IS EXPRESSING IT -->
+      <div class="card" id="inv-market">
+        <div class="mod-head">
+          <h2 class="mod-title">How the market is expressing it</h2>
+          <p class="mod-sub">Instruments most tied to this narrative.</p>
+        </div>
+        <div class="mini-candle">
+          <div class="mini-candle-head">
+            <span class="mini-candle-tkr">NVDA <span class="mc-role">&#183; lead instrument</span></span>
+            <a class="mini-candle-link" href="#" onclick="return false;">Open asset view &#8594;</a>
+          </div>
+          <div class="mini-candle-frame">
+            <svg class="candle-svg" viewBox="0 0 480 140" preserveAspectRatio="none" role="img" aria-label="Compact daily candlestick teaser for NVDA over the last 24 sessions, drifting higher with pullbacks.">
+        <rect x="9" y="102.5" width="2" height="14.7" fill="var(--teal)"></rect>
+        <rect x="6" y="105.4" width="8" height="8.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="29" y="96.6" width="2" height="11.8" fill="var(--teal)"></rect>
+        <rect x="26" y="99.5" width="8" height="5.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="49" y="93.6" width="2" height="11.8" fill="var(--red)"></rect>
+        <rect x="46" y="99.5" width="8" height="3" rx="1" fill="var(--red)"></rect>
+        <rect x="69" y="90.7" width="2" height="14.7" fill="var(--teal)"></rect>
+        <rect x="66" y="93.6" width="8" height="8.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="89" y="84.8" width="2" height="11.8" fill="var(--teal)"></rect>
+        <rect x="86" y="87.7" width="8" height="5.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="109" y="81.8" width="2" height="11.8" fill="var(--red)"></rect>
+        <rect x="106" y="87.7" width="8" height="3" rx="1" fill="var(--red)"></rect>
+        <rect x="129" y="78.9" width="2" height="14.7" fill="var(--teal)"></rect>
+        <rect x="126" y="81.8" width="8" height="8.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="149" y="73" width="2" height="11.8" fill="var(--teal)"></rect>
+        <rect x="146" y="75.9" width="8" height="5.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="169" y="70" width="2" height="14.8" fill="var(--red)"></rect>
+        <rect x="166" y="75.9" width="8" height="5.9" rx="1" fill="var(--red)"></rect>
+        <rect x="189" y="75.9" width="2" height="14.8" fill="var(--red)"></rect>
+        <rect x="186" y="81.8" width="8" height="5.9" rx="1" fill="var(--red)"></rect>
+        <rect x="209" y="78.9" width="2" height="11.8" fill="var(--teal)"></rect>
+        <rect x="206" y="78.9" width="8" height="8.8" rx="1" fill="var(--teal)"></rect>
+        <rect x="229" y="67" width="2" height="14.8" fill="var(--teal)"></rect>
+        <rect x="226" y="70" width="8" height="8.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="249" y="61.1" width="2" height="11.9" fill="var(--teal)"></rect>
+        <rect x="246" y="64.1" width="8" height="5.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="269" y="58.2" width="2" height="14.8" fill="var(--red)"></rect>
+        <rect x="266" y="64.1" width="8" height="5.9" rx="1" fill="var(--red)"></rect>
+        <rect x="289" y="64.1" width="2" height="14.8" fill="var(--red)"></rect>
+        <rect x="286" y="70" width="8" height="5.9" rx="1" fill="var(--red)"></rect>
+        <rect x="309" y="61.1" width="2" height="17.8" fill="var(--teal)"></rect>
+        <rect x="306" y="64.1" width="8" height="11.8" rx="1" fill="var(--teal)"></rect>
+        <rect x="329" y="52.3" width="2" height="14.7" fill="var(--teal)"></rect>
+        <rect x="326" y="55.2" width="8" height="8.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="349" y="46.4" width="2" height="11.8" fill="var(--teal)"></rect>
+        <rect x="346" y="49.3" width="8" height="5.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="369" y="43.4" width="2" height="14.8" fill="var(--red)"></rect>
+        <rect x="366" y="49.3" width="8" height="3" rx="1" fill="var(--red)"></rect>
+        <rect x="389" y="40.5" width="2" height="14.7" fill="var(--teal)"></rect>
+        <rect x="386" y="43.4" width="8" height="8.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="409" y="34.6" width="2" height="11.8" fill="var(--teal)"></rect>
+        <rect x="406" y="37.5" width="8" height="5.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="429" y="31.6" width="2" height="14.8" fill="var(--red)"></rect>
+        <rect x="426" y="37.5" width="8" height="3" rx="1" fill="var(--red)"></rect>
+        <rect x="449" y="28.7" width="2" height="14.7" fill="var(--teal)"></rect>
+        <rect x="446" y="31.6" width="8" height="8.9" rx="1" fill="var(--teal)"></rect>
+        <rect x="469" y="19.8" width="2" height="14.8" fill="var(--teal)"></rect>
+        <rect x="466" y="22.8" width="8" height="8.8" rx="1" fill="var(--teal)"></rect>
+            </svg>
+          </div>
+          <p class="mini-candle-cap">A quick read on the narrative's primary instrument &#8212; open the asset view for the full tape.</p>
+        </div>
+        <div class="inst-list">
+          <div class="inst-row">
+            <span class="inst-tkr">NVDA</span>
+            <span class="inst-role">Lead accelerator maker &#183; core driver</span>
+            <span class="inst-move g-up">&#9650; +2.4%</span>
+            <a class="inst-link" href="#" onclick="return false;">Open asset view &#8594;</a>
+          </div>
+          <div class="inst-row">
+            <span class="inst-tkr">SMH</span>
+            <span class="inst-role">Semiconductor ETF &#183; breadth of the chip trade</span>
+            <span class="inst-move g-up">&#9650; +1.6%</span>
+            <a class="inst-link" href="#" onclick="return false;">Open asset view &#8594;</a>
+          </div>
+          <div class="inst-row">
+            <span class="inst-tkr">QQQ</span>
+            <span class="inst-role">Large-cap tech &#183; the broad mood</span>
+            <span class="inst-move g-steady">&#8594; +0.2%</span>
+            <a class="inst-link" href="#" onclick="return false;">Open asset view &#8594;</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. SECTORS EXPRESSING IT -->
+      <div class="card" id="inv-sectors">
+        <div class="mod-head">
+          <h2 class="mod-title">Sectors expressing it</h2>
+          <p class="mod-sub">Where this narrative shows up across the tape.</p>
+        </div>
+        <div class="sector-strip">
+          <span class="sector-tag"><span class="glyph g-up">&#9650;</span> Technology &#183; driving</span>
+          <span class="sector-tag"><span class="glyph g-steady">&#8594;</span> Utilities &#183; supporting</span>
+          <span class="sector-tag"><span class="glyph g-steady">&#8594;</span> Communication Services &#183; steady</span>
+        </div>
+        <div class="legend">
+          <span class="lg"><span class="lg-dot" style="background:var(--teal)"></span> Driving</span>
+          <span class="lg"><span class="lg-dot" style="background:var(--muted-strong)"></span> Supporting / steady</span>
+          <span class="lg"><span class="lg-dot" style="background:var(--amber)"></span> Fading</span>
+        </div>
+        <a class="sector-link" href="#" onclick="return false;">Explore assets &#8594;</a>
+      </div>
+
+      <!-- 10. STORIES IN THIS NARRATIVE -->
+      <div class="card" id="inv-stories">
+        <div class="mod-head">
+          <h2 class="mod-title">Stories in this narrative</h2>
+          <p class="mod-sub">The threads that make up AI / Tech Growth.</p>
+        </div>
+        <div class="inv-story-grid" id="invStoryGrid"></div>
+      </div>
+
+      <!-- 11. ASK THE ANALYST -->
+      <div class="card" id="inv-analyst">
+        <div class="mod-head">
+          <h2 class="mod-title">Ask the analyst</h2>
+          <p class="mod-sub">Deeper questions, answered from today's evidence.</p>
+        </div>
+        <div class="q-suggest">
+          <button type="button" class="q-btn" onclick="return false;">What is driving the strengthening?</button>
+          <button type="button" class="q-btn" onclick="return false;">Which stories carry the most weight?</button>
+          <button type="button" class="q-btn" onclick="return false;">Where could this narrative break?</button>
+        </div>
+        <div class="q-input-wrap">
+          <input type="text" class="q-input" placeholder="Ask about AI / Tech Growth&#8230;" disabled aria-label="Ask the analyst (representative, disabled in this mockup)">
+          <button type="button" class="q-send" disabled>Ask</button>
+        </div>
+        <p class="analyst-note">Answers from the run's evidence only &#8212; no predictions.</p>
+      </div>
+
+      <!-- 12. RELATED NARRATIVES -->
+      <div class="card">
+        <div class="mod-head">
+          <h2 class="mod-title">Related narratives</h2>
+        </div>
+        <div class="related-row">
+          <button type="button" class="related-chip" data-related="macro">Macro Pressure &#8594;</button>
+          <button type="button" class="related-chip" data-related="energy">Energy / Commodities &#8594;</button>
+        </div>
+      </div>
+
+      <!-- 13. LIMITATIONS / HONESTY -->
+      <div class="card">
+        <div class="limits">
+          <p>This describes what the evidence shows, not what will happen.</p>
+          <p>Where coverage is thin or a signal is missing, we show the gap rather than filling it in.</p>
+          <p class="verified">Latest verified read &#183; Thu Aug 6, 2026 &#183; markets closed</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ VIEW 2: STUDIO ============ -->
+  <section class="view hidden" id="view-studio" aria-label="Studio">
+    <div class="studio-grid">
+
+      <!-- CONTEXTUAL LEFT RAIL -->
+      <aside class="rail" aria-label="Your saved material">
+        <div class="rail-card">
+          <div class="rail-head">
+            <span class="label">Watchlist</span>
+            <span class="rail-count" id="watchCount">0</span>
+          </div>
+          <p class="rail-note">The stories you're actively tracking &#8212; a subset of Saved below.</p>
+          <div class="rail-list" id="watchList"></div>
+        </div>
+
+        <div class="rail-card">
+          <div class="rail-head">
+            <span class="label">Saved</span>
+            <span class="rail-count" id="savedRailCount">0</span>
+          </div>
+          <p class="rail-note">Everything you starred in Research. Drag a story onto the artboard to build with it.</p>
+          <div class="rail-list" id="savedList"></div>
+        </div>
+      </aside>
+
+      <!-- MAIN AREA -->
+      <div class="studio-main">
+        <div>
+          <div class="view-eyebrow-row">
+            <span class="eyebrow">Studio</span>
+            <span class="concept-tag">Concept &#183; next build</span>
+          </div>
+          <h1 class="view-headline">Make your own connections</h1>
+          <p class="view-sub">Pull your saved stories onto the artboard and draw the links you see between them. Research ships first; this workspace comes next.</p>
+        </div>
+
+        <div class="artboard" aria-label="Artboard canvas concept">
+          <div class="dropzone"></div>
+
+          <svg class="connectors" viewBox="0 0 900 380" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <marker id="arrowhead" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="#5EEAD4"></path>
+              </marker>
+            </defs>
+            <path d="M135,96 C230,150 250,200 360,232" fill="none" stroke="#2DD4BF" stroke-width="1.6"
+                  stroke-dasharray="5 5" marker-end="url(#arrowhead)" opacity="0.85"></path>
+            <rect x="228" y="150" width="82" height="20" rx="10" fill="#12171D" stroke="rgba(255,255,255,0.14)"></rect>
+            <text class="conn-label" x="269" y="164" text-anchor="middle">moves with</text>
+          </svg>
+
+          <div class="node n1 glow">
+            <div class="node-top"><span class="node-glyph g-up">&#9650;</span><span class="node-name">AI Chips</span></div>
+            <div class="node-line">Record accelerator demand</div>
+          </div>
+          <div class="node n2">
+            <div class="node-top"><span class="node-glyph g-up">&#9650;</span><span class="node-name">Data Center Power</span></div>
+            <div class="node-line">Grid load follows the buildout</div>
+          </div>
+          <div class="node n3">
+            <div class="node-top"><span class="node-glyph g-down">&#9660;</span><span class="node-name">Oil Supply Shock</span></div>
+            <div class="node-line">Supply-shock bid easing</div>
+          </div>
+
+          <span class="drop-hint">&#43; Drag a saved story here to add it.</span>
+        </div>
+
+        <div class="card">
+          <div class="head-row" style="margin-bottom:6px;">
+            <span class="eyebrow">Compare tool</span>
+            <span class="concept-tag">Was: History</span>
+          </div>
+          <h2 class="section-title" style="margin-bottom:6px;">Compare over time</h2>
+          <div class="compare-body">
+            <p class="compare-desc">See how a narrative looked at two points in time, side by side &#8212; the temporal view that used to live under History now folds in here.</p>
+            <div class="compare-pickers">
+              <div class="picker">
+                <span class="label">Point A</span>
+                <div class="pick-date">Jul 24, 2026</div>
+                <div class="pick-state"><span class="glyph g-up">&#9650;</span> Energy / Commodities &#183; Strengthening</div>
+              </div>
+              <span class="compare-vs">vs</span>
+              <div class="picker">
+                <span class="label">Point B</span>
+                <div class="pick-date">Aug 06, 2026</div>
+                <div class="pick-state"><span class="glyph g-down">&#9660;</span> Energy / Commodities &#183; Fading</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <p class="foot">Concept mockup &#183; Research + Studio shell &#183; illustrative data</p>
+</main>
+
+<script>
+  (function () {
+    "use strict";
+
+    // ---------- Story data ----------
+    // Directions: up = strengthening (teal), down = fading (amber), steady = slate.
+    // theme = taxonomy theme used by the topic chips; kw = extra search keywords.
+    var STORIES = {
+      "ai_chips": {
+        name: "AI Chips", theme: "ai", dir: "up",
+        kw: "nvidia chip chips semiconductor micron accelerator gpu sk hynix",
+        why: "Record demand for AI accelerators keeps money flowing to the chipmakers even when the broader tech mood wobbles."
+      },
+      "data_center_power": {
+        name: "Data Center Power", theme: "ai", dir: "up",
+        kw: "data center power grid electricity utilities server buildout",
+        why: "AI data centers need enormous electricity, turning sleepy utilities into a growth story and a fresh way to play the AI theme."
+      },
+      "cloud_spending": {
+        name: "Cloud Spending", theme: "ai", dir: "steady",
+        kw: "cloud capex hyperscaler spending backlog azure aws",
+        why: "Hyperscaler budgets are the plumbing under the AI trade; steady spend keeps the chip and power stories intact."
+      },
+      "oil_supply_shock": {
+        name: "Oil Supply Shock", theme: "energy", dir: "down",
+        kw: "crude oil brent wti opec supply hormuz gulf",
+        why: "A threat to Gulf oil flows lifted the price of nearly everything downstream, but the bid is easing as the headlines quiet."
+      },
+      "natural_gas": {
+        name: "Natural Gas", theme: "energy", dir: "steady",
+        kw: "natural gas lng nat-gas heating fuel",
+        why: "Gas prices set the floor under power and heating costs, a quieter cousin to the oil story."
+      },
+      "commodity_spikes": {
+        name: "Commodity Spikes", theme: "energy", dir: "up",
+        kw: "gold commodity metals copper wheat soybean corn",
+        why: "Broad commodity jumps feed straight into inflation worry and give the energy complex a second engine."
+      },
+      "opec_policy": {
+        name: "OPEC Policy", theme: "energy", dir: "down",
+        kw: "opec production quota output cartel saudi",
+        why: "Supply decisions from the cartel can override every other oil signal in a single headline."
+      },
+      "fed_rate_path": {
+        name: "Fed Rate Path", theme: "rates", dir: "steady",
+        kw: "fed fomc powell rate cut central bank policy",
+        why: "Whatever the Fed signals about cuts sets the tone for every risk asset, so the market hangs on it even when nothing changes."
+      },
+      "treasury_yields": {
+        name: "Treasury Yields", theme: "rates", dir: "up",
+        kw: "treasury yield yields bond borrowing costs 10-year",
+        why: "Yields are the market's live vote on rates; a rising 10-year pressures anything long-duration."
+      },
+      "rate_cut_bets": {
+        name: "Rate Cut Bets", theme: "rates", dir: "steady",
+        kw: "rate cut bets easing futures odds pivot",
+        why: "How many cuts the market is pricing shapes risk appetite before the Fed says a word."
+      },
+      "inflation_fears": {
+        name: "Inflation Fears", theme: "inflation", dir: "up",
+        kw: "inflation cpi pce prices sticky cost of living",
+        why: "If prices reaccelerate, the Fed stays higher for longer, which pressures rate-sensitive corners of the market."
+      },
+      "disinflation_hopes": {
+        name: "Disinflation Hopes", theme: "inflation", dir: "down",
+        kw: "disinflation cooling inflation softer prices ease",
+        why: "Signs that price pressure is fading are the bull case for cuts and for long-duration assets."
+      },
+      "consumer_stress": {
+        name: "Consumer Stress", theme: "recession", dir: "up",
+        kw: "consumer confidence retail sales spending household",
+        why: "A wobbling consumer is the first crack that turns a slowdown into a recession scare."
+      },
+      "labor_market": {
+        name: "Labor Market", theme: "recession", dir: "steady",
+        kw: "jobs payroll unemployment layoffs hiring nonfarm",
+        why: "Jobs data is the Fed's other mandate and the clearest read on whether the economy is cooling."
+      },
+      "recession_watch": {
+        name: "Recession Watch", theme: "recession", dir: "steady",
+        kw: "recession slowdown hard landing downturn contraction soft landing",
+        why: "The umbrella worry that ties the labor and consumer stories into one macro fear."
+      }
+    };
+
+    // Narratives (groups) in display order, each with nested stories.
+    // scored:false narratives are defined in the taxonomy but have nothing to score today.
+    var NARRATIVES = [
+      {
+        id: "ai", name: "AI / Tech Growth", state: "Strengthening", chip: "teal", dir: "up",
+        themes: ["ai"], scored: true, score: "78", share: "31% share",
+        kw: "ai artificial intelligence tech growth semiconductor",
+        stories: ["ai_chips", "data_center_power", "cloud_spending"]
+      },
+      {
+        id: "energy", name: "Energy / Commodities", state: "Fading", chip: "amber", dir: "down",
+        themes: ["energy"], scored: true, score: "54", share: "19% share",
+        kw: "energy commodities oil gas metals",
+        stories: ["oil_supply_shock", "natural_gas", "commodity_spikes", "opec_policy"]
+      },
+      {
+        id: "macro", name: "Macro Pressure", state: "Steady", chip: "steady", dir: "steady",
+        themes: ["rates", "inflation", "recession"], scored: true, score: "61", share: "27% share",
+        kw: "macro pressure fed rates inflation recession economy",
+        stories: ["fed_rate_path", "treasury_yields", "rate_cut_bets", "inflation_fears",
+                  "disinflation_hopes", "consumer_stress", "labor_market", "recession_watch"]
+      },
+      {
+        id: "geo", name: "Geopolitical Risk", state: "Defined, not currently scored", chip: "steady", dir: "steady",
+        themes: [], scored: false, score: "", share: "",
+        kw: "geopolitical war china tariffs conflict risk",
+        stories: []
+      }
+    ];
+
+    var GLYPH = {
+      up: ["&#9650;", "g-up"],
+      down: ["&#9660;", "g-down"],
+      steady: ["&#8594;", "g-steady"]
+    };
+
+    // ---------- Saved collection (the personalization state) ----------
+    // Seeded to demonstrate the Research -> Studio carryover.
+    var SAVED = ["ai_chips", "data_center_power", "oil_supply_shock", "fed_rate_path", "inflation_fears"];
+    // Watchlist is the actively-tracked SUBSET of SAVED.
+    var WATCH = ["oil_supply_shock", "ai_chips"];
+
+    function isSaved(key) { return SAVED.indexOf(key) >= 0; }
+    function toggleSaved(key) {
+      var i = SAVED.indexOf(key);
+      if (i >= 0) {
+        SAVED.splice(i, 1);
+        var w = WATCH.indexOf(key);
+        if (w >= 0) { WATCH.splice(w, 1); }
+      } else {
+        SAVED.push(key);
+      }
+      renderAll();
+    }
+
+    // Star a whole narrative = save/unsave all of its scored stories at once,
+    // keeping SAVED story-keyed and consistent with the Studio collection.
+    function narrativeSaved(nrv) {
+      if (!nrv.stories.length) { return false; }
+      for (var a = 0; a < nrv.stories.length; a++) {
+        if (!isSaved(nrv.stories[a])) { return false; }
+      }
+      return true;
+    }
+    function toggleNarrative(nrv) {
+      var allOn = narrativeSaved(nrv);
+      nrv.stories.forEach(function (k) {
+        var i = SAVED.indexOf(k);
+        if (allOn) {
+          if (i >= 0) {
+            SAVED.splice(i, 1);
+            var w = WATCH.indexOf(k);
+            if (w >= 0) { WATCH.splice(w, 1); }
+          }
+        } else if (i < 0) {
+          SAVED.push(k);
+        }
+      });
+      renderAll();
+    }
+
+    // ---------- Research: finder + topic filter state ----------
+    var finderInput = document.getElementById("finderInput");
+    var finderClear = document.getElementById("finderClear");
+    var chipRow = document.getElementById("chipRow");
+    var chipHint = document.getElementById("chipHint");
+    var chipCrypto = document.getElementById("chipCrypto");
+    var nrvListEl = document.getElementById("nrvList");
+    var indexEmpty = document.getElementById("indexEmpty");
+    var activeThemes = [];
+
+    function storyMatchesQuery(key, q) {
+      if (!q) { return true; }
+      var s = STORIES[key];
+      return (s.name + " " + s.kw).toLowerCase().indexOf(q) >= 0;
+    }
+    function storyMatchesTheme(key) {
+      if (!activeThemes.length) { return true; }
+      return activeThemes.indexOf(STORIES[key].theme) >= 0;
+    }
+
+    function smallStar(key) {
+      var s = STORIES[key];
+      var g = GLYPH[s.dir];
+      var chip = document.createElement("span");
+      chip.className = "story-chip";
+      chip.innerHTML = '<span class="sc-glyph ' + g[1] + '">' + g[0] + "</span>" + s.name;
+      var star = document.createElement("button");
+      star.type = "button";
+      star.className = "sc-star" + (isSaved(key) ? " on" : "");
+      star.setAttribute("aria-pressed", isSaved(key) ? "true" : "false");
+      star.setAttribute("aria-label", (isSaved(key) ? "Remove " : "Save ") + s.name);
+      star.innerHTML = isSaved(key) ? "&#9733;" : "&#9734;";
+      star.addEventListener("click", function () { toggleSaved(key); });
+      chip.appendChild(star);
+      return chip;
+    }
+
+    function renderIndex() {
+      var q = finderInput.value.trim().toLowerCase();
+      finderClear.classList.toggle("hidden", q.length === 0);
+      nrvListEl.innerHTML = "";
+      var shown = 0;
+
+      NARRATIVES.forEach(function (nrv) {
+        var nrvQ = !q || (nrv.name + " " + nrv.kw).toLowerCase().indexOf(q) >= 0;
+
+        var visibleStories = nrv.stories.filter(function (k) {
+          return (nrvQ || storyMatchesQuery(k, q)) && storyMatchesTheme(k);
+        });
+
+        var visible;
+        if (nrv.stories.length) {
+          visible = visibleStories.length > 0;
+        } else {
+          // Narratives with nothing to score (e.g. Geopolitical Risk): match on
+          // name/keyword only, and never against a topic chip it has no theme for.
+          var themeOk = !activeThemes.length;
+          visible = nrvQ && themeOk;
+        }
+        if (!visible) { return; }
+        shown++;
+
+        var card = document.createElement("div");
+        card.className = "nrv-card";
+
+        var head = document.createElement("div");
+        head.className = "nrv-head";
+
+        var left = document.createElement("div");
+        var chipHtml, statsHtml;
+        if (nrv.scored) {
+          var g = GLYPH[nrv.dir];
+          chipHtml = '<div class="view-eyebrow-row" style="margin-bottom:2px;">' +
+            '<span class="state-chip ' + nrv.chip + '"><span class="glyph ' + g[1] + '">' + g[0] + "</span> " + nrv.state + "</span></div>";
+          statsHtml = '<p class="nrv-stats">' +
+            '<span class="nrv-stat">Score <b>' + nrv.score + "</b></span>" +
+            '<span class="nrv-stat"><b>' + nrv.share + "</b></span>" +
+            '<span class="nrv-stat"><span class="glyph ' + g[1] + '">' + g[0] + "</span> " + nrv.state + "</span></p>";
+        } else {
+          chipHtml = "";
+          statsHtml = '<span class="nrv-untracked">Defined, not currently scored</span>';
+        }
+        left.innerHTML = chipHtml + '<h3 class="nrv-name">' + nrv.name + "</h3>" + statsHtml;
+        head.appendChild(left);
+
+        if (nrv.scored) {
+          var star = document.createElement("button");
+          star.type = "button";
+          var on = narrativeSaved(nrv);
+          star.className = "star-btn" + (on ? " on" : "");
+          star.setAttribute("aria-pressed", on ? "true" : "false");
+          star.setAttribute("aria-label", (on ? "Unsave " : "Save ") + nrv.name);
+          star.innerHTML = '<span class="star-ico">' + (on ? "&#9733;" : "&#9734;") + "</span>" + (on ? "Saved" : "Save");
+          (function (n) { star.addEventListener("click", function () { toggleNarrative(n); }); })(nrv);
+          head.appendChild(star);
+        }
+        card.appendChild(head);
+
+        if (visibleStories.length) {
+          var wrap = document.createElement("div");
+          wrap.className = "nrv-stories";
+          visibleStories.forEach(function (k) { wrap.appendChild(smallStar(k)); });
+          card.appendChild(wrap);
+        }
+
+        if (nrv.scored) {
+          var actions = document.createElement("div");
+          actions.className = "nrv-actions";
+          var inv = document.createElement("button");
+          inv.type = "button";
+          inv.className = "investigate-btn";
+          inv.innerHTML = "Investigate &#8594;";
+          // The representative investigation view is built for AI / Tech Growth in this concept.
+          if (nrv.id !== "ai") { inv.title = "Representative investigation view shown for AI / Tech Growth in this concept"; }
+          inv.addEventListener("click", showInvestigation);
+          actions.appendChild(inv);
+          card.appendChild(actions);
+        }
+
+        nrvListEl.appendChild(card);
+      });
+
+      indexEmpty.classList.toggle("hidden", shown > 0);
+    }
+
+    finderInput.addEventListener("input", function () {
+      if (finderInput.value.trim().length) { chipHint.textContent = ""; }
+      renderIndex();
+    });
+    finderClear.addEventListener("click", function () {
+      finderInput.value = "";
+      renderIndex();
+      finderInput.focus();
+    });
+
+    // Topic chips (real themes toggle-filter; disabled Crypto is honest no-op).
+    var themeChips = chipRow.querySelectorAll(".chip[data-theme]");
+    for (var c = 0; c < themeChips.length; c++) {
+      (function (chip) {
+        chip.addEventListener("click", function () {
+          var t = chip.getAttribute("data-theme");
+          var idx = activeThemes.indexOf(t);
+          if (idx >= 0) { activeThemes.splice(idx, 1); chip.classList.remove("on"); chip.setAttribute("aria-pressed", "false"); }
+          else { activeThemes.push(t); chip.classList.add("on"); chip.setAttribute("aria-pressed", "true"); }
+          chipHint.textContent = "";
+          renderIndex();
+        });
+      })(themeChips[c]);
+    }
+    chipCrypto.addEventListener("click", function () {
+      chipHint.textContent = "No crypto narrative is tracked yet \u2014 nothing to show.";
+    });
+
+    // ---------- Counters ----------
+    var savedCount = document.getElementById("savedCount");
+    var savedRailCount = document.getElementById("savedRailCount");
+    var watchCount = document.getElementById("watchCount");
+
+    // ---------- Studio rail ----------
+    var watchListEl = document.getElementById("watchList");
+    var savedListEl = document.getElementById("savedList");
+
+    function railRow(key, showTracked) {
+      var s = STORIES[key];
+      var g = GLYPH[s.dir];
+      var row = document.createElement("div");
+      row.className = "rail-row";
+      var grip = document.createElement("span");
+      grip.className = "grip";
+      grip.setAttribute("aria-hidden", "true");
+      grip.innerHTML = "&#8942;&#8942;";
+      var glyph = document.createElement("span");
+      glyph.className = "rail-glyph " + g[1];
+      glyph.innerHTML = g[0];
+      var name = document.createElement("span");
+      name.className = "rail-name";
+      name.textContent = s.name;
+      row.appendChild(grip);
+      row.appendChild(glyph);
+      row.appendChild(name);
+      if (showTracked) {
+        var mark = document.createElement("span");
+        mark.className = "tracked-mark";
+        mark.textContent = "Tracked";
+        row.appendChild(mark);
+      }
+      return row;
+    }
+
+    function renderRail() {
+      watchListEl.innerHTML = "";
+      WATCH.forEach(function (key) {
+        if (STORIES[key]) { watchListEl.appendChild(railRow(key, false)); }
+      });
+      savedListEl.innerHTML = "";
+      SAVED.forEach(function (key) {
+        if (STORIES[key]) { savedListEl.appendChild(railRow(key, WATCH.indexOf(key) >= 0)); }
+      });
+      watchCount.textContent = WATCH.length;
+      savedRailCount.textContent = SAVED.length;
+    }
+
+    // ---------- Investigation view (AI / Tech Growth) ----------
+    var AI_NRV = NARRATIVES[0];
+    var invStoryGrid = document.getElementById("invStoryGrid");
+    var invHeroStar = document.getElementById("invHeroStar");
+
+    function renderInvestigation() {
+      // Module 10: stories in this narrative.
+      invStoryGrid.innerHTML = "";
+      AI_NRV.stories.forEach(function (key) {
+        var s = STORIES[key];
+        var g = GLYPH[s.dir];
+        var card = document.createElement("div");
+        card.className = "inv-story-card";
+        var name = document.createElement("h3");
+        name.className = "isc-name";
+        name.innerHTML = '<span class="glyph ' + g[1] + '">' + g[0] + "</span> " + s.name;
+        var why = document.createElement("p");
+        why.className = "isc-why";
+        why.textContent = s.why;
+        var star = document.createElement("button");
+        star.type = "button";
+        star.className = "star-btn" + (isSaved(key) ? " on" : "");
+        star.setAttribute("aria-pressed", isSaved(key) ? "true" : "false");
+        star.setAttribute("aria-label", (isSaved(key) ? "Remove " : "Save ") + s.name);
+        star.innerHTML = '<span class="star-ico">' + (isSaved(key) ? "&#9733;" : "&#9734;") + "</span>" + (isSaved(key) ? "Saved" : "Save");
+        star.addEventListener("click", function () { toggleSaved(key); });
+        card.appendChild(name);
+        card.appendChild(why);
+        card.appendChild(star);
+        invStoryGrid.appendChild(card);
+      });
+
+      // Module 2: hero star reflects saving the whole narrative.
+      var on = narrativeSaved(AI_NRV);
+      invHeroStar.className = "star-btn" + (on ? " on" : "");
+      invHeroStar.setAttribute("aria-pressed", on ? "true" : "false");
+      invHeroStar.setAttribute("aria-label", (on ? "Unsave " : "Save ") + AI_NRV.name);
+      invHeroStar.innerHTML = '<span class="star-ico">' + (on ? "&#9733;" : "&#9734;") + "</span>" + (on ? "Saved" : "Save");
+    }
+    invHeroStar.addEventListener("click", function () { toggleNarrative(AI_NRV); });
+
+    function renderAll() {
+      savedCount.textContent = SAVED.length;
+      renderIndex();
+      renderInvestigation();
+      renderRail();
+    }
+
+    // ---------- Top-bar navigation (three internal views) ----------
+    var navBtns = document.querySelectorAll(".nav-link");
+    var viewResearch = document.getElementById("view-research");
+    var viewInvestigation = document.getElementById("view-investigation");
+    var viewStudio = document.getElementById("view-studio");
+
+    function markNav(target) {
+      for (var k = 0; k < navBtns.length; k++) {
+        var on = navBtns[k].getAttribute("data-nav") === target;
+        navBtns[k].classList.toggle("active", on);
+        if (on) { navBtns[k].setAttribute("aria-current", "page"); }
+        else { navBtns[k].removeAttribute("aria-current"); }
+      }
+    }
+
+    function showIndex() {
+      viewInvestigation.classList.add("hidden");
+      viewStudio.classList.add("hidden");
+      viewResearch.classList.remove("hidden");
+      markNav("research");
+      window.scrollTo(0, 0);
+    }
+    function showInvestigation() {
+      viewResearch.classList.add("hidden");
+      viewStudio.classList.add("hidden");
+      viewInvestigation.classList.remove("hidden");
+      markNav("research"); // Investigation lives under Research.
+      window.scrollTo(0, 0);
+    }
+    function showStudio() {
+      viewResearch.classList.add("hidden");
+      viewInvestigation.classList.add("hidden");
+      viewStudio.classList.remove("hidden");
+      markNav("studio");
+      window.scrollTo(0, 0);
+    }
+
+    for (var n = 0; n < navBtns.length; n++) {
+      (function (btn) {
+        btn.addEventListener("click", function () {
+          var target = btn.getAttribute("data-nav");
+          if (target === "research") { showIndex(); }
+          else if (target === "studio") { showStudio(); }
+          // Overview / Preferences are inert in this concept.
+        });
+      })(navBtns[n]);
+    }
+
+    // Back link + related chips return to the index.
+    document.getElementById("invBack").addEventListener("click", showIndex);
+    var relatedChips = document.querySelectorAll(".related-chip");
+    for (var r = 0; r < relatedChips.length; r++) {
+      relatedChips[r].addEventListener("click", showIndex);
+    }
+
+    // ---------- Init ----------
+    renderAll();
+  })();
+</script>
+</body>
+</html>
