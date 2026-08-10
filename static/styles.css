@@ -3606,7 +3606,7 @@ input:focus-visible,
 
 .rotation-holding, .rotation-stable { background: var(--steady-soft); color: var(--steady); }
 .rotation-dominant, .rotation-challenging, .rotation-emerging { background: rgba(45, 212, 191, 0.12); color: var(--up); }
-.rotation-challenged, .rotation-losing { background: rgba(241, 106, 95, 0.12); color: var(--down); }
+.rotation-challenged, .rotation-losing { background: rgba(240, 166, 75, 0.12); color: var(--amber); }
 
 .rotation-delta { font-size: 11px; font-weight: 500; }
 .delta-up   { color: var(--up); }
@@ -3739,8 +3739,8 @@ input:focus-visible,
 
 .memory-state-fading,
 .memory-state-dormant {
-  background: rgba(241, 106, 95, 0.12);
-  color: var(--down);
+  background: rgba(240, 166, 75, 0.12);
+  color: var(--amber);
 }
 
 .memory-state-recurring {
@@ -4238,7 +4238,7 @@ input:focus-visible,
 
 .direction-down,
 .direction-down i {
-  color: var(--down);
+  color: var(--amber);
 }
 
 .direction-flat {
@@ -4707,11 +4707,11 @@ input:focus-visible,
 .cloud-weight-2 { font-size: 15px; }
 .cloud-weight-1 { color: var(--muted); font-size: 13px; }
 .cloud-direction-up { color: var(--teal-bright); }
-.cloud-direction-down { color: var(--down); }
+.cloud-direction-down { color: var(--amber); }
 .cloud-direction-steady { color: var(--steady); }
 .cloud-chip.cloud-direction-up.cloud-weight-5,
 .cloud-chip.cloud-direction-up.cloud-weight-4 { border-color: rgba(45, 212, 191, 0.25); box-shadow: 0 0 30px -10px rgba(45, 212, 191, 0.5); }
-.cloud-chip.cloud-direction-down.cloud-weight-3 { box-shadow: 0 0 26px -12px rgba(241, 106, 95, 0.45); }
+.cloud-chip.cloud-direction-down.cloud-weight-3 { box-shadow: 0 0 26px -12px rgba(240, 166, 75, 0.45); }
 .cloud-detail {
   margin-top: 20px;
   padding: 24px;
@@ -5322,7 +5322,7 @@ input:focus-visible,
 .sector-role-detached { border-color:var(--border); }
 .sector-participation-marker { width:28px; height:4px; border-radius:999px; background:var(--muted); }
 .participation-strong .sector-participation-marker,.participation-participating .sector-participation-marker,.participation-emerging .sector-participation-marker { background:var(--up); }
-.participation-contradicting .sector-participation-marker { background:var(--down); }
+.participation-contradicting .sector-participation-marker { background:var(--amber); }
 .sector-role-label { color:var(--muted-strong); font-weight:650; }
 .sector-participation-label,.sector-rationale,.sector-instrument { color:var(--muted); font-size:12px; }
 .sector-detail-fallback details { border-top:1px solid var(--border); padding:14px 0; }
