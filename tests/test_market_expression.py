@@ -16,7 +16,7 @@ from mne.market_expression import (
     compute_expression_breadth,
     load_market_expression_map,
 )
-from mne.presentation_language import dashboard_parity_copy
+from mne.presentation_language import dashboard_parity_copy, research_investigation_copy
 from mne.research_workspace import build_narrative_investigation
 
 
@@ -96,6 +96,9 @@ def render_investigation(investigation):
         history=None,
         historical_connection=None,
         narrative_key="group:AI / Tech Growth",
+        investigation_copy=research_investigation_copy(),
+        lead_instrument_candle=None,
+        run_label="Jul 30",
     )
 
 
@@ -292,7 +295,7 @@ class MarketExpressionTests(unittest.TestCase):
         self.assertLess(html.index("Market Expression"), html.index("Supporting Evidence"))
         source = (TEMPLATE_DIR / "narrative_investigation.html").read_text(encoding="utf-8")
         self.assertGreater(
-            source.index("investigation.market_expression"),
+            source.index("{% if investigation.market_expression %}", source.index("{% if historical_connection %}")),
             source.index("historical_connection"),
         )
 

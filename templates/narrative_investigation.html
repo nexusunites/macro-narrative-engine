@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
   <script src="{{ url_for('static', path='ai_analyst.js') }}" defer></script>
 </head>
-<body class="app-topbar-page">
+<body class="app-topbar-page research-investigation-page">
   {% set active_tier = "research" %}
   {% include "_partials/app_topbar.html" %}
 
@@ -27,7 +27,12 @@
         </section>
       {% endif %}
 
-      <section class="research-hero">
+      <div class="investigation-topline">
+        <a class="back-link" href="/research">&larr; {{ investigation_copy.all_narratives }}</a>
+        <span class="breadcrumb">Research &middot; <b>{{ investigation.display_name }}</b></span>
+      </div>
+
+      <section class="research-hero investigation-v2-card glow-teal">
         <p class="eyebrow">Narrative Investigation</p>
         <h1>{{ investigation.explanation.headline }}</h1>
         {% if investigation.explanation.what_changed %}<p>{{ investigation.explanation.what_changed }}</p>{% endif %}
@@ -35,14 +40,19 @@
         {% for point in investigation.explanation.supporting_points %}<p>{{ point }}</p>{% endfor %}
       </section>
 
-      <nav class="zone-jump investigation-nav-sticky" aria-label="Investigation sections">
-        <a href="#investigation-snapshot">Snapshot</a>
-        <a href="#investigation-explanation">Explanation</a>
-        <a href="#supporting-evidence">Evidence</a>
-        <a href="#investigation-next">Research</a>
+      <nav class="jump-nav investigation-nav-sticky" aria-label="Investigation sections">
+        <a href="#investigation-snapshot">{{ investigation_copy.jump_happening }}</a>
+        <a href="#investigation-memory">{{ investigation_copy.jump_memory }}</a>
+        <a href="#investigation-explanation">{{ investigation_copy.jump_why }}</a>
+        <a href="#investigation-clock">{{ investigation_copy.jump_clock }}</a>
+        {% if investigation.market_expression %}<a href="#investigation-market">{{ investigation_copy.jump_market }}</a>{% endif %}
+        <a href="#supporting-evidence">{{ investigation_copy.jump_evidence }}</a>
+        {% if ai_analyst %}<a href="#ai-analyst">{{ investigation_copy.jump_analyst }}</a>{% endif %}
+        {% if related_narratives %}<a href="#related-narratives-title">{{ investigation_copy.jump_related }}</a>{% endif %}
       </nav>
 
-      <section class="content-section investigation-zone investigation-zone-snapshot" id="investigation-snapshot">
+      <div class="investigation-v2-stack">
+      <section class="content-section investigation-v2-card investigation-zone investigation-zone-snapshot" id="investigation-snapshot">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 1 / Snapshot</p>
           <h2>What is happening?</h2>
@@ -89,7 +99,7 @@
         </details>
       </section>
 
-      <section class="content-section investigation-zone investigation-zone-explanation" id="investigation-explanation">
+      <section class="content-section investigation-v2-card investigation-zone investigation-zone-explanation" id="investigation-explanation">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 2 / Explanation</p>
           <h2>{{ investigation.brief.headline if investigation.brief and investigation.brief.headline else "Brief Context" }}</h2>
@@ -111,12 +121,36 @@
         </article>
       </section>
 
-      <section class="content-section investigation-memory-section" aria-labelledby="recent-memory-heading">
+      <section class="content-section investigation-v2-card investigation-memory-section" id="investigation-memory" aria-labelledby="recent-memory-heading">
         <div class="subsection-heading">
           <p class="eyebrow">Recent Memory</p>
           <h3 id="recent-memory-heading">How has this narrative been behaving?</h3>
         </div>
         <article class="investigation-memory-card">
+          {% if history and history.score_chart.available %}
+            <div class="strength-chart">
+              <div class="chart-eyebrow">{{ history_copy.score }}</div>
+              <div class="spark-wrap">
+                <svg class="spark-svg" viewBox="0 0 640 180" preserveAspectRatio="none" role="img" aria-label="{{ history_copy.score }}">
+                  <defs>
+                    <linearGradient id="strengthFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#2dd4bf" stop-opacity="0.28"></stop>
+                      <stop offset="1" stop-color="#2dd4bf" stop-opacity="0"></stop>
+                    </linearGradient>
+                  </defs>
+                  {% for segment in history.score_chart.segments %}
+                    {% if segment|length > 1 %}
+                      <polygon class="strength-area" points="{{ segment[0].x }},180 {% for point in segment %}{{ point.x }},{{ point.y }} {% endfor %}{{ segment[-1].x }},180"></polygon>
+                      <polyline class="strength-line" points="{% for point in segment %}{{ point.x }},{{ point.y }} {% endfor %}"></polyline>
+                      {% if loop.last %}<circle class="spark-dot" cx="{{ segment[-1].x }}" cy="{{ segment[-1].y }}" r="5"></circle>{% endif %}
+                    {% endif %}
+                  {% endfor %}
+                </svg>
+              </div>
+            </div>
+          {% elif history and history.has_history %}
+            <p class="muted">{{ history_copy.thin }}</p>
+          {% endif %}
           {% if investigation.memory %}
             <div class="investigation-memory-header">
               <strong>{{ investigation.memory.display_name }}</strong>
@@ -159,23 +193,14 @@
       </section>
 
       {% if history %}
-        <section class="content-section investigation-history-preview">
+        <section class="content-section investigation-v2-card investigation-history-preview">
           {{ history_summary(history, history_copy, true) }}
-          {% if history.score_chart.available %}
-            <svg class="history-preview-sparkline" viewBox="0 0 640 180" role="img" aria-label="{{ history_copy.score }}">
-              {% for segment in history.score_chart.segments %}
-                {% if segment|length > 1 %}<polyline class="regime-line" points="{% for point in segment %}{{ point.x }},{{ point.y }} {% endfor %}"/>{% endif %}
-              {% endfor %}
-            </svg>
-          {% elif history.has_history %}
-            <p class="muted">{{ history_copy.thin }}</p>
-          {% endif %}
           <a class="history-full-link" href="{{ url_for('narrative_history', key=narrative_key) }}">{{ history_copy.view_full }}</a>
         </section>
       {% endif %}
 
       {% if historical_connection %}
-        <section class="content-section investigation-connections" aria-labelledby="historical-connections-heading">
+        <section class="content-section investigation-v2-card investigation-connections" aria-labelledby="historical-connections-heading">
           <div class="subsection-heading">
             <p class="eyebrow">{{ historical_connection_copy.eyebrow }}</p>
             <h3 id="historical-connections-heading">{{ historical_connection_copy.heading }}</h3>
@@ -204,8 +229,32 @@
         </section>
       {% endif %}
 
+      <section class="content-section investigation-v2-card investigation-clock" id="investigation-clock" aria-labelledby="investigation-clock-heading">
+        <div class="subsection-heading">
+          <p class="eyebrow">{{ investigation_copy.clock_eyebrow }}</p>
+          <h3 id="investigation-clock-heading">{{ investigation_copy.clock_title }}</h3>
+          <p>{{ investigation_copy.clock_intro }}</p>
+        </div>
+        {% if investigation.events %}
+          <div class="cat-grid">
+            {% for event in investigation.events %}
+              <article class="cat-card{% if loop.first %} soon{% endif %}">
+                <div class="cat-when">{{ investigation_copy.clock_soonest if loop.first else investigation_copy.clock_upcoming }}</div>
+                <div class="cat-count">
+                  {% if event.get('minutes_until_release') is not none %}{{ event.get('minutes_until_release') // 1440 }}d {{ (event.get('minutes_until_release') % 1440) // 60 }}h{% else %}{{ investigation_copy.clock_timing_unavailable }}{% endif %}
+                </div>
+                <div class="cat-name">{{ event.event_name }}</div>
+                <p class="cat-why">{{ event.get('reason') or investigation_copy.clock_why_fallback }}</p>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <article class="event-empty-state"><p>No relevant catalyst lifecycle context is available for this narrative in the selected run.</p></article>
+        {% endif %}
+      </section>
+
       {% if investigation.market_expression %}
-        <section class="content-section investigation-market-expression" aria-labelledby="market-expression-heading">
+        <section class="content-section investigation-v2-card investigation-market-expression" id="investigation-market" aria-labelledby="market-expression-heading">
           <div class="subsection-heading">
             <p class="eyebrow">Market Expression</p>
             <h3 id="market-expression-heading">How is the market reflecting this narrative?</h3>
@@ -215,6 +264,29 @@
           {% if investigation.market_expression.explanation.why_it_matters %}<p>{{ investigation.market_expression.explanation.why_it_matters }}</p>{% endif %}
           {% for point in investigation.market_expression.explanation.supporting_points %}<p>{{ point }}</p>{% endfor %}
           {% for limitation in investigation.market_expression.explanation.limitations %}<p class="muted">{{ limitation }}</p>{% endfor %}
+          {% if lead_instrument_candle %}
+            <div class="mini-candle">
+              <div class="mini-candle-head">
+                <span class="mini-candle-tkr">{{ lead_instrument_candle.ticker }} <span class="mc-role">&middot; {{ investigation_copy.candle_role }}</span></span>
+                <a class="mini-candle-link" href="{{ lead_instrument_candle.href }}">{{ investigation_copy.candle_open }}</a>
+              </div>
+              {% if lead_instrument_candle.available %}
+                <div class="mini-candle-frame">
+                  <svg class="candle-svg" viewBox="0 0 480 140" preserveAspectRatio="none" role="img" aria-label="Persisted daily price history for {{ lead_instrument_candle.label }}">
+                    {% for candle in lead_instrument_candle.candles %}
+                      <rect class="candle-{{ candle.direction }}" x="{{ candle.x - 1 }}" y="{{ candle.wick_y }}" width="2" height="{{ candle.wick_height }}"></rect>
+                      <rect class="candle-{{ candle.direction }}" x="{{ candle.body_x }}" y="{{ candle.body_y }}" width="{{ candle.body_width }}" height="{{ candle.body_height }}" rx="1"></rect>
+                    {% endfor %}
+                  </svg>
+                </div>
+                <p class="mini-candle-cap">{{ investigation_copy.candle_caption }}</p>
+              {% else %}
+                <p class="chart-empty">{{ investigation_copy.candle_empty }}</p>
+              {% endif %}
+            </div>
+          {% else %}
+            <p class="chart-empty">{{ investigation_copy.candle_lead_empty }}</p>
+          {% endif %}
           <details class="market-expression-details">
             <summary>Market expression details</summary>
             <div class="market-expression-detail-list">
@@ -230,7 +302,7 @@
         </section>
       {% endif %}
 
-      <section class="content-section investigation-zone investigation-zone-evidence" id="supporting-evidence">
+      <section class="content-section investigation-v2-card investigation-zone investigation-zone-evidence" id="supporting-evidence">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 3 / Evidence</p>
           <h2>What evidence supports it?</h2>
@@ -300,7 +372,7 @@
 
       {% include "_partials/ai_analyst.html" %}
       {% if related_narratives %}
-        <section class="content-section investigation-zone related-narratives" aria-labelledby="related-narratives-title">
+        <section class="content-section investigation-v2-card investigation-zone related-narratives" aria-labelledby="related-narratives-title">
           <div class="investigation-zone-heading">
             <p class="eyebrow">{{ narrative_relationship_copy.section_eyebrow }}</p>
             <h2 id="related-narratives-title">{{ narrative_relationship_copy.section_title }}</h2>
@@ -316,7 +388,7 @@
           </div>
         </section>
       {% endif %}
-      <section class="content-section investigation-zone investigation-zone-next" id="investigation-next">
+      <section class="content-section investigation-v2-card investigation-zone investigation-zone-next" id="investigation-next">
         <div class="investigation-zone-heading">
           <p class="eyebrow">Zone 4 / Research Entry Points</p>
           <h2>Where should I look next?</h2>
@@ -360,23 +432,15 @@
             </span>
             <em>Future</em>
           </article>
-          {% if investigation.events %}
-            {% for event in investigation.events %}
-              <a class="research-list-row" href="/#catalysts">
-                <span>
-                  <strong>{{ event.event_name }}</strong>
-                  <small>Relevant catalyst lifecycle context</small>
-                </span>
-                <em>{{ event.lifecycle_state or "Unavailable" }}</em>
-              </a>
-            {% endfor %}
-          {% else %}
-            <article class="event-empty-state">
-              <p>No relevant catalyst lifecycle context is available for this narrative in the selected run.</p>
-            </article>
-          {% endif %}
         </div>
       </section>
+      <section class="content-section investigation-v2-card investigation-limitations">
+        <div class="limits">
+          {% for limitation in investigation.explanation.limitations %}<p>{{ limitation }}</p>{% endfor %}
+          {% if run_label %}<p class="verified">{{ investigation_copy.latest_read.format(run_label=run_label) }}</p>{% endif %}
+        </div>
+      </section>
+      </div>
     {% endif %}
   </main>
   {% include "_partials/evidence_reader_script.html" %}

@@ -109,6 +109,21 @@ class DesignSystemStructureTests(unittest.TestCase):
         self.assertIn("activeThemes", script)
         self.assertNotIn("fetch(", script)
 
+    def test_investigation_v2_has_real_jump_targets_and_no_sprint_m_modules(self):
+        source = Path("templates/narrative_investigation.html").read_text(encoding="utf-8")
+        styles = Path("static/styles.css").read_text(encoding="utf-8")
+        for target in (
+            "investigation-snapshot", "investigation-memory", "investigation-explanation",
+            "investigation-clock", "investigation-market", "supporting-evidence",
+        ):
+            self.assertIn(f'#{target}', source)
+            self.assertIn(f'id="{target}"', source)
+        for marker in ("strength-area", "spark-dot", "mini-candle", "cat-grid"):
+            self.assertIn(marker, source)
+        self.assertNotIn('id="inv-stories"', source)
+        self.assertNotIn('id="inv-sectors"', source)
+        self.assertIn("prefers-reduced-motion:reduce", styles)
+
 
 if __name__ == "__main__":
     unittest.main()

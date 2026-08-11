@@ -30,7 +30,7 @@ from mne.historical_research_view import (
     build_user_historical_view,
     list_user_replays,
 )
-from mne.presentation_language import HISTORICAL_COPY, NARRATIVE_HISTORY_COPY, NARRATIVE_RELATIONSHIP_COPY
+from mne.presentation_language import HISTORICAL_COPY, NARRATIVE_HISTORY_COPY, NARRATIVE_RELATIONSHIP_COPY, research_investigation_copy
 from mne.presentation_language import historical_request_category
 from mne.presentation_language import historical_request_outcome
 from mne.historical_replay_admin import (
@@ -48,7 +48,7 @@ from mne.story_registry import StoryRegistryError, load_story_registry
 from mne.sector_market_context import NarrativeSectorInstrumentError, classify_sectors_for_run
 from mne.asset_events import AssetEventsError
 from mne.asset_exploration import AssetRegistryError, build_asset_execution_context, build_asset_exploration_context, load_asset_registry, load_narrative_asset_map
-from mne.asset_price_history import AssetPriceHistoryError
+from mne.asset_price_history import AssetPriceHistoryError, load_asset_price_history_or_empty
 from mne.asset_participation import classify_assets_for_run
 from mne.presentation_language import asset_execution_copy, asset_execution_copy_bundle
 from mne.sector_market_context import build_sector_ticker_map
@@ -2312,6 +2312,8 @@ def build_investigation_context(request: Request, key: str, admin: bool = False)
         "investigation": None,
         "is_admin": admin,
         "_run": run,
+        "run_label": fmt_run_label(current_file) if current_file else None,
+        "investigation_copy": research_investigation_copy(),
     }
     narrative_level, narrative_id = split_narrative_key(key)
     if not narrative_level:
@@ -2332,6 +2334,9 @@ def build_investigation_context(request: Request, key: str, admin: bool = False)
         narrative_id,
         admin=admin,
         event_definitions=event_definitions,
+    )
+    context["lead_instrument_candle"] = _build_lead_instrument_candle(
+        context["investigation"], key
     )
     context["history"] = (
         build_narrative_history(narrative_id)
@@ -2356,6 +2361,72 @@ def build_investigation_context(request: Request, key: str, admin: bool = False)
     context["history_copy"] = NARRATIVE_HISTORY_COPY
     context["narrative_key"] = key
     return context
+
+
+def _build_lead_instrument_candle(investigation, narrative_key):
+    """Build a compact, read-only candle teaser from the persisted price store."""
+    expression = investigation.get("market_expression") if isinstance(investigation, dict) else None
+    instruments = expression.get("instruments") if isinstance(expression, dict) else None
+    lead = next(
+        (
+            item for item in (instruments or ())
+            if isinstance(item, dict) and str(item.get("role") or "").lower() == "primary"
+        ),
+        None,
+    )
+    if not lead or not lead.get("asset"):
+        return None
+
+    ticker = str(lead["asset"]).upper()
+    ticker_symbols = {
+        **NASDAQ_TICKERS,
+        **ASSET_EXPANSION_TICKERS,
+        **build_sector_ticker_map(),
+    }
+    symbol = ticker_symbols.get(ticker, ticker)
+    history = load_asset_price_history_or_empty(symbol)
+    candles = history.candles[-24:]
+    result = {
+        "ticker": ticker,
+        "label": lead.get("label") or ticker,
+        "symbol": symbol,
+        "available": bool(candles),
+        # Market Expression does not own a unique sector. The sector index is the
+        # honest route until that relationship is explicitly carried by the model.
+        "href": f"/research/{narrative_key}/sectors",
+        "candles": (),
+    }
+    if not candles:
+        return result
+
+    low = min(item.low for item in candles)
+    high = max(item.high for item in candles)
+    span = high - low or 1.0
+    width, height, pad = 480.0, 140.0, 8.0
+    slot = (width - (2 * pad)) / len(candles)
+
+    def chart_y(value):
+        return round(pad + ((high - value) / span) * (height - (2 * pad)), 2)
+
+    rows = []
+    for index, candle in enumerate(candles):
+        center = round(pad + (slot * index) + (slot / 2), 2)
+        open_y, close_y = chart_y(candle.open), chart_y(candle.close)
+        body_y = min(open_y, close_y)
+        rows.append(
+            {
+                "x": center,
+                "wick_y": chart_y(candle.high),
+                "wick_height": max(1.0, round(chart_y(candle.low) - chart_y(candle.high), 2)),
+                "body_x": round(center - max(2.0, slot * 0.25), 2),
+                "body_y": body_y,
+                "body_width": round(max(4.0, slot * 0.5), 2),
+                "body_height": max(2.0, round(abs(close_y - open_y), 2)),
+                "direction": "up" if candle.close >= candle.open else "down",
+            }
+        )
+    result["candles"] = tuple(rows)
+    return result
 
 
 def build_narrative_history_context(request: Request, key: str):

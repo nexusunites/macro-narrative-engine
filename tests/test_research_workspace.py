@@ -18,7 +18,7 @@ from mne.research_workspace import (
     select_latest_meaningful_run,
     split_narrative_key,
 )
-from mne.presentation_language import dashboard_parity_copy, research_finder_copy
+from mne.presentation_language import dashboard_parity_copy, research_finder_copy, research_investigation_copy
 
 
 TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "templates"
@@ -49,6 +49,8 @@ def render_template(name, **context):
             )
         },
         "research_finder_copy": research_finder_copy(),
+        "investigation_copy": research_investigation_copy(),
+        "lead_instrument_candle": None,
         "run_label": "Jul 9",
         "research_index": {"narratives": [], "stories": {}},
         "can_follow_narratives": False,
@@ -909,6 +911,35 @@ class ResearchWorkspaceTests(unittest.TestCase):
             html,
         )
         self.assertNotIn("failed", html.lower())
+
+    def test_sprint_l_promotes_events_without_zone_four_duplication(self):
+        investigation = build_narrative_investigation(sample_run(), "group", "AI / Tech Growth")
+        html = render_template("narrative_investigation.html", investigation=investigation)
+
+        self.assertIn('id="investigation-clock"', html)
+        self.assertIn("On the clock for this narrative", html)
+        self.assertEqual(html.count("AI Developer Conference"), 1)
+        self.assertIn("Timing unavailable", html)
+
+    def test_sprint_l_renders_persisted_candles_and_empty_state(self):
+        investigation = build_narrative_investigation(sample_run(), "group", "AI / Tech Growth")
+        base = {"ticker": "NVDA", "label": "NVIDIA", "href": "/research/group:AI / Tech Growth/sectors"}
+        populated = render_template(
+            "narrative_investigation.html", investigation=investigation,
+            lead_instrument_candle={**base, "available": True, "candles": (
+                {"x": 20, "wick_y": 5, "wick_height": 30, "body_x": 16, "body_y": 12, "body_width": 8, "body_height": 15, "direction": "up"},
+                {"x": 40, "wick_y": 10, "wick_height": 28, "body_x": 36, "body_y": 18, "body_width": 8, "body_height": 12, "direction": "down"},
+            )},
+        )
+        self.assertIn("candle-up", populated)
+        self.assertIn("candle-down", populated)
+        self.assertIn("Open asset view", populated)
+
+        empty = render_template(
+            "narrative_investigation.html", investigation=investigation,
+            lead_instrument_candle={**base, "available": False, "candles": ()},
+        )
+        self.assertIn("No price history yet for this instrument", empty)
 
     def test_standard_investigation_template_does_not_show_admin_content(self):
         investigation = build_narrative_investigation(

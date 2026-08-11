@@ -281,6 +281,37 @@ def research_finder_copy() -> dict[str, str]:
     return dict(RESEARCH_FINDER_COPY)
 
 
+RESEARCH_INVESTIGATION_COPY = {
+    "all_narratives": "All narratives",
+    "jump_happening": "What's happening",
+    "jump_memory": "Recent memory",
+    "jump_why": "Why",
+    "jump_clock": "On the clock",
+    "jump_market": "Market",
+    "jump_evidence": "From the tape",
+    "jump_analyst": "Ask the analyst",
+    "jump_related": "Related",
+    "clock_eyebrow": "On the clock",
+    "clock_title": "On the clock for this narrative",
+    "clock_intro": "Dated events already matched to this narrative in the latest read.",
+    "clock_soonest": "Soonest",
+    "clock_upcoming": "Upcoming",
+    "clock_timing_unavailable": "Timing unavailable",
+    "clock_why_fallback": "Relevant catalyst context matched to this narrative.",
+    "candle_role": "lead instrument",
+    "candle_open": "Open asset view →",
+    "candle_caption": "A compact read of persisted daily price history. Open the asset view for the full context.",
+    "candle_empty": "No price history yet for this instrument.",
+    "candle_lead_empty": "No lead instrument is available for this narrative.",
+    "latest_read": "Latest verified read · {run_label}",
+}
+
+
+def research_investigation_copy() -> dict[str, str]:
+    """Return fixed user-facing copy for Narrative Investigation v2."""
+    return dict(RESEARCH_INVESTIGATION_COPY)
+
+
 def dashboard_sector_presentation(state: Any, existing_label: Any = None) -> dict[str, str]:
     """Map persisted participation states to the three-state dashboard tile vocabulary."""
     token = str(state or "UNAVAILABLE").upper()
