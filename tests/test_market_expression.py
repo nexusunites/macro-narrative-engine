@@ -16,6 +16,7 @@ from mne.market_expression import (
     compute_expression_breadth,
     load_market_expression_map,
 )
+from mne.presentation_language import dashboard_parity_copy
 from mne.research_workspace import build_narrative_investigation
 
 
@@ -77,6 +78,13 @@ def render_investigation(investigation):
         if endpoint in {"narrative_investigation", "narrative_history"}
         else f"/static/{values.get('path', '')}"
     )
+    env.globals["dashboard_copy"] = {
+        key: dashboard_parity_copy(key)
+        for key in (
+            "brand_short", "brand_full", "nav_overview", "nav_research",
+            "nav_preferences", "nav_sign_in",
+        )
+    }
     return env.get_template("narrative_investigation.html").render(
         request=object(),
         results_dir="/tmp/results",

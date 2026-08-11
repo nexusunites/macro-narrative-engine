@@ -17,6 +17,7 @@ from mne.research_workspace import (
     select_latest_meaningful_run,
     split_narrative_key,
 )
+from mne.presentation_language import dashboard_parity_copy
 
 
 TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "templates"
@@ -39,6 +40,13 @@ def render_template(name, **context):
         "message": None,
         "notice": None,
         "is_admin": False,
+        "dashboard_copy": {
+            key: dashboard_parity_copy(key)
+            for key in (
+                "brand_short", "brand_full", "nav_overview", "nav_research",
+                "nav_preferences", "nav_sign_in",
+            )
+        },
     }
     defaults.update(context)
     return env.get_template(name).render(**defaults)

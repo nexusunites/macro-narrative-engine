@@ -14,52 +14,8 @@
 <body class="user-dashboard">
   {% from "_partials/xray_disclosure.html" import xray_disclosure %}
   {% set dashboard_copy = dashboard_copy|default(view.dashboard_copy|default({}), true) %}
-  <header class="dashboard-topbar">
-    <a class="dashboard-brand" href="/">
-      <span class="dashboard-wordmark">{{ dashboard_copy.brand_short }}</span>
-      <span class="dashboard-brand-full">{{ dashboard_copy.brand_full }}</span>
-    </a>
-    <nav class="dashboard-primary-nav" aria-label="Primary">
-      <a class="active" aria-current="page" href="/">{{ dashboard_copy.nav_overview }}</a><span aria-hidden="true">·</span>
-      <a href="/research">{{ dashboard_copy.nav_research }}</a><span aria-hidden="true">·</span>
-      <a href="/history">{{ dashboard_copy.nav_history }}</a><span aria-hidden="true">·</span>
-      <a href="/preferences">{{ dashboard_copy.nav_preferences }}</a>
-    </nav>
-    <div class="dashboard-utilities">
-      {% if view and view.dashboard_trust_summary %}
-        <details class="data-quality-pill {% if view.dashboard_trust_summary.state in ['Strong', 'Usable'] %}quality-healthy{% else %}quality-degraded{% endif %}">
-          <summary>
-            <span class="quality-dot" aria-hidden="true"></span>
-            Data Quality
-          </summary>
-          <div class="data-quality-popover">
-            <strong>{{ view.dashboard_trust_summary.state }}</strong>
-            <span>{{ view.dashboard_trust_summary.presentation_confidence.label }}</span>
-            <p>{{ view.dashboard_trust_summary.reason }}</p>
-            {% if view.dashboard_trust_summary.facts %}
-              <ul>
-                {% for fact in view.dashboard_trust_summary.facts %}<li>{{ fact }}</li>{% endfor %}
-              </ul>
-            {% endif %}
-            <small>Engine signal: Data Quality · {{ view.dashboard_trust_summary.state }} · Confidence: {{ view.dashboard_trust_summary.confidence }}</small>
-            {% if view.dashboard_trust_summary.admin_link_visible %}
-              <a href="/admin{% if selected_file %}?run={{ selected_file }}{% endif %}">View operational details in Admin →</a>
-            {% endif %}
-          </div>
-        </details>
-      {% endif %}
-
-      <form method="get" action="/" class="run-selector compact">
-        <label for="run">View</label>
-        <select id="run" name="run" onchange="this.form.submit()">
-          {% for run in recent_runs %}
-            <option value="{{ run.filename }}" {% if run.filename == selected_file %}selected{% endif %}>{{ run.label }}</option>
-          {% endfor %}
-        </select>
-      </form>
-      {% if not current_user %}<a class="dashboard-sign-in" href="/login">{{ dashboard_copy.nav_sign_in }}</a>{% endif %}
-    </div>
-  </header>
+  {% set active_tier = "live" %}
+  {% include "_partials/app_topbar.html" %}
 
   {% if view %}
     <section class="change-strip" aria-labelledby="changes-heading">

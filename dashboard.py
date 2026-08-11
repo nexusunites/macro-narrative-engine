@@ -150,9 +150,20 @@ REGIME_SCORE_DELTA_THRESHOLD = 5
 
 app = FastAPI(title="Macro Narrative Engine Dashboard")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+TOPBAR_COPY_KEYS = (
+    "brand_short", "brand_full", "nav_overview", "nav_research",
+    "nav_preferences", "nav_sign_in",
+)
 templates = Jinja2Templates(directory=BASE_DIR / "templates", context_processors=[
-    lambda request: {"current_user": get_current_user(request), "csrf_token": csrf_token(request), "account_copy": ACCOUNT_COPY}
+    lambda request: {
+        "current_user": get_current_user(request),
+        "csrf_token": csrf_token(request),
+        "account_copy": ACCOUNT_COPY,
+    }
 ])
+templates.env.globals["dashboard_copy"] = {
+    key: dashboard_parity_copy(key) for key in TOPBAR_COPY_KEYS
+}
 
 
 @app.middleware("http")

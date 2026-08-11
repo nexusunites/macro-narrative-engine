@@ -1,7 +1,6 @@
 {% from "_partials/sector_heatmap.html" import sector_heatmap -%}
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MNE Sector Isolation</title><link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}"></head>
-<body>{% set active_tier = "research" %}{% include "_partials/app_rail.html" %}
-<header class="site-header investigation-header-static"><div class="brand-row"><a class="brand" href="/">Macro Narrative Engine</a></div><div class="utility-row"><p class="last-updated">Latest meaningful run: {{ selected_file or "Unavailable" }}</p></div></header>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MNE Sector Isolation</title><link rel="icon" href="data:,"><link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}"></head>
+<body class="app-topbar-page">{% set active_tier = "research" %}{% include "_partials/app_topbar.html" %}
 <main class="page-shell research-shell sector-isolation-page">
 {% if message %}<section class="empty-state"><p class="eyebrow">Sector Isolation</p><h1>{{ message }}</h1></section>{% else %}
 <section class="research-hero"><p class="eyebrow">Sector Isolation</p><h1>{{ sector_isolation.narrative_display_name }}</h1>{% if investigation %}<p>{{ investigation.explanation.headline }}</p>{% endif %}<p>{{ sector_isolation.breadth.summary }} {{ sector_isolation.participation_breadth.summary }}</p></section>

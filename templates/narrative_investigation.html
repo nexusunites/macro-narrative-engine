@@ -6,20 +6,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MNE Narrative Investigation</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
   <script src="{{ url_for('static', path='ai_analyst.js') }}" defer></script>
 </head>
-<body>
+<body class="app-topbar-page">
   {% set active_tier = "research" %}
-  {% include "_partials/app_rail.html" %}
-  <header class="site-header investigation-header-static">
-    <div class="brand-row">
-      <a class="brand" href="/">Macro Narrative Engine</a>
-    </div>
-    <div class="utility-row">
-      <p class="last-updated">Latest meaningful run: {{ selected_file or "Unavailable" }}</p>
-    </div>
-  </header>
+  {% include "_partials/app_topbar.html" %}
 
   <main class="page-shell research-shell">
     {% if message %}

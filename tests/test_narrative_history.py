@@ -6,7 +6,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from mne.narrative_history import build_narrative_history
-from mne.presentation_language import NARRATIVE_HISTORY_COPY
+from mne.presentation_language import NARRATIVE_HISTORY_COPY, dashboard_parity_copy
 from mne.render_cache import clear
 
 
@@ -151,6 +151,13 @@ class NarrativeHistoryTests(unittest.TestCase):
             if endpoint == "static"
             else f"/research/{values['key']}"
         )
+        env.globals["dashboard_copy"] = {
+            key: dashboard_parity_copy(key)
+            for key in (
+                "brand_short", "brand_full", "nav_overview", "nav_research",
+                "nav_preferences", "nav_sign_in",
+            )
+        }
         html = env.get_template("narrative_history.html").render(
             request=object(),
             message=None,

@@ -67,12 +67,35 @@ class DesignSystemStructureTests(unittest.TestCase):
 
     def test_dashboard_uses_mockup_topbar_and_parity_sections(self):
         source = Path("templates/dashboard.html").read_text(encoding="utf-8")
+        topbar = Path("templates/_partials/app_topbar.html").read_text(encoding="utf-8")
         self.assertNotIn('_partials/app_rail.html', source)
-        self.assertIn('class="dashboard-topbar"', source)
-        for route in ('href="/"', 'href="/research"', 'href="/history"', 'href="/preferences"', 'href="/login"'):
-            self.assertIn(route, source)
+        self.assertIn('_partials/app_topbar.html', source)
+        self.assertIn('class="dashboard-topbar"', topbar)
+        for route in ('href="/"', 'href="/research"', 'href="/preferences"', 'href="/login"'):
+            self.assertIn(route, topbar)
+        for route in ('href="/history"', 'href="/admin"'):
+            self.assertNotIn(route, topbar)
         for component in ("parity-group-card", "parity-sector-tile", "parity-read-column"):
             self.assertIn(component, source)
+
+    def test_sprint_j_pages_use_shared_topbar_without_filename_header(self):
+        migrated = (
+            "research_selector.html", "narrative_investigation.html",
+            "sector_isolation.html", "asset_exploration.html",
+            "asset_execution.html", "narrative_history.html",
+            "preferences.html", "account.html",
+        )
+        for template in migrated:
+            with self.subTest(template=template):
+                source = Path("templates", template).read_text(encoding="utf-8")
+                self.assertIn('_partials/app_topbar.html', source)
+                self.assertNotIn('_partials/app_rail.html', source)
+                self.assertNotIn("Latest meaningful run:", source)
+                self.assertIn("app-topbar-page", source)
+
+        for template in ("admin.html", "historical_selector.html"):
+            source = Path("templates", template).read_text(encoding="utf-8")
+            self.assertIn('_partials/app_rail.html', source)
 
 
 if __name__ == "__main__":

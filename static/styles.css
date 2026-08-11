@@ -1252,7 +1252,11 @@ button:hover {
 }
 
 .research-shell {
-  max-width: 1060px;
+  box-sizing: border-box;
+  width: min(1200px, 100%);
+  max-width: 1200px;
+  padding-right: 20px;
+  padding-left: 20px;
 }
 
 .research-hero {
@@ -3837,7 +3841,7 @@ input:focus-visible,
 .dashboard-primary-nav a { position: relative; padding: 6px 10px; border-radius: 8px; color: var(--muted); font-size: 13px; text-decoration: none; }
 .dashboard-primary-nav a:hover { color: var(--muted-strong); }
 .dashboard-primary-nav a.active { color: var(--text); }
-.dashboard-primary-nav a.active::after { content: ""; position: absolute; right: 10px; bottom: 1px; left: 10px; height: 2px; border-radius: 2px; background: var(--up); }
+.dashboard-primary-nav a.active::after { content: ""; position: absolute; right: 10px; bottom: 1px; left: 10px; height: 2px; border-radius: 2px; background: var(--teal); }
 .dashboard-primary-nav > span { color: var(--muted); font-size: 12px; opacity: .6; }
 .dashboard-utilities { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 10px; }
 .dashboard-utilities .run-selector { width: auto; }
@@ -3846,6 +3850,10 @@ input:focus-visible,
 .dashboard-sign-in { padding: 6px 0; color: var(--muted-strong); font-size: 13px; text-decoration: none; }
 .dashboard-sign-in:hover { color: var(--text); }
 .dashboard-topbar :focus-visible { outline: 2px solid var(--teal-bright); outline-offset: 2px; }
+
+.app-topbar-page {
+  padding-left: 0;
+}
 
 .user-dashboard .app-rail-item.active {
   box-shadow: inset 3px 0 0 var(--brand-accent);
