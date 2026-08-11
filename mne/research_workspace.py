@@ -299,6 +299,9 @@ def build_narrative_investigation(
             narrative_id,
             event_definitions=event_definitions,
         ),
+        "stories": _investigation_stories(
+            run.get("story_extraction"), narrative_level, narrative_id
+        ),
         "platform_observability": (
             _platform_observability(run.get("platform_observability")) if admin else None
         ),
@@ -309,6 +312,50 @@ def build_narrative_investigation(
     context["market_expression"] = market_expression
     context["explanation"] = explain_narrative_snapshot(context)
     return context
+
+
+def _investigation_stories(story_extraction, narrative_level, narrative_id):
+    """Join persisted story matches to their curated narrative group."""
+    if narrative_level != "group" or not isinstance(story_extraction, dict):
+        return ()
+    extracted = story_extraction.get("stories")
+    if not isinstance(extracted, dict):
+        return ()
+
+    registry = load_story_registry()
+    registry_by_slug = {story.slug: story for story in registry.stories}
+    rows = []
+    for slug, match in extracted.items():
+        story = registry_by_slug.get(slug)
+        if story is None or story.group != narrative_id or not isinstance(match, dict):
+            continue
+        score = match.get("score")
+        if not isinstance(score, (int, float)) or score <= 0:
+            continue
+        direction = attention_direction_from_share_delta(match.get("share_delta"))
+        examples = match.get("examples")
+        examples = examples if isinstance(examples, list) else []
+        example = next(
+            (
+                item for item in examples
+                if isinstance(item, dict) and isinstance(item.get("title"), str)
+                and item["title"].strip()
+            ),
+            None,
+        )
+        rows.append(
+            {
+                "slug": slug,
+                "display_name": story.display_name,
+                "direction": direction["direction"],
+                "direction_label": direction["label"],
+                "matched_count": match.get("matched_count"),
+                "example": example,
+                "score": score,
+            }
+        )
+    rows.sort(key=lambda item: (-item["score"], item["slug"]))
+    return tuple(rows)
 
 
 def _display_name(narrative_level, narrative_id):

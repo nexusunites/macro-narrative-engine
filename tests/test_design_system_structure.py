@@ -109,19 +109,22 @@ class DesignSystemStructureTests(unittest.TestCase):
         self.assertIn("activeThemes", script)
         self.assertNotIn("fetch(", script)
 
-    def test_investigation_v2_has_real_jump_targets_and_no_sprint_m_modules(self):
+    def test_investigation_v2_has_real_jump_targets_and_sprint_m_modules(self):
         source = Path("templates/narrative_investigation.html").read_text(encoding="utf-8")
         styles = Path("static/styles.css").read_text(encoding="utf-8")
         for target in (
             "investigation-snapshot", "investigation-memory", "investigation-explanation",
-            "investigation-clock", "investigation-market", "supporting-evidence",
+            "investigation-clock", "investigation-market", "investigation-sectors",
+            "investigation-stories", "supporting-evidence",
         ):
             self.assertIn(f'#{target}', source)
             self.assertIn(f'id="{target}"', source)
         for marker in ("strength-area", "spark-dot", "mini-candle", "cat-grid"):
             self.assertIn(marker, source)
-        self.assertNotIn('id="inv-stories"', source)
-        self.assertNotIn('id="inv-sectors"', source)
+        for marker in ("inv-story-grid", "sector-strip", "sector-tag-detached"):
+            self.assertIn(marker, source + styles)
+        self.assertIn(".sector-tag-detached .sector-stripe { background:var(--amber); }", styles)
+        self.assertNotIn(".sector-tag-detached .sector-stripe { background:var(--red); }", styles)
         self.assertIn("prefers-reduced-motion:reduce", styles)
 
 

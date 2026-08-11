@@ -51,6 +51,7 @@ def render_template(name, **context):
         "research_finder_copy": research_finder_copy(),
         "investigation_copy": research_investigation_copy(),
         "lead_instrument_candle": None,
+        "investigation_sectors": {"sectors": (), "has_mapping": False},
         "run_label": "Jul 9",
         "research_index": {"narratives": [], "stories": {}},
         "can_follow_narratives": False,
@@ -940,6 +941,56 @@ class ResearchWorkspaceTests(unittest.TestCase):
             lead_instrument_candle={**base, "available": False, "candles": ()},
         )
         self.assertIn("No price history yet for this instrument", empty)
+
+    def test_sprint_m_stories_join_registry_group_and_preserve_direction(self):
+        run = sample_run()
+        run["story_extraction"] = {"stories": {
+            "ai_chips": {
+                "score": 8, "matched_count": 2, "share_delta": 0.08,
+                "examples": [{"title": "Chip demand rises", "source": "Source One"}],
+            },
+            "cloud_spending": {
+                "score": 3, "matched_count": 1, "share_delta": -0.02,
+                "examples": [],
+            },
+            "inflation_fears": {"score": 9, "matched_count": 1, "share_delta": 0.04},
+        }}
+
+        investigation = build_narrative_investigation(run, "group", "AI / Tech Growth")
+
+        self.assertEqual([story["slug"] for story in investigation["stories"]], ["ai_chips", "cloud_spending"])
+        self.assertEqual([story["direction"] for story in investigation["stories"]], ["up", "down"])
+        html = render_template("narrative_investigation.html", investigation=investigation)
+        self.assertIn("Stories in this narrative", html)
+        self.assertIn("Chip demand rises", html)
+        self.assertIn("Story saving is coming with Studio", html)
+        self.assertNotIn("inflation_fears", html)
+
+    def test_sprint_m_story_and_sector_empty_states_are_explicit(self):
+        investigation = build_narrative_investigation(sample_run(), "group", "AI / Tech Growth")
+        html = render_template("narrative_investigation.html", investigation=investigation)
+        self.assertIn("No matched stories are available for this narrative", html)
+        self.assertIn("No curated sector relationships are available for this narrative", html)
+
+    def test_sprint_m_sector_strip_uses_existing_labels_and_amber_detached(self):
+        investigation = build_narrative_investigation(sample_run(), "group", "AI / Tech Growth")
+        sectors = {
+            "has_mapping": True,
+            "sectors": (
+                {"sector_name": "Technology", "href": "/technology/assets", "visual": {"state": "driving", "label": "Strong current participation"}},
+                {"sector_name": "Utilities", "href": "/utilities/assets", "visual": {"state": "steady", "label": "Current participation unavailable"}},
+                {"sector_name": "Communication Services", "href": "/communication_services/assets", "visual": {"state": "detached", "label": "Current move is muted"}},
+            ),
+        }
+        html = render_template(
+            "narrative_investigation.html", investigation=investigation,
+            investigation_sectors=sectors, narrative_key="group:AI / Tech Growth",
+        )
+        self.assertIn("sector-tag-driving", html)
+        self.assertIn("sector-tag-steady", html)
+        self.assertIn("sector-tag-detached", html)
+        self.assertIn("/technology/assets", html)
+        self.assertNotIn("sector-tag-down", html)
 
     def test_standard_investigation_template_does_not_show_admin_content(self):
         investigation = build_narrative_investigation(

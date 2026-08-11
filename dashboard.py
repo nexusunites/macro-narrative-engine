@@ -2338,6 +2338,33 @@ def build_investigation_context(request: Request, key: str, admin: bool = False)
     context["lead_instrument_candle"] = _build_lead_instrument_candle(
         context["investigation"], key
     )
+    context["investigation_sectors"] = {
+        "sectors": (), "has_mapping": False
+    }
+    if narrative_level == "group":
+        try:
+            sector_map = load_sector_map()
+            participation = classify_sectors_for_run(
+                run, sector_map, narrative_id, now=datetime.now().astimezone()
+            )
+            sector_context = build_sector_isolation_context(
+                narrative_id, sector_map, participation
+            )
+            context["investigation_sectors"] = {
+                **sector_context,
+                "sectors": tuple(
+                    {
+                        **row,
+                        "visual": dashboard_sector_presentation(
+                            row.get("participation_state"),
+                            row.get("participation_label"),
+                        ),
+                    }
+                    for row in sector_context["sectors"]
+                ),
+            }
+        except (SectorIsolationError, NarrativeSectorInstrumentError):
+            pass
     context["history"] = (
         build_narrative_history(narrative_id)
         if narrative_level == "group"

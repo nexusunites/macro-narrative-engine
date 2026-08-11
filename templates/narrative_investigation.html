@@ -46,6 +46,8 @@
         <a href="#investigation-explanation">{{ investigation_copy.jump_why }}</a>
         <a href="#investigation-clock">{{ investigation_copy.jump_clock }}</a>
         {% if investigation.market_expression %}<a href="#investigation-market">{{ investigation_copy.jump_market }}</a>{% endif %}
+        <a href="#investigation-sectors">{{ investigation_copy.jump_sectors }}</a>
+        <a href="#investigation-stories">{{ investigation_copy.jump_stories }}</a>
         <a href="#supporting-evidence">{{ investigation_copy.jump_evidence }}</a>
         {% if ai_analyst %}<a href="#ai-analyst">{{ investigation_copy.jump_analyst }}</a>{% endif %}
         {% if related_narratives %}<a href="#related-narratives-title">{{ investigation_copy.jump_related }}</a>{% endif %}
@@ -301,6 +303,63 @@
           </details>
         </section>
       {% endif %}
+
+      <section class="content-section investigation-v2-card investigation-sectors" id="investigation-sectors" aria-labelledby="investigation-sectors-heading">
+        <div class="subsection-heading">
+          <p class="eyebrow">{{ investigation_copy.sectors_eyebrow }}</p>
+          <h3 id="investigation-sectors-heading">{{ investigation_copy.sectors_title }}</h3>
+          <p>{{ investigation_copy.sectors_intro }}</p>
+        </div>
+        {% if investigation_sectors and investigation_sectors.has_mapping %}
+          <div class="sector-strip">
+            {% for sector in investigation_sectors.sectors %}
+              <a class="sector-tag sector-tag-{{ sector.visual.state }}" href="{{ sector.href }}">
+                <span class="sector-stripe" aria-hidden="true"></span>
+                <span class="sector-glyph" aria-hidden="true">{% if sector.visual.state == 'driving' %}▲{% elif sector.visual.state == 'detached' %}▼{% else %}→{% endif %}</span>
+                <span><strong>{{ sector.sector_name }}</strong><small>{{ sector.visual.label }}</small></span>
+              </a>
+            {% endfor %}
+          </div>
+          <div class="sector-legend" aria-label="{{ investigation_copy.sectors_legend_label }}">
+            <span><i class="legend-dot legend-driving"></i>{{ investigation_copy.sectors_legend_driving }}</span>
+            <span><i class="legend-dot legend-steady"></i>{{ investigation_copy.sectors_legend_steady }}</span>
+            <span><i class="legend-dot legend-detached"></i>{{ investigation_copy.sectors_legend_detached }}</span>
+          </div>
+          <a class="sector-explore-link" href="/research/{{ narrative_key }}/sectors">{{ investigation_copy.sectors_explore }}</a>
+        {% else %}
+          <p class="muted investigation-module-empty">{{ investigation_copy.sectors_empty }}</p>
+        {% endif %}
+      </section>
+
+      <section class="content-section investigation-v2-card investigation-stories" id="investigation-stories" aria-labelledby="investigation-stories-heading">
+        <div class="subsection-heading">
+          <p class="eyebrow">{{ investigation_copy.stories_eyebrow }}</p>
+          <h3 id="investigation-stories-heading">{{ investigation_copy.stories_title }}</h3>
+          <p>{{ investigation_copy.stories_intro }}</p>
+        </div>
+        {% if investigation.stories %}
+          <div class="inv-story-grid">
+            {% for story in investigation.stories %}
+              <article class="inv-story-card direction-{{ story.direction }}">
+                <div class="inv-story-head">
+                  <span class="story-direction" aria-hidden="true">{% if story.direction == 'up' %}▲{% elif story.direction == 'down' %}▼{% else %}→{% endif %}</span>
+                  <h4>{{ story.display_name }}</h4>
+                  <button class="story-studio-star" type="button" disabled title="{{ investigation_copy.story_star }}" aria-label="{{ investigation_copy.story_star }}">☆</button>
+                </div>
+                <p class="inv-story-direction">{{ story.direction_label }}</p>
+                {% if story.example %}
+                  <p class="inv-story-example">{{ story.example.title }}</p>
+                  {% if story.example.source %}<small>{{ story.example.source }}</small>{% endif %}
+                {% elif story.matched_count is not none %}
+                  <p class="inv-story-example">{{ investigation_copy.story_matches.format(count=story.matched_count, suffix='' if story.matched_count == 1 else 's') }}</p>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted investigation-module-empty">{{ investigation_copy.stories_empty }}</p>
+        {% endif %}
+      </section>
 
       <section class="content-section investigation-v2-card investigation-zone investigation-zone-evidence" id="supporting-evidence">
         <div class="investigation-zone-heading">
