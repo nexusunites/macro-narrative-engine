@@ -13,11 +13,12 @@ from mne.evidence_summary import (
 )
 from mne.research_workspace import (
     build_narrative_investigation,
+    build_research_index,
     build_narrative_selector,
     select_latest_meaningful_run,
     split_narrative_key,
 )
-from mne.presentation_language import dashboard_parity_copy
+from mne.presentation_language import dashboard_parity_copy, research_finder_copy
 
 
 TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "templates"
@@ -47,6 +48,11 @@ def render_template(name, **context):
                 "nav_preferences", "nav_sign_in",
             )
         },
+        "research_finder_copy": research_finder_copy(),
+        "run_label": "Jul 9",
+        "research_index": {"narratives": [], "stories": {}},
+        "can_follow_narratives": False,
+        "current_user": None,
     }
     defaults.update(context)
     return env.get_template(name).render(**defaults)
@@ -281,20 +287,68 @@ class ResearchWorkspaceTests(unittest.TestCase):
 
         self.assertEqual(keys, ["group:Macro Pressure", "theme:rates"])
 
+    def test_research_index_joins_real_stories_in_canonical_group_order(self):
+        run = sample_run()
+        run["story_extraction"] = {
+            "stories": {
+                "ai_chips": {"share_delta": 0.08},
+                "inflation_fears": {"share_delta": -0.03},
+            }
+        }
+        index = build_research_index(
+            run,
+            followed_narratives=(
+                {"narrative_level": "group", "narrative_key": "AI / Tech Growth"},
+            ),
+        )
+
+        self.assertEqual(
+            [item["name"] for item in index["narratives"]],
+            [
+                "AI / Tech Growth", "Macro Pressure", "Energy / Commodities",
+                "Geopolitical Risk",
+            ],
+        )
+        ai = index["narratives"][0]
+        self.assertTrue(ai["scored"])
+        self.assertTrue(ai["followed"])
+        self.assertEqual(
+            [story["slug"] for story in ai["stories"]],
+            ["ai_chips", "cloud_spending", "data_center_power"],
+        )
+        self.assertEqual(index["stories"]["ai_chips"]["direction"], "up")
+        self.assertEqual(index["stories"]["inflation_fears"]["direction"], "down")
+
+        geopolitical = index["narratives"][-1]
+        self.assertFalse(geopolitical["scored"])
+        self.assertIsNone(geopolitical["score"])
+        self.assertEqual(geopolitical["stories"], [])
+
     def test_research_selector_template_renders_investigable_narratives(self):
+        index = build_research_index(sample_run())
         html = render_template(
             "research_selector.html",
             selector=build_narrative_selector(sample_run()),
+            research_index=index,
         )
 
-        self.assertIn("Choose a narrative to investigate", html)
+        self.assertIn("Find the story you need", html)
         self.assertIn("AI / Tech Growth", html)
-        self.assertIn("Investigate narrative", html)
+        self.assertIn("AI Chips", html)
+        self.assertIn("Investigate →", html)
+        self.assertIn("Crypto · not tracked yet", html)
+        self.assertIn("Story saving is coming with Studio", html)
+        self.assertIn("Defined, not currently scored", html)
 
     def test_research_selector_template_renders_calm_empty_state(self):
-        html = render_template("research_selector.html", selector=[])
+        html = render_template(
+            "research_selector.html",
+            selector=[],
+            message="No narratives are ready to explore",
+        )
 
-        self.assertIn("No narratives with supporting evidence in this run", html)
+        self.assertIn("No narratives are ready to explore", html)
+        self.assertIn("A completed run with narrative evidence is needed", html)
         self.assertNotIn("error", html.lower())
 
     def test_investigation_reads_coverage_values_and_filters_sources_exactly(self):

@@ -6,53 +6,127 @@
   <title>MNE Research</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+  <script src="{{ url_for('static', path='research_finder.js') }}" defer></script>
 </head>
-<body class="app-topbar-page">
+<body class="app-topbar-page research-finder-page">
   {% set active_tier = "research" %}
+  {% set finder_index = research_index|default({'narratives': []}) %}
   {% include "_partials/app_topbar.html" %}
 
   <main class="page-shell research-shell">
+    {% if notice %}<section class="run-notice"><p>{{ notice }}</p></section>{% endif %}
+
     {% if message %}
-      <section class="empty-state">
-        <p class="eyebrow">Research Workspace</p>
-        <h1>{{ message }}</h1>
-        <p>Results directory: {{ results_dir }}</p>
+      <section class="empty-state research-run-empty">
+        <p class="eyebrow">{{ research_finder_copy.no_run_eyebrow }}</p>
+        <h1>{{ research_finder_copy.no_run_title }}</h1>
+        <p>{{ research_finder_copy.no_run_body }}</p>
       </section>
     {% else %}
-      {% if notice %}
-        <section class="run-notice">
-          <p>{{ notice }}</p>
-        </section>
-      {% endif %}
+      <section class="research-finder-view" aria-labelledby="research-finder-title">
+        <div class="research-finder-eyebrow-row">
+          <span class="eyebrow">{{ research_finder_copy.eyebrow }}</span>
+          <span class="research-status"><span class="research-status-dot" aria-hidden="true"></span>{{ research_finder_copy.status|replace('{run_label}', run_label) }}</span>
+        </div>
+        <h1 class="research-finder-headline" id="research-finder-title">{{ research_finder_copy.headline }}</h1>
+        <p class="research-finder-subtitle">{{ research_finder_copy.subtitle }}</p>
 
-      <section class="research-hero">
-        <p class="eyebrow">Research Workspace</p>
-        <h1>Choose a narrative to investigate</h1>
-        <p>Select an active narrative from the latest meaningful completed run and enter a focused evidence review.</p>
-      </section>
-
-      <section class="content-section">
-        {% if selector %}
-          <div class="research-selector-grid">
-            {% for narrative in selector %}
-              <a class="research-selector-card" href="{{ url_for('narrative_investigation', key=narrative.key) }}">
-                <span class="selector-card-topline">
-                  <span class="eyebrow">{{ narrative.type_label }}</span>
-                  <strong>{{ narrative.score if narrative.score is not none else "Unavailable" }}</strong>
-                </span>
-                <span class="selector-card-title">{{ narrative.display_name }}</span>
-                <span class="selector-card-context">{{ narrative.context }}</span>
-                <span class="selector-card-action">Investigate narrative</span>
-              </a>
-            {% endfor %}
+        <div class="finder">
+          <div class="finder-bar">
+            <span class="finder-ico" aria-hidden="true">⌕</span>
+            <input type="search" id="finderInput" class="finder-input" autocomplete="off"
+                   placeholder="{{ research_finder_copy.search_placeholder }}"
+                   aria-label="{{ research_finder_copy.search_label }}">
+            <button type="button" id="finderClear" class="finder-clear hidden" aria-label="{{ research_finder_copy.clear_search }}">×</button>
           </div>
-        {% else %}
-          <article class="empty-state research-empty-state">
-            <p class="eyebrow">Research Workspace</p>
-            <h2>No narratives with supporting evidence in this run</h2>
-            <p>The selected run does not have an investigable narrative signal.</p>
-          </article>
-        {% endif %}
+          <p class="finder-helper">{{ research_finder_copy.finder_helper }}</p>
+          <p class="finder-note">{{ research_finder_copy.finder_note }}</p>
+        </div>
+
+        <div class="chip-row" id="chipRow" role="group" aria-label="{{ research_finder_copy.topic_filter }}">
+          {% for theme in ('ai', 'rates', 'inflation', 'energy', 'recession') %}
+            <button type="button" class="chip" data-theme="{{ theme }}" aria-pressed="false">{{ research_finder_copy['theme_' ~ theme] }}</button>
+          {% endfor %}
+          <button type="button" class="chip disabled" id="chipCrypto" aria-disabled="true">{{ research_finder_copy.crypto }}</button>
+        </div>
+        <p class="chip-hint" id="chipHint" aria-live="polite"></p>
+
+        <div class="research-index-heading">
+          <span class="eyebrow">{{ research_finder_copy.index_eyebrow }}</span>
+          <h2>{{ research_finder_copy.index_title }}</h2>
+          <p>{{ research_finder_copy.index_intro }}</p>
+        </div>
+
+        <div class="nrv-list" id="nrvList">
+          {% for narrative in finder_index.narratives %}
+            <article class="nrv-card"
+                     data-narrative-card
+                     data-search="{{ narrative.search_text }}"
+                     data-themes="{{ narrative.themes|join(',') }}"
+                     data-scored="{{ 'true' if narrative.scored else 'false' }}">
+              <div class="nrv-head">
+                <div>
+                  {% if narrative.scored %}
+                    <span class="state-chip direction-{{ narrative.direction }}">
+                      <span class="glyph" aria-hidden="true">{{ '▲' if narrative.direction == 'up' else '▼' if narrative.direction == 'down' else '→' }}</span>
+                      {{ narrative.direction_label }}
+                    </span>
+                  {% endif %}
+                  <h3 class="nrv-name">{{ narrative.name }}</h3>
+                  {% if narrative.scored %}
+                    <p class="nrv-stats">
+                      <span class="nrv-stat">{{ research_finder_copy.score }} <b>{{ narrative.score }}</b></span>
+                      <span class="nrv-stat">{{ research_finder_copy.share }} <b>{{ '%g'|format(narrative.share) }}%</b></span>
+                    </p>
+                  {% else %}
+                    <span class="nrv-untracked">{{ research_finder_copy.unscored }}</span>
+                  {% endif %}
+                </div>
+
+                {% if narrative.scored %}
+                  {% if current_user and can_follow_narratives %}
+                    <form method="post" action="/preferences/narratives" class="narrative-follow-form">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                      <input type="hidden" name="narrative_level" value="group">
+                      <input type="hidden" name="narrative_key" value="{{ narrative.narrative_id }}">
+                      <input type="hidden" name="return_to" value="/research">
+                      <button class="star-btn{% if narrative.followed %} on{% endif %}" name="action" value="{{ 'unfollow' if narrative.followed else 'follow' }}" aria-pressed="{{ 'true' if narrative.followed else 'false' }}">
+                        <span aria-hidden="true">{{ '★' if narrative.followed else '☆' }}</span>
+                        {{ research_finder_copy.unfollow if narrative.followed else research_finder_copy.follow }}
+                      </button>
+                    </form>
+                  {% elif not current_user %}
+                    <a class="star-btn" href="/login?next=/research"><span aria-hidden="true">☆</span>{{ research_finder_copy.sign_in_to_follow }}</a>
+                  {% else %}
+                    <a class="star-btn" href="/account"><span aria-hidden="true">☆</span>{{ research_finder_copy.follow_unavailable }}</a>
+                  {% endif %}
+                {% endif %}
+              </div>
+
+              {% if narrative.stories %}
+                <div class="nrv-stories">
+                  {% for story in narrative.stories %}
+                    <span class="story-chip" data-story data-search="{{ story.search_text }}" data-theme="{{ story.theme }}">
+                      <span class="sc-glyph direction-{{ story.direction }}" aria-hidden="true">{{ '▲' if story.direction == 'up' else '▼' if story.direction == 'down' else '→' }}</span>
+                      <span>{{ story.display_name }}</span>
+                      <button type="button" class="sc-star" aria-disabled="true" aria-label="{{ research_finder_copy.story_star }}" title="{{ research_finder_copy.story_star }}">☆</button>
+                    </span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              {% if narrative.scored %}
+                <div class="nrv-actions">
+                  <a class="investigate-btn" href="{{ url_for('narrative_investigation', key=narrative.key) }}">{{ research_finder_copy.investigate }}</a>
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+        <p class="index-empty hidden" id="indexEmpty">{{ research_finder_copy.empty }}</p>
+        <p class="chip-hint" id="studioHint" aria-live="polite"></p>
+        <span id="cryptoHintCopy" hidden>{{ research_finder_copy.crypto_hint }}</span>
+        <span id="studioHintCopy" hidden>{{ research_finder_copy.studio_hint }}</span>
       </section>
     {% endif %}
   </main>

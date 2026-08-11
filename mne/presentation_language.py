@@ -238,6 +238,49 @@ def dashboard_parity_copy(key: str) -> str:
     return DASHBOARD_PARITY_COPY[key]
 
 
+RESEARCH_FINDER_COPY = {
+    "eyebrow": "Research",
+    "status": "Latest verified read · {run_label}",
+    "headline": "Find the story you need",
+    "subtitle": "Search the day's narratives and the stories inside them, then open one to investigate what changed and why.",
+    "search_placeholder": "Search narratives and stories…",
+    "search_label": "Search narratives and stories",
+    "clear_search": "Clear search",
+    "finder_helper": "Find a narrative or a specific story by name, keyword, sector, or catalyst.",
+    "finder_note": "This deterministic finder matches what you type against the day's narratives and stories. For deeper questions, open a narrative and ask the AI Analyst on its page.",
+    "topic_filter": "Filter by topic",
+    "theme_ai": "AI",
+    "theme_rates": "Rates",
+    "theme_inflation": "Inflation",
+    "theme_energy": "Energy",
+    "theme_recession": "Recession",
+    "crypto": "Crypto · not tracked yet",
+    "crypto_hint": "No crypto narrative is tracked yet — nothing to show.",
+    "index_eyebrow": "The index",
+    "index_title": "Narratives in today's read",
+    "index_intro": "Each narrative holds its own stories. Follow a narrative or investigate it in depth.",
+    "score": "Strength",
+    "share": "Share of attention",
+    "unscored": "Defined, not currently scored",
+    "investigate": "Investigate →",
+    "follow": "Follow",
+    "unfollow": "Following",
+    "sign_in_to_follow": "Sign in to follow",
+    "follow_unavailable": "Following is unavailable for this account",
+    "story_star": "Story saving is coming with Studio",
+    "studio_hint": "Story saving is coming with Studio and is not available yet.",
+    "empty": "No narrative or story matches that. Try a different word, or clear the filters.",
+    "no_run_eyebrow": "Research",
+    "no_run_title": "No narratives are ready to explore",
+    "no_run_body": "A completed run with narrative evidence is needed before the Research index can be shown.",
+}
+
+
+def research_finder_copy() -> dict[str, str]:
+    """Return fixed user-facing copy for the deterministic Research finder."""
+    return dict(RESEARCH_FINDER_COPY)
+
+
 def dashboard_sector_presentation(state: Any, existing_label: Any = None) -> dict[str, str]:
     """Map persisted participation states to the three-state dashboard tile vocabulary."""
     token = str(state or "UNAVAILABLE").upper()

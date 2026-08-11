@@ -8,6 +8,11 @@ from mne.evidence_summary import (
 from mne.narrative_signals import NARRATIVE_GROUPS, compute_group_scores
 from mne.explanation_layer import explain_market_expression, explain_narrative_snapshot
 from mne.market_expression import build_market_expression_for_run
+from mne.presentation_language import (
+    attention_cloud_direction,
+    attention_direction_from_share_delta,
+)
+from mne.story_registry import load_story_registry
 
 
 @dataclass(frozen=True)
@@ -129,6 +134,124 @@ def build_narrative_selector(run):
             )
 
     return narratives
+
+
+def build_research_index(run, followed_narratives=(), story_registry=None):
+    """Build the deterministic group-and-story read model for the Research finder."""
+    run = run if isinstance(run, dict) else {}
+    theme_scores = run.get("theme_scores") or run.get("theme_counts") or {}
+    group_scores = run.get("group_scores") or {}
+    if not group_scores and isinstance(theme_scores, dict):
+        group_scores = compute_group_scores(theme_scores)
+    group_scores = group_scores if isinstance(group_scores, dict) else {}
+
+    registry = story_registry or load_story_registry()
+    registry_stories = tuple(registry.stories)
+    extraction = run.get("story_extraction")
+    extracted_stories = (
+        extraction.get("stories")
+        if isinstance(extraction, dict) and isinstance(extraction.get("stories"), dict)
+        else {}
+    )
+    followed = {
+        (item.get("narrative_level"), item.get("narrative_key"))
+        for item in followed_narratives
+        if isinstance(item, dict)
+    }
+    positive_total = sum(
+        score for score in group_scores.values()
+        if isinstance(score, (int, float)) and score > 0
+    )
+
+    stories = {}
+    stories_by_group = {group: [] for group in NARRATIVE_GROUPS}
+    for story in registry_stories:
+        extracted = extracted_stories.get(story.slug)
+        direction = attention_direction_from_share_delta(
+            extracted.get("share_delta") if isinstance(extracted, dict) else None
+        )
+        keyword_values = [
+            story.display_name,
+            *story.keywords.strong,
+            *story.keywords.medium,
+            *story.keywords.weak,
+            *story.driving_sectors,
+            *story.catalyst_names,
+        ]
+        item = {
+            "slug": story.slug,
+            "display_name": story.display_name,
+            "group": story.group,
+            "themes": list(story.themes),
+            "theme": story.themes[0],
+            "direction": direction["direction"],
+            "direction_label": direction["label"],
+            "search_text": " ".join(keyword_values).lower(),
+        }
+        stories[story.slug] = item
+        stories_by_group[story.group].append(item)
+
+    narratives = []
+    for narrative_id, group_themes in NARRATIVE_GROUPS.items():
+        score = group_scores.get(narrative_id)
+        scored = isinstance(score, (int, float)) and score > 0
+        group_stories = stories_by_group.get(narrative_id, []) if scored else []
+        direction = _research_group_direction(run, narrative_id)
+        narratives.append(
+            {
+                "narrative_level": "group",
+                "narrative_id": narrative_id,
+                "name": narrative_id,
+                "key": narrative_key("group", narrative_id),
+                "scored": scored,
+                "score": score if scored else None,
+                "share": round((score / positive_total) * 100, 1)
+                if scored and positive_total
+                else None,
+                "direction": direction["direction"] if scored else "steady",
+                "direction_label": direction["label"] if scored else None,
+                "themes": [
+                    theme for theme in group_themes
+                    if isinstance(theme_scores, dict) and theme in theme_scores
+                ],
+                "stories": group_stories,
+                "search_text": " ".join((narrative_id, *group_themes)).lower(),
+                "followed": ("group", narrative_id) in followed,
+            }
+        )
+    return {"narratives": narratives, "stories": stories}
+
+
+def _research_group_direction(run, narrative_id):
+    memory = run.get("narrative_memory")
+    groups = memory.get("groups") if isinstance(memory, dict) else None
+    if isinstance(groups, list):
+        record = next(
+            (
+                item for item in groups
+                if isinstance(item, dict)
+                and (item.get("name") or item.get("narrative_name")) == narrative_id
+            ),
+            None,
+        )
+        if record:
+            delta = record.get("share_delta")
+            if not isinstance(delta, (int, float)):
+                delta = record.get("score_delta")
+            if isinstance(delta, (int, float)):
+                return attention_direction_from_share_delta(delta)
+
+    pulse = run.get("narrative_pulse")
+    pulse_record = pulse.get(narrative_id) if isinstance(pulse, dict) else None
+    dynamics = run.get("narrative_dynamics")
+    dynamic_groups = dynamics.get("groups") if isinstance(dynamics, dict) else None
+    dynamic_record = (
+        dynamic_groups.get(narrative_id) if isinstance(dynamic_groups, dict) else None
+    )
+    return attention_cloud_direction(
+        dynamic_record.get("acceleration") if isinstance(dynamic_record, dict) else None,
+        pulse_record.get("pulse_state") if isinstance(pulse_record, dict) else None,
+    )
 
 
 def build_narrative_investigation(

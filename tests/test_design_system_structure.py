@@ -53,7 +53,7 @@ class DesignSystemStructureTests(unittest.TestCase):
         css = Path("static/styles.css").read_text(encoding="utf-8")
         self.assertIn("prefers-reduced-motion: reduce", css)
         self.assertIn("--teal: var(--up)", css)
-        self.assertIn("--amber: var(--down)", css)
+        self.assertIn("--amber: #f0a64b", css)
 
     def test_watchlist_uses_shared_shell_and_cloud_controls(self):
         dashboard_source = Path("templates/dashboard.html").read_text(encoding="utf-8")
@@ -96,6 +96,18 @@ class DesignSystemStructureTests(unittest.TestCase):
         for template in ("admin.html", "historical_selector.html"):
             source = Path("templates", template).read_text(encoding="utf-8")
             self.assertIn('_partials/app_rail.html', source)
+
+    def test_research_finder_is_progressive_and_uses_real_topic_controls(self):
+        source = Path("templates/research_selector.html").read_text(encoding="utf-8")
+        script = Path("static/research_finder.js").read_text(encoding="utf-8")
+        for marker in ("finderInput", "finderClear", "chipCrypto", "nrvList", "indexEmpty"):
+            self.assertIn(marker, source)
+        for theme in ("ai", "rates", "inflation", "energy", "recession"):
+            self.assertIn(theme, source)
+        self.assertIn("data-narrative-card", source)
+        self.assertIn("data-story", source)
+        self.assertIn("activeThemes", script)
+        self.assertNotIn("fetch(", script)
 
 
 if __name__ == "__main__":

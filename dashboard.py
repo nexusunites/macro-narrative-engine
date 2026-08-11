@@ -90,6 +90,7 @@ from mne.presentation_language import (
     dashboard_evidence_meta,
     dashboard_parity_copy,
     dashboard_sector_presentation,
+    research_finder_copy,
 )
 from mne.personalization import (
     SUPPORTED_ALERT_TYPES,
@@ -114,6 +115,7 @@ from mne.platform_observability import stage_by_name
 from mne.research_workspace import (
     build_narrative_investigation,
     build_narrative_selector,
+    build_research_index,
     narrative_key,
     select_latest_meaningful_run,
     split_narrative_key,
@@ -126,7 +128,7 @@ from mne.auth import (AUTH_ERROR, SESSION_ABSOLUTE_EXPIRY, SESSION_COOKIE_NAME, 
                       create_account, create_session, invalidate_session, secure_cookies)
 from mne.database import Base, engine
 from mne.security import csrf_token, get_current_user, require_admin, require_authenticated_user, validate_csrf
-from mne.entitlements import EntitlementDenied, HISTORICAL_COMPARISON, HISTORICAL_REQUEST, HISTORICAL_RESEARCH, FOLLOWED_NARRATIVES as FOLLOWED_NARRATIVES_FEATURE, SAVED_HISTORICAL_VIEWS as SAVED_HISTORICAL_VIEWS_FEATURE, require_entitlement
+from mne.entitlements import EntitlementDenied, HISTORICAL_COMPARISON, HISTORICAL_REQUEST, HISTORICAL_RESEARCH, FOLLOWED_NARRATIVES as FOLLOWED_NARRATIVES_FEATURE, SAVED_HISTORICAL_VIEWS as SAVED_HISTORICAL_VIEWS_FEATURE, check_entitlement, require_entitlement
 from mne.usage_limits import (FOLLOWED_NARRATIVES, HISTORICAL_COMPARISONS, HISTORICAL_INVESTIGATION_VIEWS,
                               HISTORICAL_REQUESTS, SAVED_HISTORICAL_VIEWS, build_entitlement_context,
                               consume_usage, require_capacity)
@@ -164,6 +166,7 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates", context_processors
 templates.env.globals["dashboard_copy"] = {
     key: dashboard_parity_copy(key) for key in TOPBAR_COPY_KEYS
 }
+templates.env.globals["research_finder_copy"] = research_finder_copy()
 
 
 @app.middleware("http")
@@ -2260,19 +2263,40 @@ def build_template_context(
 def build_research_context(request: Request):
     selection = select_latest_meaningful_run(list_all_result_files(), load_result)
     run, current_file = selection.run, selection.path
+    copy = research_finder_copy()
     context = {
         "request": request,
         "results_dir": RESULTS_DIR,
         "selected_file": current_file.name if current_file else None,
+        "run_label": fmt_run_label(current_file) if current_file else None,
         "message": None,
         "notice": selection.notice,
         "selector": [],
+        "research_index": {"narratives": [], "stories": {}},
+        "research_finder_copy": copy,
+        "can_follow_narratives": False,
     }
     if not run:
-        context["message"] = "No completed MNE result files found. Run main.py first."
+        context["message"] = copy["no_run_title"]
         return context
 
     context["selector"] = build_narrative_selector(run)
+    user = get_current_user(request)
+    preferences = (
+        account_repository.load_preferences(user.user_id)
+        if user
+        else build_default_preferences()
+    )
+    context["can_follow_narratives"] = check_entitlement(
+        user, FOLLOWED_NARRATIVES_FEATURE
+    )
+    try:
+        context["research_index"] = build_research_index(
+            run,
+            followed_narratives=preferences.get("followed_narratives", ()),
+        )
+    except StoryRegistryError:
+        context["message"] = copy["no_run_title"]
     return context
 
 
@@ -2653,6 +2677,9 @@ async def change_followed_narrative(request: Request):
     level = (form.get("narrative_level") or [""])[0]
     key = (form.get("narrative_key") or [""])[0]
     action = (form.get("action") or [""])[0]
+    return_to = (form.get("return_to") or ["/preferences"])[0]
+    if return_to not in {"/preferences", "/research"}:
+        return_to = "/preferences"
     profile = account_repository.load_preferences(user.user_id)
     try:
         existing = {x["narrative_level"] + ":" + x["narrative_key"] for x in profile["followed_narratives"]}
@@ -2667,7 +2694,7 @@ async def change_followed_narrative(request: Request):
         account_repository.save_preferences(user.user_id, profile)
     except ValueError:
         pass
-    return RedirectResponse("/preferences", status_code=303)
+    return RedirectResponse(return_to, status_code=303)
 
 
 @app.post("/preferences/alerts")
