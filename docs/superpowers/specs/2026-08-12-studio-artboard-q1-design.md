@@ -7,11 +7,20 @@
 
 The blueprint's Studio vision is multi-sprint. It is cut into three:
 
-- **Q1 — The working board** *(this spec).* Real canvas: drag saved stories onto a persistent per-user board, position them, draw labeled connections, and click a node to see the intelligence MNE already computes for it — plus a deterministic relationship hint. Ships the mockup **and** proves the intelligence payoff via reuse, not new AI.
+- **Q1 — The working board** *(this spec).* An editable **thesis line** anchors a persistent per-user board; the user drags saved stories onto it as evidence, positions them, draws labeled connections, and clicks one to see the intelligence MNE already computes — plus a deterministic relationship hint. Ships the mockup, keeps the thesis frame, **and** proves the intelligence payoff via reuse, not new AI.
 - **Q2 — More to build with.** Additional draggable object types (catalysts, sectors, assets, individual headlines); multiple named boards; save-as-investigation / revisit.
 - **Q3 — The Collaborator (Studio AI role).** Generative suggestions that require new inference: suggested connections, missing-evidence flags, contradictions, opposing explanations, challenge-a-thesis. Belongs with the surface-differentiated-AI work.
 
 **Why Q1 is cut here:** it leans entirely on things that already exist (the rail's saved-story data, the investigation intelligence builder, the curated narrative-relationship config), so it is mostly one persistence path, two read endpoints, and hand-written canvas JS — while still answering the blueprint's own warning that a bare canvas is low-value.
+
+## Design principle — protect the thesis frame (applies to every Studio sprint)
+
+**Studio is where a user builds a market thesis.** The graph (nodes + connections) is the *mechanism*, never the *point*. The failure mode to guard against: because graph mechanics are easy to build, demo, and admire, Studio quietly optimizes into "a graph of connected stories" instead of "my investment thesis." Two standing guards:
+
+1. **Language discipline.** The interface never speaks "graph." No "node," "edge," or "canvas" in user-facing copy — that vocabulary lives only in code. Users see thesis language: *what you think*, *the case you're building*, *what supports this*, *what argues against it*. All user-facing copy stays in `mne/presentation_language.py`.
+2. **The identity test (a design gate for every sprint).** Before any Studio change ships, it must answer: *does this help the user form or defend a view, or does it only make the graph richer?* Changes that only enrich the graph are suspect. Q2/Q3 are measured against this test, not merely against "more features."
+
+The Q1 embodiment of this principle is the **thesis line** (Section 1 / Section 2) — one editable claim the board argues for, so every node and connection reads as *evidence for a position* rather than an abstract relationship.
 
 ## Current state (what exists today)
 
@@ -30,9 +39,12 @@ The blueprint's Studio vision is multi-sprint. It is cut into three:
 
 ```
 schema_version: 1
+thesis:      string        # the editable claim the board argues for (bounded length; may be empty)
 nodes:       [ { id, kind: "story", slug, x, y } ]
 connections: [ { id, from, to, label } ]
 ```
+
+- `thesis` is a plain string, length-capped (e.g. ≤ 240 chars), sanitized on save (no markup), and may be empty. It is the board's anchor — the position the nodes and connections support — and it is what makes the surface read as a thesis rather than a diagram.
 
 - `label` ∈ fixed vocabulary `{ moves_with, moves_against, drives, depends_on }`; any other value is rejected.
 - `kind` is `"story"` in Q1 (the enum exists so Q2 can add `catalyst`/`sector`/`asset`/`headline` without a schema break).
@@ -52,6 +64,7 @@ connections: [ { id, from, to, label } ]
 
 New `static/artboard.js`, following the existing `static/chart.js` pattern — **no framework, no build step**, progressive enhancement over the server-rendered board.
 
+- **Thesis line (the anchor):** at the top of the board, an always-present editable claim — placeholder copy like "What do you think? State the view this board is making." Editing it writes `payload.thesis` (same debounced autosave). This frames everything below it as evidence for a position. It leads the surface visually; the graph sits beneath it as support.
 - **Input model: pointer events only** (not HTML5 drag-and-drop) — reliable, touch-friendly, and one model for both add and move.
 - **Add a node:** pointer-drag a saved story from the left rail onto the canvas → a node appears at the drop point.
 - **Move a node:** pointer-drag on the canvas; connectors re-route live.
@@ -86,13 +99,16 @@ New `static/artboard.js`, following the existing `static/chart.js` pattern — *
 - Empty board (stories saved, none placed) → drop-hint only.
 - Node with no attached intelligence → truthful "nothing attached right now."
 
-**JS-disabled fallback (progressive enhancement):** `GET /studio` renders the saved board **server-side, read-only** — nodes positioned via inline coords, connections as static SVG, panel degraded to a link to the full Research investigation. No drag, but nothing is blank or broken. (This is why the board must load from storage on the server, not only via JS.)
+**JS-disabled fallback (progressive enhancement):** `GET /studio` renders the saved board **server-side, read-only** — the thesis line shown as text at the top, nodes positioned via inline coords, connections as static SVG, panel degraded to a link to the full Research investigation. No drag, but nothing is blank or broken. (This is why the board must load from storage on the server, not only via JS.)
+
+**Copy discipline (drift guard):** all user-facing strings stay in `mne/presentation_language.py` and use thesis language — *what you think / the case you're building / what supports this / what argues against it*. **No "node," "edge," "graph," or "canvas" in any rendered copy** (those live in code only). A structure/copy test should assert the studio template surfaces none of that vocabulary.
 
 **Color budget:** teal = strengthening node/connector, amber = fading, **red stays price-only and must NOT appear here**, bright slate = steady. Node glyphs reuse the existing `direction-{up,down,steady}` hooks. Studio must measurably gain color vs. today's near-colorless landing.
 
 **Verification (per AGENTS.md):**
 - Full suite green (**baseline 874, 2 known auth failures**: `test_csrf_and_deterministic_helpers`, `test_user_forbidden_admin_admin_allowed`) plus **new tests**:
-  - board-payload normalizer: slug-drop degradation, dangling-connection drop, label-vocab rejection, position clamp, node/connection caps.
+  - board-payload normalizer: slug-drop degradation, dangling-connection drop, label-vocab rejection, position clamp, node/connection caps, **thesis length cap + markup sanitization**.
+  - **copy discipline:** rendered studio template surfaces no "node / edge / graph / canvas" vocabulary.
   - `POST /studio/board`: CSRF required, auth required, full-replace semantics.
   - `build_studio_node_intelligence`: whitelist + **no-leak** (mirror the `build_user_historical_comparison` no-leak test — embed secret path/workflow/id, assert none serialize).
   - relationship hint: fires only for related-group pairs, never same-group.
@@ -107,4 +123,4 @@ Multiple/named boards, save-as-investigation, revisit (Q2). Additional object ty
 ## New / changed surface (summary for the handoff)
 
 - **New:** `alembic/versions/0004_studio_board.py`; `mne/studio_board.py` (normalizer + repo `load_board`/`save_board`, or repo in `account_repository.py`); `build_studio_node_intelligence` (in `dashboard.py` or a small module); `static/artboard.js`; tests for each.
-- **Changed:** `templates/studio.html` (placeholder → real canvas + panel + JS-off render); `dashboard.py` (`GET /studio` loads board; new `POST /studio/board`; new `GET /studio/node/{slug}`; `build_studio_context` provides board payload); `static/styles.css` (artboard/node/connector/panel styles from the mockup); `mne/presentation_language.py` (any new user-facing copy).
+- **Changed:** `templates/studio.html` (placeholder → thesis line + real canvas + panel + JS-off render); `dashboard.py` (`GET /studio` loads board; new `POST /studio/board`; new `GET /studio/node/{slug}`; `build_studio_context` provides board payload); `static/styles.css` (artboard/node/connector/panel styles from the mockup); `mne/presentation_language.py` (any new user-facing copy).
