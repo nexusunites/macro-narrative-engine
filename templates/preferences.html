@@ -6,7 +6,7 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
 </head>
-<body class="user-historical-page app-topbar-page">
+<body class="app-topbar-page preferences-account-v2-page">
   {% set active_tier = "preferences" %}{% set hide_admin_nav = current_user.role != 'ADMIN' %}
   {% include "_partials/app_topbar.html" %}
   <main class="page-shell preferences-shell">

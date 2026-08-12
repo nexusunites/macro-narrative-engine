@@ -103,6 +103,14 @@ class DesignSystemStructureTests(unittest.TestCase):
             source = Path("templates", template).read_text(encoding="utf-8")
             self.assertIn('_partials/app_rail.html', source)
 
+    def test_preferences_and_account_use_v2_topbar_scope(self):
+        for template in ("preferences.html", "account.html"):
+            with self.subTest(template=template):
+                source = Path("templates", template).read_text(encoding="utf-8")
+                self.assertIn("app-topbar-page", source)
+                self.assertIn("preferences-account-v2-page", source)
+                self.assertNotIn("user-historical-page", source)
+
     def test_research_finder_is_progressive_and_uses_real_topic_controls(self):
         source = Path("templates/research_selector.html").read_text(encoding="utf-8")
         script = Path("static/research_finder.js").read_text(encoding="utf-8")

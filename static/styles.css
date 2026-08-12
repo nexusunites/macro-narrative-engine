@@ -3093,6 +3093,30 @@ body.historical-v2-page {
     var(--bg);
 }
 
+body.preferences-account-v2-page {
+  --bg: #0b0e11;
+  --panel: #12171d;
+  --panel-soft: #171d25;
+  --panel-raised: #171d25;
+  --border: rgba(255, 255, 255, .07);
+  --border-strong: rgba(255, 255, 255, .14);
+  --line: var(--border);
+  --line-strong: var(--border-strong);
+  --text: #edf1f5;
+  --muted: #8b95a3;
+  --muted-strong: #b9c2cd;
+  --up: #2dd4bf;
+  --teal: #2dd4bf;
+  --teal-bright: #5eead4;
+  --amber: #f0a64b;
+  --brand-accent: var(--teal-bright);
+  --accent: var(--teal-bright);
+  --warn: var(--amber);
+  background:
+    radial-gradient(circle at 14% 8%, rgba(45, 212, 191, .08), transparent 32rem),
+    var(--bg);
+}
+
 .historical-v2-page .glow-teal {
   box-shadow: 0 0 0 1px rgba(45, 212, 191, .28), 0 0 28px rgba(45, 212, 191, .08);
 }
