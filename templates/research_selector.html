@@ -59,7 +59,7 @@
 
         <div class="nrv-list" id="nrvList">
           {% for narrative in finder_index.narratives %}
-            <article class="nrv-card"
+            <article class="nrv-card{% if narrative.scored %} direction-{{ narrative.direction }}{% endif %}"
                      data-narrative-card
                      data-search="{{ narrative.search_text }}"
                      data-themes="{{ narrative.themes|join(',') }}"
@@ -106,7 +106,7 @@
               {% if narrative.stories %}
                 <div class="nrv-stories">
                   {% for story in narrative.stories %}
-                    <div class="story-chip" data-story data-slug="{{ story.slug }}" data-search="{{ story.search_text }}" data-theme="{{ story.theme }}">
+                    <div class="story-chip direction-{{ story.direction }}" data-story data-slug="{{ story.slug }}" data-search="{{ story.search_text }}" data-theme="{{ story.theme }}">
                       <span class="sc-glyph direction-{{ story.direction }}" aria-hidden="true">{{ '▲' if story.direction == 'up' else '▼' if story.direction == 'down' else '→' }}</span>
                       <span>{{ story.display_name }}</span>
                       {% if current_user and can_save_stories %}

@@ -114,6 +114,7 @@ class DesignSystemStructureTests(unittest.TestCase):
     def test_research_finder_is_progressive_and_uses_real_topic_controls(self):
         source = Path("templates/research_selector.html").read_text(encoding="utf-8")
         script = Path("static/research_finder.js").read_text(encoding="utf-8")
+        css = Path("static/styles.css").read_text(encoding="utf-8")
         for marker in ("finderInput", "finderClear", "chipCrypto", "nrvList", "indexEmpty"):
             self.assertIn(marker, source)
         for theme in ("ai", "rates", "inflation", "energy", "recession"):
@@ -122,6 +123,10 @@ class DesignSystemStructureTests(unittest.TestCase):
         self.assertIn("data-story", source)
         self.assertIn("activeThemes", script)
         self.assertNotIn("fetch(", script)
+        self.assertIn('nrv-card{% if narrative.scored %} direction-', source)
+        self.assertIn('story-chip direction-{{ story.direction }}', source)
+        self.assertIn(".research-finder-page .state-chip.direction-up", css)
+        self.assertIn(".research-finder-page .nrv-card.direction-up", css)
 
     def test_studio_shell_has_saved_rail_placeholder_and_compare_panel(self):
         source = Path("templates/studio.html").read_text(encoding="utf-8")
@@ -136,6 +141,8 @@ class DesignSystemStructureTests(unittest.TestCase):
         self.assertIn("Sprint Q: artboard canvas", source)
         for excluded in ("dropzone", "connectors", "draggable"):
             self.assertNotIn(excluded, source)
+        self.assertIn("background: var(--teal)", styles)
+        self.assertIn(".studio-compare-card", styles)
 
     def test_investigation_v2_has_real_jump_targets_and_sprint_m_modules(self):
         source = Path("templates/narrative_investigation.html").read_text(encoding="utf-8")
