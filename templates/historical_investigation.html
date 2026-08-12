@@ -3,21 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Historical Investigation · MNE</title>
+  <title>{{ copy.investigation_page_title }}</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
   <script src="{{ url_for('static', path='ai_analyst.js') }}" defer></script>
   <script src="{{ url_for('static', path='personalization.js') }}" defer></script>
 </head>
-<body class="user-historical-page">
+<body class="app-topbar-page historical-v2-page historical-investigation-page">
   {% set active_tier = "historical" %}
-  {% include "_partials/app_rail.html" %}
-  <header class="site-header investigation-header-static">
-    <div class="brand-row"><a class="brand" href="/">Macro Narrative Engine</a></div>
-  </header>
+  {% include "_partials/app_topbar.html" %}
   <main class="page-shell historical-user-shell">
     {% if historical %}
     <div class="historical-save-control">
-      <button type="button" data-save-history data-view-type="investigation" data-replay-id="{{ saved_replay_id }}" data-label="Reconstruction — {{ historical.date }}">Save investigation</button>
+      <button type="button" data-save-history data-view-type="investigation" data-replay-id="{{ saved_replay_id }}" data-label="{{ copy.investigation_save_label }} — {{ historical.date }}">{{ copy.investigation_save }}</button>
     </div>
     {% endif %}
     {% if not_found %}
@@ -25,63 +23,64 @@
         <p class="eyebrow">{{ copy.archive_label }}</p>
         <h1>{{ copy.unavailable_title }}</h1>
         <p>{{ copy.unavailable_body }}</p>
-        <a class="accent-link" href="/history">Browse historical narratives →</a>
+        <a class="accent-link" href="/history">{{ copy.investigation_browse }}</a>
       </section>
     {% else %}
-      <section class="historical-user-banner" aria-label="Historical context">
+      <section class="historical-user-banner" aria-label="{{ copy.investigation_context_label }}">
         <strong>{{ copy.historical_banner }}</strong>
-        <span>Evidence cutoff: {{ historical.cutoff }}</span>
+        <span>{{ copy.investigation_cutoff }}: {{ historical.cutoff }}</span>
         <span>{{ copy.read_only }}</span>
         <span>{{ copy.not_current }}</span>
       </section>
 
-      <nav class="zone-jump investigation-nav-sticky" aria-label="Historical investigation sections">
-        <a href="#historical-snapshot">Snapshot</a>
-        <a href="#historical-explanation">Explanation</a>
-        <a href="#historical-evidence">Evidence</a>
-        <a href="#historical-coverage">Coverage</a>
-        <a href="#historical-next">Next</a>
+      <nav class="jump-nav investigation-nav-sticky" aria-label="{{ copy.investigation_sections_label }}">
+        <a href="#historical-snapshot">{{ copy.investigation_jump_snapshot }}</a>
+        <a href="#historical-explanation">{{ copy.investigation_jump_explanation }}</a>
+        <a href="#historical-evidence">{{ copy.investigation_jump_evidence }}</a>
+        <a href="#historical-coverage">{{ copy.investigation_jump_coverage }}</a>
+        <a href="#historical-next">{{ copy.investigation_jump_next }}</a>
       </nav>
 
-      <section class="content-section historical-user-zone" id="historical-snapshot">
+      <div class="historical-v2-stack">
+      <section class="content-section historical-user-zone investigation-v2-card glow-teal" id="historical-snapshot">
         <div class="investigation-zone-heading">
-          <p class="eyebrow">Historical Snapshot</p>
+          <p class="eyebrow">{{ copy.investigation_snapshot_label }}</p>
           <h1>{{ historical.explanation.headline }}</h1>
           <p>{{ historical.explanation.why_it_matters }}</p>
           {% for point in historical.explanation.supporting_points %}<p>{{ point }}</p>{% endfor %}
         </div>
-        <details class="why-expander section-why"><summary>Supporting details</summary>
+        <details class="why-expander section-why"><summary>{{ copy.investigation_supporting_details }}</summary>
         <div class="historical-user-snapshot">
           <article class="historical-primary-panel">
-            <span>Leading market story</span>
+            <span>{{ copy.investigation_leading_story }}</span>
             <strong>{{ historical.dominant_group or historical.dominant_theme }}</strong>
             {% if historical.dominant_group and historical.dominant_theme %}<p>{{ historical.dominant_theme }}</p>{% endif %}
           </article>
           <dl class="historical-user-facts">
-            {% if historical.theme_score_label %}<div><dt>Theme strength</dt><dd>{{ historical.theme_score_label }}</dd></div>{% endif %}
-            {% if historical.group_score_label %}<div><dt>Group strength</dt><dd>{{ historical.group_score_label }}</dd></div>{% endif %}
-            {% if historical.evidence_label %}<div><dt>Evidence</dt><dd>{{ historical.evidence_label }}</dd></div>{% endif %}
-            {% if historical.source_label %}<div><dt>Sources</dt><dd>{{ historical.source_label }}</dd></div>{% endif %}
-            {% if historical.breadth.label %}<div><dt>Coverage</dt><dd>{{ historical.breadth.label }}</dd></div>{% endif %}
+            {% if historical.theme_score_label %}<div><dt>{{ copy.investigation_theme_strength }}</dt><dd>{{ historical.theme_score_label }}</dd></div>{% endif %}
+            {% if historical.group_score_label %}<div><dt>{{ copy.investigation_group_strength }}</dt><dd>{{ historical.group_score_label }}</dd></div>{% endif %}
+            {% if historical.evidence_label %}<div><dt>{{ copy.evidence_label }}</dt><dd>{{ historical.evidence_label }}</dd></div>{% endif %}
+            {% if historical.source_label %}<div><dt>{{ copy.investigation_sources }}</dt><dd>{{ historical.source_label }}</dd></div>{% endif %}
+            {% if historical.breadth.label %}<div><dt>{{ copy.coverage_label }}</dt><dd>{{ historical.breadth.label }}</dd></div>{% endif %}
           </dl>
         </div>
           <p>{{ historical.breadth.meaning }}</p>
-          <small>Engine values: Dominant Theme · {{ historical.why.dominant_theme }}; Dominant Group · {{ historical.why.dominant_group }}; theme score · {{ historical.why.theme_score }}; group score · {{ historical.why.group_score }}; evidence count · {{ historical.why.evidence_count }}; source count · {{ historical.why.source_count }}{% if historical.why.breadth_state %}; coverage breadth · {{ historical.why.breadth_state }}{% endif %}</small>
+          <small>{{ copy.investigation_engine_values }}: {{ copy.investigation_engine_theme }} · {{ historical.why.dominant_theme }}; {{ copy.investigation_engine_group }} · {{ historical.why.dominant_group }}; {{ copy.investigation_engine_theme_score }} · {{ historical.why.theme_score }}; {{ copy.investigation_engine_group_score }} · {{ historical.why.group_score }}; {{ copy.investigation_engine_evidence_count }} · {{ historical.why.evidence_count }}; {{ copy.investigation_engine_source_count }} · {{ historical.why.source_count }}{% if historical.why.breadth_state %}; {{ copy.investigation_engine_breadth }} · {{ historical.why.breadth_state }}{% endif %}</small>
         </details>
       </section>
 
-      <section class="content-section historical-user-zone" id="historical-explanation">
+      <section class="content-section historical-user-zone investigation-v2-card" id="historical-explanation">
         <div class="investigation-zone-heading">
-          <p class="eyebrow">Narrative Explanation</p>
-          <h2>What was shaping the market story?</h2>
+          <p class="eyebrow">{{ copy.investigation_explanation_label }}</p>
+          <h2>{{ copy.investigation_explanation_title }}</h2>
         </div>
         <article class="investigation-brief"><p>{{ historical.summary }}</p></article>
       </section>
 
-      <section class="content-section historical-user-zone" id="historical-evidence">
+      <section class="content-section historical-user-zone investigation-v2-card" id="historical-evidence">
         <div class="investigation-zone-heading">
-          <p class="eyebrow">Supporting Historical Evidence</p>
-          <h2>What evidence supported the reconstruction?</h2>
+          <p class="eyebrow">{{ copy.investigation_evidence_label }}</p>
+          <h2>{{ copy.investigation_evidence_title }}</h2>
         </div>
         {% if historical.evidence %}
           <div class="historical-user-evidence-layout">
@@ -91,7 +90,7 @@
                   <article class="historical-user-evidence-card">
                     <h3>{{ evidence.title }}</h3>
                     <p>{{ evidence.source_name }}{% if evidence.provider and evidence.provider != evidence.source_name %} · {{ evidence.provider }}{% endif %}{% if evidence.published_at %} · {{ evidence.published_at }}{% endif %}</p>
-                    {% if evidence.attribution %}<p>Narrative: {{ evidence.attribution }}</p>{% endif %}
+                    {% if evidence.attribution %}<p>{{ copy.investigation_narrative_label }}: {{ evidence.attribution }}</p>{% endif %}
                     <p>{{ evidence.origin_explanation }}</p>
                     {% if evidence.url %}
                       <a href="{{ evidence.url }}" target="_blank" rel="noopener noreferrer">{{ copy.read_original }}</a>
@@ -100,11 +99,11 @@
                     {% endif %}
                     {% if evidence.reader_summary %}
                       <details class="why-expander">
-                        <summary>Why?</summary>
+                        <summary>{{ copy.investigation_why }}</summary>
                         <p>{{ evidence.reader_summary.why_it_matters }}</p>
                         <p>{{ evidence.reader_summary.narrative_connection }}</p>
                       </details>
-                      <button class="evidence-card-button historical-reader-button" type="button" data-evidence-reader-target="user-historical-reader-{{ loop.index0 }}" aria-controls="user-historical-reader-{{ loop.index0 }}" aria-expanded="false">Open Evidence Reader</button>
+                      <button class="evidence-card-button historical-reader-button" type="button" data-evidence-reader-target="user-historical-reader-{{ loop.index0 }}" aria-controls="user-historical-reader-{{ loop.index0 }}" aria-expanded="false">{{ copy.investigation_open_reader }}</button>
                     {% endif %}
                   </article>
                 </li>
@@ -112,11 +111,11 @@
             </ul>
             <aside class="evidence-reader-panel historical-reader-panel" aria-live="polite">
               <div class="subsection-heading">
-                <p class="eyebrow">Evidence Reader</p>
-                <h3>Headline-level explanation</h3>
+                <p class="eyebrow">{{ copy.investigation_reader_label }}</p>
+                <h3>{{ copy.investigation_reader_title }}</h3>
               </div>
               <div class="evidence-reader-empty" data-evidence-reader-empty>
-                <p>Select an evidence item to inspect its narrative connection.</p>
+                <p>{{ copy.investigation_reader_empty }}</p>
               </div>
               {% for evidence in historical.evidence %}
                 {% if evidence.reader_summary %}
@@ -126,13 +125,13 @@
                       <p>{{ evidence.source_name }}{% if evidence.published_at %} · {{ evidence.published_at }}{% endif %}</p>
                     </div>
                     <dl class="evidence-reader-sections">
-                      <div><dt>Main point</dt><dd>{{ evidence.reader_summary.main_point }}</dd></div>
-                      <div><dt>Why it matters</dt><dd>{{ evidence.reader_summary.why_it_matters }}</dd></div>
-                      <div><dt>Narrative connection</dt><dd>{{ evidence.reader_summary.narrative_connection }}</dd></div>
+                      <div><dt>{{ copy.investigation_main_point }}</dt><dd>{{ evidence.reader_summary.main_point }}</dd></div>
+                      <div><dt>{{ copy.investigation_why_it_matters }}</dt><dd>{{ evidence.reader_summary.why_it_matters }}</dd></div>
+                      <div><dt>{{ copy.investigation_narrative_connection }}</dt><dd>{{ evidence.reader_summary.narrative_connection }}</dd></div>
                     </dl>
                     <div class="evidence-reader-actions">
                       {% if evidence.url %}<a href="{{ evidence.url }}" target="_blank" rel="noopener noreferrer">{{ copy.read_original }}</a>{% else %}<span>{{ copy.missing_link }}</span>{% endif %}
-                      <button type="button" data-evidence-reader-close>Close</button>
+                      <button type="button" data-evidence-reader-close>{{ copy.investigation_close }}</button>
                     </div>
                   </div>
                 {% endif %}
@@ -147,10 +146,10 @@
         {% endif %}
       </section>
 
-      <section class="content-section historical-user-zone" id="historical-coverage">
+      <section class="content-section historical-user-zone investigation-v2-card glow-amber" id="historical-coverage">
         <div class="investigation-zone-heading">
-          <p class="eyebrow">Coverage and Limitations</p>
-          <h2>How much of the historical record is represented?</h2>
+          <p class="eyebrow">{{ copy.investigation_coverage_label }}</p>
+          <h2>{{ copy.investigation_coverage_title }}</h2>
         </div>
         {% if historical.coverage and historical.breadth.label %}
           <p class="coverage-state">{{ historical.breadth.label }}</p>
@@ -165,13 +164,14 @@
       </section>
 
       {% include "_partials/ai_analyst.html" %}
-      <section class="content-section historical-user-zone" id="historical-next">
+      <section class="content-section historical-user-zone investigation-v2-card" id="historical-next">
         <div class="investigation-zone-heading">
-          <p class="eyebrow">Where to Look Next</p>
-          <h2>Continue historical research</h2>
+          <p class="eyebrow">{{ copy.investigation_next_label }}</p>
+          <h2>{{ copy.investigation_next_title }}</h2>
         </div>
-        <a class="accent-link" href="/history">Explore another historical narrative →</a>
+        <a class="accent-link" href="/history">{{ copy.investigation_next_link }}</a>
       </section>
+      </div>
     {% endif %}
   </main>
   {% include "_partials/evidence_reader_script.html" %}

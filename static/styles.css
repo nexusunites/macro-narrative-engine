@@ -3069,17 +3069,76 @@ pre {
   color: var(--status-neutral);
 }
 
-.user-historical-page {
-  --brand-accent: var(--up);
-  --accent: var(--up);
-  --warn: var(--down);
+body.historical-v2-page {
+  --bg: #0b0e11;
+  --panel: #12171d;
+  --panel-soft: #171d25;
+  --panel-raised: #171d25;
+  --border: rgba(255, 255, 255, .07);
+  --border-strong: rgba(255, 255, 255, .14);
+  --line: var(--border);
+  --line-strong: var(--border-strong);
+  --text: #edf1f5;
+  --muted: #8b95a3;
+  --muted-strong: #b9c2cd;
+  --up: #2dd4bf;
+  --teal: #2dd4bf;
+  --teal-bright: #5eead4;
+  --amber: #f0a64b;
+  --brand-accent: var(--teal-bright);
+  --accent: var(--teal-bright);
+  --warn: var(--amber);
   background:
-    linear-gradient(135deg, var(--tier-historical), transparent 38rem),
+    radial-gradient(circle at 14% 8%, rgba(45, 212, 191, .08), transparent 32rem),
     var(--bg);
+}
+
+.historical-v2-page .glow-teal {
+  box-shadow: 0 0 0 1px rgba(45, 212, 191, .28), 0 0 28px rgba(45, 212, 191, .08);
+}
+
+.historical-v2-page .glow-amber {
+  box-shadow: 0 0 0 1px rgba(240, 166, 75, .24), 0 0 28px rgba(240, 166, 75, .06);
+}
+
+.historical-v2-page .jump-nav {
+  position: sticky;
+  top: 8px;
+  z-index: 8;
+  display: flex;
+  gap: 6px;
+  margin: 0 0 18px;
+  padding: 8px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(11, 14, 17, .92);
+  backdrop-filter: blur(14px);
+  scrollbar-width: none;
+}
+
+.historical-v2-page .jump-nav a {
+  flex: 0 0 auto;
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: var(--muted-strong);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.historical-v2-page .jump-nav a:hover {
+  background: var(--panel-raised);
+  color: var(--text);
+}
+
+.historical-v2-page [id] {
+  scroll-margin-top: 82px;
 }
 
 .historical-user-shell {
   max-width: 1180px;
+  padding-top: clamp(1.5rem, 4vw, 3rem);
+  padding-bottom: 5rem;
 }
 
 .historical-user-hero,
@@ -3087,13 +3146,15 @@ pre {
 .historical-user-zone,
 .historical-selector-card,
 .historical-user-empty {
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
+  border-radius: 18px;
   background: var(--panel);
 }
 
 .historical-user-hero {
   padding: clamp(1.5rem, 4vw, 3.5rem);
   margin-bottom: 1.5rem;
+  overflow: hidden;
 }
 
 .historical-user-hero h1 {
@@ -3108,16 +3169,21 @@ pre {
 }
 
 .historical-selector-card {
+  position: relative;
   color: inherit;
   text-decoration: none;
   padding: 1.35rem;
-  transition: border-color 160ms ease, transform 160ms ease;
+  background:
+    linear-gradient(180deg, rgba(45, 212, 191, .035), transparent 58%),
+    var(--panel);
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
 .historical-selector-card:hover,
 .historical-selector-card:focus-visible {
-  border-color: var(--brand-accent);
+  border-color: var(--teal);
   transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .2);
 }
 
 .historical-card-heading {
@@ -3132,15 +3198,12 @@ pre {
   font-weight: 700;
 }
 
-.historical-limited-badge,
-.historical-user-banner {
-  background: var(--tier-historical);
-}
-
 .historical-limited-badge {
-  border: 1px solid var(--border);
+  border: 1px solid rgba(240, 166, 75, .4);
   border-radius: 999px;
   padding: .25rem .55rem;
+  background: rgba(240, 166, 75, .08);
+  color: var(--amber);
   font-size: .75rem;
 }
 
@@ -3176,10 +3239,22 @@ pre {
   align-items: center;
   padding: .9rem 1.1rem;
   margin-bottom: 1rem;
+  border-color: rgba(240, 166, 75, .32);
+  background: rgba(240, 166, 75, .055);
+  color: var(--muted-strong);
+}
+
+.historical-user-banner strong {
+  color: var(--amber);
 }
 
 .historical-user-zone {
-  margin-top: 1rem;
+  margin-top: 0;
+}
+
+.historical-v2-stack {
+  display: grid;
+  gap: 1rem;
 }
 
 .historical-user-snapshot {
@@ -3197,7 +3272,9 @@ pre {
 
 .historical-user-facts div {
   padding: 1rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-raised);
 }
 
 .historical-user-facts dt {
@@ -3213,6 +3290,8 @@ pre {
 
 .historical-user-evidence-card {
   padding: 1.15rem;
+  border-radius: 14px;
+  background: var(--panel-raised);
 }
 
 .historical-user-evidence-card h3 {
@@ -3234,7 +3313,8 @@ pre {
   width: auto;
   margin-top: .75rem;
   padding: .55rem .75rem;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
   color: var(--text);
 }
 
@@ -3245,7 +3325,7 @@ pre {
 }
 
 .accent-link {
-  color: var(--brand-accent);
+  color: var(--teal-bright);
   font-weight: 650;
   text-underline-offset: .2em;
 }
@@ -3262,8 +3342,18 @@ pre {
 .historical-request-coverage {
   margin-top: 1rem;
   padding: 1.25rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
+  border-radius: 16px;
   background: var(--panel);
+}
+
+.historical-request-form {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025);
+}
+
+.historical-request-coverage {
+  border-color: rgba(240, 166, 75, .28);
+  background: rgba(240, 166, 75, .045);
 }
 
 .historical-request-dates {
@@ -3281,8 +3371,9 @@ pre {
   width: 100%;
   margin-top: .45rem;
   padding: .7rem;
-  border: 1px solid var(--border-strong);
-  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--panel-raised);
   color: var(--text);
 }
 
@@ -3303,7 +3394,18 @@ pre {
   display: flex;
   gap: .7rem;
   padding: 1rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-raised);
+}
+
+.historical-request-category:has(input:checked) {
+  border-color: var(--teal);
+  box-shadow: inset 3px 0 0 var(--teal);
+}
+
+.historical-request-category input {
+  accent-color: var(--teal);
 }
 
 .historical-request-category input {
@@ -3326,11 +3428,18 @@ pre {
 .historical-request-form button {
   width: auto;
   padding: .7rem 1rem;
+  border-color: var(--teal);
+  border-radius: 10px;
+  background: var(--teal);
+  color: #071311;
 }
 
 .historical-request-error {
   padding: .9rem 1rem;
-  border: 1px solid var(--border-strong);
+  border: 1px solid rgba(240, 166, 75, .4);
+  border-radius: 12px;
+  background: rgba(240, 166, 75, .06);
+  color: var(--amber);
 }
 
 .historical-request-coverage p {

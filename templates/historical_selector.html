@@ -3,19 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Historical Narratives · MNE</title>
+  <title>{{ copy.archive_page_title }}</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
 </head>
-<body class="user-historical-page">
+<body class="app-topbar-page historical-v2-page">
   {% set active_tier = "historical" %}
-  {% include "_partials/app_rail.html" %}
-  <header class="site-header investigation-header-static">
-    <div class="brand-row"><a class="brand" href="/">Macro Narrative Engine</a></div>
-  </header>
+  {% include "_partials/app_topbar.html" %}
   <main class="page-shell historical-user-shell">
-    <section class="historical-user-hero">
+    <section class="historical-user-hero glow-teal">
       <p class="eyebrow">{{ copy.archive_label }}</p>
-      <h1>Explore earlier market narratives</h1>
+      <h1>{{ copy.archive_title }}</h1>
       <p>{{ copy.archive_intro }}</p>
       <div class="historical-explore-links">
         <a class="accent-link" href="/history/request">{{ copy.request_entry }}</a>
@@ -34,8 +32,8 @@
             <h2>{{ replay.dominant_group or replay.dominant_theme }}</h2>
             {% if replay.dominant_group and replay.dominant_theme %}<p>{{ replay.dominant_theme }}</p>{% endif %}
             <dl>
-              {% if replay.evidence_label %}<div><dt>Evidence</dt><dd>{{ replay.evidence_label }}</dd></div>{% endif %}
-              {% if replay.breadth.label %}<div><dt>Coverage</dt><dd>{{ replay.breadth.label }}</dd></div>{% endif %}
+              {% if replay.evidence_label %}<div><dt>{{ copy.evidence_label }}</dt><dd>{{ replay.evidence_label }}</dd></div>{% endif %}
+              {% if replay.breadth.label %}<div><dt>{{ copy.coverage_label }}</dt><dd>{{ replay.breadth.label }}</dd></div>{% endif %}
             </dl>
             {% if replay.summary %}<p class="historical-card-summary">{{ replay.summary }}</p>{% endif %}
           </a>

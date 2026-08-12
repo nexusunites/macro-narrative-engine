@@ -1,9 +1,10 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Access unavailable · MNE</title><link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}"></head>
-<body class="user-historical-page">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ copy.access_page_title }}</title><link rel="icon" href="data:,"><link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}"></head>
+<body class="app-topbar-page historical-v2-page">
   {% from "_partials/locked_state.html" import locked_state %}
-  {% include "_partials/app_rail.html" %}
-  <main class="page-shell locked-state-shell">{{ locked_state("Access unavailable", message, upgrade_prompt, usage_lines, true) }}</main>
+  {% set active_tier = "historical" %}
+  {% include "_partials/app_topbar.html" %}
+  <main class="page-shell locked-state-shell">{{ locked_state(copy.access_title, message, upgrade_prompt, usage_lines, true) }}</main>
 </body>
 </html>

@@ -210,6 +210,7 @@ async def calm_entitlement_error(request: Request, error: EntitlementDenied):
             "message": message,
             "upgrade_prompt": ENTITLEMENT_COPY["upgrade_prompt"],
             "usage_lines": (),
+            "copy": HISTORICAL_COPY,
         },
         status_code=403,
     )

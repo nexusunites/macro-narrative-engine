@@ -84,6 +84,9 @@ class DesignSystemStructureTests(unittest.TestCase):
             "sector_isolation.html", "asset_exploration.html",
             "asset_execution.html", "narrative_history.html",
             "preferences.html", "account.html",
+            "historical_selector.html", "historical_request.html",
+            "historical_request_status.html", "entitlement_denied.html",
+            "historical_investigation.html",
         )
         for template in migrated:
             with self.subTest(template=template):
@@ -93,7 +96,10 @@ class DesignSystemStructureTests(unittest.TestCase):
                 self.assertNotIn("Latest meaningful run:", source)
                 self.assertIn("app-topbar-page", source)
 
-        for template in ("admin.html", "historical_selector.html"):
+        for template in (
+            "admin.html", "historical_workflow.html",
+            "historical_research.html", "historical_comparison.html",
+        ):
             source = Path("templates", template).read_text(encoding="utf-8")
             self.assertIn('_partials/app_rail.html', source)
 
