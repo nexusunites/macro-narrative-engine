@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ copy.eyebrow }} · MNE</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body class="app-topbar-page studio-page">
+  {% include "_partials/app_topbar.html" %}
+
+  <main class="page-shell studio-shell">
+    <div class="studio-grid">
+      <aside class="studio-rail" aria-label="{{ copy.rail_label }}">
+        {% if not signed_in %}
+          <section class="studio-rail-card studio-sign-in">
+            <p>{{ copy.sign_in }}</p>
+            <a href="/login?next=/studio">{{ copy.sign_in_action }}</a>
+          </section>
+        {% else %}
+          <section class="studio-rail-card">
+            <div class="studio-rail-head">
+              <h2>{{ copy.watchlist }}</h2>
+              <span>{{ watchlist|length }}</span>
+            </div>
+            <p class="studio-rail-note">{{ copy.watchlist_note }}</p>
+            <div class="studio-rail-list">
+              {% for story in watchlist %}
+                <div class="studio-rail-row">
+                  <span class="studio-rail-glyph direction-{{ story.direction }}" aria-hidden="true">{{ '▲' if story.direction == 'up' else '▼' if story.direction == 'down' else '→' }}</span>
+                  <span class="studio-rail-name">{{ story.display_name }}</span>
+                </div>
+              {% else %}
+                <p class="studio-rail-empty">{{ copy.watchlist_empty }}</p>
+              {% endfor %}
+            </div>
+          </section>
+
+          <section class="studio-rail-card">
+            <div class="studio-rail-head">
+              <h2>{{ copy.saved }}</h2>
+              <span>{{ saved|length }}</span>
+            </div>
+            <p class="studio-rail-note">{{ copy.saved_note }}</p>
+            <div class="studio-rail-list">
+              {% for story in saved %}
+                <div class="studio-rail-row">
+                  <span class="studio-rail-glyph direction-{{ story.direction }}" aria-hidden="true">{{ '▲' if story.direction == 'up' else '▼' if story.direction == 'down' else '→' }}</span>
+                  <span class="studio-rail-name">{{ story.display_name }}</span>
+                  {% if story.tracked %}<span class="studio-tracked-mark">{{ copy.tracked }}</span>{% endif %}
+                </div>
+              {% else %}
+                <p class="studio-rail-empty">{{ copy.empty }}</p>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+      </aside>
+
+      <section class="studio-main" aria-labelledby="studio-title">
+        <header class="studio-heading">
+          <div class="studio-eyebrow-row">
+            <span class="eyebrow">{{ copy.eyebrow }}</span>
+            <span class="studio-concept-tag">{{ copy.concept_tag }}</span>
+          </div>
+          <h1 id="studio-title">{{ copy.headline }}</h1>
+          <p>{{ copy.subtitle }}</p>
+        </header>
+
+        {# Sprint Q: artboard canvas #}
+        <section class="studio-artboard-placeholder" aria-labelledby="studio-placeholder-title">
+          <div>
+            <span class="studio-concept-tag">{{ copy.concept_tag }}</span>
+            <h2 id="studio-placeholder-title">{{ copy.placeholder_title }}</h2>
+            <p>{{ copy.placeholder_body }}</p>
+          </div>
+        </section>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

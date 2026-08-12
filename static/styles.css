@@ -5668,3 +5668,60 @@ input:focus-visible,
   .research-finder-page .nrv-card:hover,
   .research-finder-page .investigate-btn:hover { transform: none !important; }
 }
+
+/* Studio shell — Sprint O, Design System v2 */
+.studio-page {
+  --bg: #0b0e11;
+  --panel: #12171d;
+  --panel-raised: #171d25;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --text: #edf1f5;
+  --muted: #8b95a3;
+  --muted-strong: #b9c2cd;
+  --teal: #2dd4bf;
+  --teal-bright: #5eead4;
+  --amber: #f0a64b;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.studio-shell { padding-top: clamp(32px, 6vw, 72px); padding-bottom: 72px; }
+.studio-grid { display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 24px; align-items: start; }
+.studio-rail { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 16px; min-width: 0; }
+.studio-rail-card { padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.studio-rail-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.studio-rail-head h2 { margin: 0; color: var(--muted-strong); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.studio-rail-head > span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.studio-rail-note { margin: 6px 0 12px; color: var(--muted); font-size: 11.5px; line-height: 1.45; }
+.studio-rail-list { display: flex; flex-direction: column; gap: 2px; }
+.studio-rail-row { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 8px 4px; border-radius: 10px; transition: background 150ms ease; }
+.studio-rail-row:hover { background: var(--panel-raised); }
+.studio-rail-glyph { flex: 0 0 auto; width: 12px; color: var(--muted-strong); text-align: center; font-size: 11px; font-weight: 700; }
+.studio-rail-glyph.direction-up { color: var(--teal-bright); }
+.studio-rail-glyph.direction-down { color: var(--amber); }
+.studio-rail-name { flex: 1; min-width: 0; overflow: hidden; color: var(--text); font-size: 13.5px; text-overflow: ellipsis; white-space: nowrap; }
+.studio-tracked-mark { flex: 0 0 auto; padding: 2px 7px; border: 1px solid rgba(45, 212, 191, .28); border-radius: 999px; background: rgba(45, 212, 191, .1); color: var(--teal-bright); font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.studio-rail-empty { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.studio-sign-in p { margin: 0 0 12px; color: var(--muted-strong); font-size: 13px; line-height: 1.5; }
+.studio-sign-in a { display: inline-flex; padding: 7px 12px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--text); font-size: 12.5px; font-weight: 600; text-decoration: none; }
+
+.studio-main { display: flex; min-width: 0; flex-direction: column; gap: 22px; }
+.studio-eyebrow-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.studio-concept-tag { display: inline-flex; padding: 4px 9px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted-strong); font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.studio-heading h1 { max-width: 840px; margin: 14px 0 10px; font-size: clamp(42px, 6vw, 72px); letter-spacing: -.035em; text-wrap: balance; }
+.studio-heading > p { max-width: 720px; margin: 0; color: var(--muted-strong); font-size: 16px; line-height: 1.55; }
+.studio-artboard-placeholder { display: grid; min-height: 380px; place-items: center; padding: 24px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, .05) 1px, transparent 0) 0 0 / 22px 22px, var(--panel); text-align: center; }
+.studio-artboard-placeholder > div { max-width: 520px; }
+.studio-artboard-placeholder h2 { margin: 16px 0 8px; font-size: 22px; }
+.studio-artboard-placeholder p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+
+@media (max-width: 760px) {
+  .studio-grid { grid-template-columns: minmax(0, 1fr); }
+  .studio-rail { position: static; }
+  .studio-heading h1 { font-size: clamp(38px, 12vw, 52px); }
+  .studio-artboard-placeholder { min-height: 280px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-rail-row { transition: none !important; }
+}

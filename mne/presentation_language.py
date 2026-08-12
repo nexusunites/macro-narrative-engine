@@ -201,6 +201,7 @@ DASHBOARD_PARITY_COPY = {
     "brand_full": "Macro Narrative Engine",
     "nav_overview": "Overview",
     "nav_research": "Research",
+    "nav_studio": "Studio",
     "nav_history": "History",
     "nav_preferences": "Preferences",
     "nav_sign_in": "Sign in",
@@ -285,6 +286,31 @@ RESEARCH_FINDER_COPY = {
 def research_finder_copy() -> dict[str, str]:
     """Return fixed user-facing copy for the deterministic Research finder."""
     return dict(RESEARCH_FINDER_COPY)
+
+
+STUDIO_COPY = {
+    "eyebrow": "Studio",
+    "concept_tag": "Concept · next build",
+    "headline": "Make your own connections",
+    "subtitle": "Bring the stories you are following into one workspace. The interactive artboard is coming next.",
+    "rail_label": "Your saved material",
+    "watchlist": "Watchlist",
+    "watchlist_note": "The stories you're actively tracking — a subset of Saved below.",
+    "saved": "Saved",
+    "saved_note": "Everything you starred in Research.",
+    "tracked": "Tracked",
+    "empty": "Star stories in Research to build your collection",
+    "sign_in": "Sign in to see your saved stories and watchlist.",
+    "sign_in_action": "Sign in",
+    "watchlist_empty": "Track a saved story to add it to your watchlist.",
+    "placeholder_title": "Your artboard is coming next",
+    "placeholder_body": "Soon, this space will help you arrange saved stories and explore the connections between them.",
+}
+
+
+def studio_copy() -> dict[str, str]:
+    """Return fixed user-facing copy for the Studio shell."""
+    return dict(STUDIO_COPY)
 
 
 RESEARCH_INVESTIGATION_COPY = {

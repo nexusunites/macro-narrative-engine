@@ -91,6 +91,7 @@ from mne.presentation_language import (
     dashboard_parity_copy,
     dashboard_sector_presentation,
     research_finder_copy,
+    studio_copy,
 )
 from mne.personalization import (
     SUPPORTED_ALERT_TYPES,
@@ -157,7 +158,7 @@ app = FastAPI(title="Macro Narrative Engine Dashboard")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 TOPBAR_COPY_KEYS = (
     "brand_short", "brand_full", "nav_overview", "nav_research",
-    "nav_preferences", "nav_sign_in",
+    "nav_studio", "nav_preferences", "nav_sign_in",
 )
 templates = Jinja2Templates(directory=BASE_DIR / "templates", context_processors=[
     lambda request: {
@@ -1273,7 +1274,7 @@ ATTENTION_CLOUD_COPY_KEYS = (
 
 
 DASHBOARD_PARITY_COPY_KEYS = (
-    "brand_short", "brand_full", "nav_overview", "nav_research", "nav_history",
+    "brand_short", "brand_full", "nav_overview", "nav_research", "nav_studio", "nav_history",
     "nav_preferences", "nav_sign_in", "big_picture_eyebrow", "big_picture_title",
     "big_picture_intro", "rank", "focus", "steady", "cooling", "strengthening",
     "strength", "momentum", "attention", "share", "investigate", "sector_eyebrow",
@@ -2313,6 +2314,56 @@ def build_research_context(request: Request):
     return context
 
 
+def build_studio_context(request: Request):
+    """Build the presentation-only Studio shell context from persisted saved stories."""
+    user = get_current_user(request)
+    saved_preferences = (
+        account_repository.load_preferences(user.user_id).get("saved_stories", ())
+        if user
+        else ()
+    )
+    try:
+        registry_stories = load_story_registry().stories
+    except StoryRegistryError:
+        registry_stories = ()
+    registry_by_slug = {story.slug: story for story in registry_stories}
+
+    selection = select_latest_meaningful_run(list_all_result_files(), load_result)
+    selector = build_narrative_selector(selection.run) if selection.run else ()
+    current_by_slug = {
+        story["slug"]: story
+        for narrative in selector
+        for story in narrative.get("stories", ())
+    }
+
+    saved = []
+    for item in saved_preferences:
+        registry_story = registry_by_slug.get(item.get("story_slug"))
+        if not registry_story:
+            continue
+        current = current_by_slug.get(registry_story.slug, {})
+        direction = current.get("direction")
+        if direction not in {"up", "down", "steady"}:
+            direction = "steady"
+        saved.append(
+            {
+                "display_name": registry_story.display_name,
+                "direction": direction,
+                "direction_label": current.get("direction_label") or dashboard_parity_copy("steady"),
+                "tracked": bool(item.get("tracked")),
+            }
+        )
+
+    return {
+        "request": request,
+        "active_tier": "studio",
+        "copy": studio_copy(),
+        "saved": saved,
+        "watchlist": [item for item in saved if item["tracked"]],
+        "signed_in": user is not None,
+    }
+
+
 def build_investigation_context(request: Request, key: str, admin: bool = False):
     selection = select_latest_meaningful_run(list_all_result_files(), load_result)
     run, current_file = selection.run, selection.path
@@ -2900,6 +2951,11 @@ async def change_saved_history(request: Request):
 def research_selector(request: Request):
     context = build_research_context(request)
     return templates.TemplateResponse("research_selector.html", context)
+
+
+@app.get("/studio", response_class=HTMLResponse)
+def studio_page(request: Request):
+    return templates.TemplateResponse("studio.html", build_studio_context(request))
 
 
 @app.post("/api/ai-analyst")
