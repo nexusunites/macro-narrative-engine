@@ -109,14 +109,18 @@ class DesignSystemStructureTests(unittest.TestCase):
         self.assertIn("activeThemes", script)
         self.assertNotIn("fetch(", script)
 
-    def test_studio_shell_has_saved_rail_and_placeholder_only(self):
+    def test_studio_shell_has_saved_rail_placeholder_and_compare_panel(self):
         source = Path("templates/studio.html").read_text(encoding="utf-8")
+        compare = Path("templates/_partials/studio_compare.html").read_text(encoding="utf-8")
         styles = Path("static/styles.css").read_text(encoding="utf-8")
         self.assertIn('_partials/app_topbar.html', source)
         for marker in ("studio-grid", "studio-rail", "studio-rail-row", "studio-tracked-mark", "studio-artboard-placeholder"):
             self.assertIn(marker, source + styles)
+        for marker in ("studio-compare-form", "studio-picker", "studio-compare-result"):
+            self.assertIn(marker, compare + styles)
+        self.assertIn('action="/studio/compare"', compare)
         self.assertIn("Sprint Q: artboard canvas", source)
-        for excluded in ("studio_compare", "Compare over time", "dropzone", "connectors", "draggable"):
+        for excluded in ("dropzone", "connectors", "draggable"):
             self.assertNotIn(excluded, source)
 
     def test_investigation_v2_has_real_jump_targets_and_sprint_m_modules(self):

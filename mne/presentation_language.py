@@ -305,6 +305,17 @@ STUDIO_COPY = {
     "watchlist_empty": "Track a saved story to add it to your watchlist.",
     "placeholder_title": "Your artboard is coming next",
     "placeholder_body": "Soon, this space will help you arrange saved stories and explore the connections between them.",
+    "compare_eyebrow": "Compare tool",
+    "compare_history_tag": "Was: History",
+    "compare_title": "Compare over time",
+    "compare_description": "See how a narrative looked at two points in time, side by side.",
+    "compare_point_a": "Point A",
+    "compare_point_b": "Point B",
+    "compare_vs": "vs",
+    "compare_prompt": "Pick two points in time to compare",
+    "compare_no_replays": "No saved reconstructions to compare yet",
+    "compare_leader_unavailable": "Leading narrative unavailable",
+    "compare_result": "What changed",
 }
 
 

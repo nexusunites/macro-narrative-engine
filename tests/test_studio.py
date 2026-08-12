@@ -41,7 +41,7 @@ class StudioShellTests(unittest.TestCase):
         self.assertIn("Star stories in Research to build your collection", response.text)
         self.assertIn('class="active" aria-current="page" href="/studio"', response.text)
         self.assertIn("Your artboard is coming next", response.text)
-        self.assertNotIn("Compare over time", response.text)
+        self.assertIn("Compare over time", response.text)
         self.assertNotIn("dropzone", response.text)
         self.assertNotIn("connectors", response.text)
 

@@ -5714,12 +5714,45 @@ input:focus-visible,
 .studio-artboard-placeholder > div { max-width: 520px; }
 .studio-artboard-placeholder h2 { margin: 16px 0 8px; font-size: 22px; }
 .studio-artboard-placeholder p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.studio-compare-card { padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.studio-compare-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.studio-compare-card > h2 { margin: 8px 0 6px; font-size: 20px; }
+.studio-compare-description { max-width: 62ch; margin: 0; color: var(--muted-strong); font-size: 14px; line-height: 1.55; }
+.studio-compare-form { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 14px; align-items: end; margin-top: 18px; }
+.studio-picker { display: flex; min-width: 0; flex-direction: column; gap: 8px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-raised); color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.studio-picker-value { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.studio-picker-glyph { flex: 0 0 auto; color: var(--muted-strong); font-size: 11px; }
+.studio-picker select { width: 100%; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; letter-spacing: 0; text-transform: none; }
+.studio-compare-vs { align-self: center; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.studio-compare-form > button { grid-column: 1 / -1; justify-self: start; padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 999px; background: transparent; color: var(--text); font-size: 12.5px; font-weight: 650; }
+.studio-compare-empty { margin: 18px 0 0; padding: 16px; border: 1px dashed var(--line-strong); border-radius: 12px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.studio-compare-empty strong { color: var(--text); }
+.studio-compare-empty p { margin: 4px 0 0; }
+.studio-compare-result { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+.studio-compare-result > h3 { margin: 7px 0 8px; font-size: 19px; }
+.studio-compare-result > p { margin: 6px 0; color: var(--muted-strong); font-size: 13.5px; line-height: 1.55; }
+.studio-period-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.studio-period-grid article { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-raised); }
+.studio-period-grid span { display: block; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.studio-period-grid strong { display: block; margin-top: 6px; color: var(--text); font-family: var(--mono); font-size: 14px; }
+.studio-period-grid p { margin: 6px 0 0; color: var(--muted-strong); font-size: 12.5px; }
+.studio-compare-summary { color: var(--text) !important; font-weight: 600; }
+.studio-change-section { margin-top: 18px; }
+.studio-change-section h4 { margin: 0 0 8px; font-size: 14px; }
+.studio-change-section ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.studio-change-section li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border-radius: 9px; background: var(--panel-raised); color: var(--muted-strong); font-size: 12.5px; }
+.studio-change-section .direction-up { color: var(--teal-bright); }
+.studio-change-section .direction-down { color: var(--amber); }
+.studio-change-section .direction-steady { color: var(--muted-strong); }
 
 @media (max-width: 760px) {
   .studio-grid { grid-template-columns: minmax(0, 1fr); }
   .studio-rail { position: static; }
   .studio-heading h1 { font-size: clamp(38px, 12vw, 52px); }
   .studio-artboard-placeholder { min-height: 280px; }
+  .studio-compare-form { grid-template-columns: minmax(0, 1fr); }
+  .studio-compare-vs { justify-self: center; }
+  .studio-period-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {

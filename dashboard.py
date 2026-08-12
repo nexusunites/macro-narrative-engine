@@ -2364,6 +2364,26 @@ def build_studio_context(request: Request):
     }
 
 
+def build_studio_compare_context(
+    request: Request,
+    replay_a: str = "",
+    replay_b: str = "",
+):
+    context = build_studio_context(request)
+    historical = build_user_historical_comparison_context(request, replay_a, replay_b)
+    context.update(
+        {
+            "replays": historical["replays"],
+            "comparison": historical["comparison"],
+            "invalid": historical["invalid"],
+            "replay_a": historical["replay_a"],
+            "replay_b": historical["replay_b"],
+            "historical_copy": historical["copy"],
+        }
+    )
+    return context
+
+
 def build_investigation_context(request: Request, key: str, admin: bool = False):
     selection = select_latest_meaningful_run(list_all_result_files(), load_result)
     run, current_file = selection.run, selection.path
@@ -2955,7 +2975,26 @@ def research_selector(request: Request):
 
 @app.get("/studio", response_class=HTMLResponse)
 def studio_page(request: Request):
-    return templates.TemplateResponse("studio.html", build_studio_context(request))
+    return templates.TemplateResponse("studio.html", build_studio_compare_context(request))
+
+
+@app.get("/studio/compare", response_class=HTMLResponse)
+def studio_compare(
+    request: Request,
+    replay_a: str = Query(default=""),
+    replay_b: str = Query(default=""),
+):
+    context = build_studio_compare_context(request, replay_a, replay_b)
+    if context.get("comparison"):
+        user = get_current_user(request)
+        if user:
+            require_entitlement(user, HISTORICAL_COMPARISON)
+            consume_usage(
+                user,
+                HISTORICAL_COMPARISONS,
+                object_reference="|".join(sorted((replay_a, replay_b))),
+            )
+    return templates.TemplateResponse("studio.html", context)
 
 
 @app.post("/api/ai-analyst")

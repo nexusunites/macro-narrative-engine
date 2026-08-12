@@ -1,0 +1,89 @@
+<section class="studio-compare-card" aria-labelledby="studio-compare-title">
+  <div class="studio-compare-head">
+    <span class="eyebrow">{{ copy.compare_eyebrow }}</span>
+    <span class="studio-concept-tag">{{ copy.compare_history_tag }}</span>
+  </div>
+  <h2 id="studio-compare-title">{{ copy.compare_title }}</h2>
+  <p class="studio-compare-description">{{ copy.compare_description }}</p>
+
+  {% if replays %}
+    <form class="studio-compare-form" method="get" action="/studio/compare">
+      <label class="studio-picker">
+        <span>{{ copy.compare_point_a }}</span>
+        <span class="studio-picker-value">
+          <span class="studio-picker-glyph direction-steady" aria-hidden="true">→</span>
+          <select name="replay_a" required>
+            <option value="">{{ copy.compare_point_a }}</option>
+            {% for replay in replays %}
+              <option value="{{ replay.url_id }}" {% if replay.url_id == replay_a %}selected{% endif %}>{{ replay.date }} · {{ replay.dominant_group or replay.dominant_theme or copy.compare_leader_unavailable }}</option>
+            {% endfor %}
+          </select>
+        </span>
+      </label>
+      <span class="studio-compare-vs">{{ copy.compare_vs }}</span>
+      <label class="studio-picker">
+        <span>{{ copy.compare_point_b }}</span>
+        <span class="studio-picker-value">
+          <span class="studio-picker-glyph direction-steady" aria-hidden="true">→</span>
+          <select name="replay_b" required>
+            <option value="">{{ copy.compare_point_b }}</option>
+            {% for replay in replays %}
+              <option value="{{ replay.url_id }}" {% if replay.url_id == replay_b %}selected{% endif %}>{{ replay.date }} · {{ replay.dominant_group or replay.dominant_theme or copy.compare_leader_unavailable }}</option>
+            {% endfor %}
+          </select>
+        </span>
+      </label>
+      <button type="submit">{{ historical_copy.compare_submit }}</button>
+    </form>
+  {% endif %}
+
+  {% if not replays %}
+    <p class="studio-compare-empty">{{ copy.compare_no_replays }}</p>
+  {% elif invalid %}
+    <div class="studio-compare-empty">
+      <strong>{{ historical_copy.compare_invalid_title }}</strong>
+      <p>{{ historical_copy.compare_invalid_body }}</p>
+    </div>
+  {% elif comparison %}
+    {% if comparison.same_reconstruction %}
+      <div class="studio-compare-empty">
+        <strong>{{ historical_copy.compare_same_title }}</strong>
+        <p>{{ historical_copy.compare_same_body }}</p>
+      </div>
+    {% else %}
+      <div class="studio-compare-result">
+        <span class="eyebrow">{{ copy.compare_result }}</span>
+        <h3>{{ comparison.explanation.headline }}</h3>
+        {% if comparison.explanation.why_it_matters %}<p>{{ comparison.explanation.why_it_matters }}</p>{% endif %}
+        {% for point in comparison.explanation.supporting_points %}<p>{{ point }}</p>{% endfor %}
+        {% for limitation in comparison.explanation.limitations %}<p>{{ limitation }}</p>{% endfor %}
+        <div class="studio-period-grid">
+          {% for period, label in [(comparison.period_a, historical_copy.compare_earlier), (comparison.period_b, historical_copy.compare_later)] %}
+            <article>
+              <span>{{ label }}</span>
+              <strong>{{ period.date }}</strong>
+              <p>{{ period.dominant_group or period.dominant_theme or copy.compare_leader_unavailable }}</p>
+            </article>
+          {% endfor %}
+        </div>
+        {% if comparison.summary %}<p class="studio-compare-summary">{{ comparison.summary }}</p>{% endif %}
+        {% for sentence in comparison.dominance_sentences %}<p>{{ sentence }}</p>{% endfor %}
+        {% for sentence in comparison.rank_sentences %}<p>{{ sentence }}</p>{% endfor %}
+        {% for title, rows in [(historical_copy.compare_theme_changes, comparison.theme_changes), (historical_copy.compare_group_changes, comparison.group_changes)] %}
+          {% if rows %}
+            <section class="studio-change-section">
+              <h4>{{ title }}</h4>
+              <ul>
+                {% for row in rows %}
+                  <li><span>{{ row.name }}</span><strong class="direction-{{ 'up' if row.delta > 0 else 'down' if row.delta < 0 else 'steady' }}">{{ row.arrow }} {{ row.delta_label }}</strong></li>
+                {% endfor %}
+              </ul>
+            </section>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% else %}
+    <p class="studio-compare-empty">{{ copy.compare_prompt }}</p>
+  {% endif %}
+</section>
