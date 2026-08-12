@@ -217,7 +217,7 @@ def build_user_request_view(record) -> dict:
         "investigation_url": f"/history/{replay_id}"
         if is_valid_replay_id(replay_id)
         else None,
-        "comparison_url": "/history/compare",
+        "comparison_url": "/studio/compare",
     }
 
 

@@ -187,7 +187,7 @@ class HistoricalRequestUserTests(unittest.TestCase):
         html = self._render_status(
             self._record("COMPLETE", [], replay="replay_2020-01-02_macro")
         )
-        self.assertIn('href="/history/compare"', html)
+        self.assertIn('href="/studio/compare"', html)
 
     def test_16_internal_ids_are_not_product_labels(self):
         html = self._render_status(

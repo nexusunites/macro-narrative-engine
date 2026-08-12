@@ -243,7 +243,7 @@ def historical_view_url(view: dict) -> str:
     ids = view["replay_ids"]
     if view["view_type"] == "investigation":
         return f"/history/{ids[0]}"
-    return f"/history/compare?replay_a={ids[0]}&replay_b={ids[1]}"
+    return f"/studio/compare?replay_a={ids[0]}&replay_b={ids[1]}"
 
 
 def _validate_saved_view(item: Any) -> dict | None:

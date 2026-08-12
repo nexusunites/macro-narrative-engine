@@ -143,17 +143,16 @@ class StudioCompareTests(unittest.TestCase):
             response = self.client.get("/studio/compare?replay_a=replay_a&replay_b=replay_b")
         self.assertEqual(response.status_code, 403)
 
-    def test_standalone_history_compare_route_remains_available(self):
-        with patch(
-            "dashboard.build_user_historical_comparison_context",
-            side_effect=lambda request, *args: {
-                **historical_context(replays=REPLAYS),
-                "request": request,
-            },
-        ):
-            response = self.client.get("/history/compare")
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("Compare narratives", response.text)
+    def test_history_compare_redirects_to_studio_with_selection(self):
+        response = self.client.get(
+            "/history/compare?replay_a=replay_a&replay_b=replay_b",
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 307)
+        self.assertEqual(
+            response.headers["location"],
+            "/studio/compare?replay_a=replay_a&replay_b=replay_b",
+        )
 
 
 if __name__ == "__main__":

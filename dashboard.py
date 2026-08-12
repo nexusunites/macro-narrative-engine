@@ -2,7 +2,7 @@ import json
 import hashlib
 import math
 import os
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlencode
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -3261,23 +3261,18 @@ def historical_request_status(request: Request, request_id: str):
 
 @app.get("/history/compare", response_class=HTMLResponse)
 def user_historical_comparison(
-    request: Request,
     replay_a: str = Query(default=""),
     replay_b: str = Query(default=""),
 ):
-    context = build_user_historical_comparison_context(request, replay_a, replay_b)
-    if context.get("comparison"):
-        user = get_current_user(request)
-        if user:
-            require_entitlement(user, HISTORICAL_COMPARISON)
-            consume_usage(user, HISTORICAL_COMPARISONS, object_reference="|".join(sorted((replay_a, replay_b))))
-        analyst_context = build_ai_analyst_context(
-            MODE_COMPARISON, comparison=context["comparison"]
-        )
-        context["ai_analyst"] = build_analyst_panel(
-            MODE_COMPARISON, analyst_context, f"{replay_a}|{replay_b}"
-        )
-    return templates.TemplateResponse("historical_comparison_user.html", context)
+    query = urlencode(
+        {
+            key: value
+            for key, value in (("replay_a", replay_a), ("replay_b", replay_b))
+            if value
+        }
+    )
+    target = f"/studio/compare?{query}" if query else "/studio/compare"
+    return RedirectResponse(target, status_code=307)
 
 
 @app.get("/history/{replay_id}", response_class=HTMLResponse)
