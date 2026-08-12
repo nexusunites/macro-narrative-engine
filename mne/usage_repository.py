@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from mne.database import session_scope
-from mne.models import AccountPreferences, FollowedNarrative, SavedHistoricalView, UsageEvent, UsageRecord
+from mne.models import AccountPreferences, FollowedNarrative, SavedHistoricalView, SavedStory, UsageEvent, UsageRecord
 
 
 def idempotency_key(user_id: str, metric: str, object_reference: str, period_start) -> str:
@@ -75,12 +75,14 @@ def consume(user_id: str, metric: str, object_reference: str, period_start, peri
 
 
 def capacity_count(user_id: str, metric: str) -> int:
-    from mne.usage_limits import ALERT_RULES, FOLLOWED_NARRATIVES, SAVED_HISTORICAL_VIEWS
+    from mne.usage_limits import ALERT_RULES, FOLLOWED_NARRATIVES, SAVED_HISTORICAL_VIEWS, SAVED_STORIES
     with session_scope() as db:
         if metric == FOLLOWED_NARRATIVES:
             return int(db.scalar(select(func.count()).select_from(FollowedNarrative).where(FollowedNarrative.user_id == user_id)) or 0)
         if metric == SAVED_HISTORICAL_VIEWS:
             return int(db.scalar(select(func.count()).select_from(SavedHistoricalView).where(SavedHistoricalView.user_id == user_id)) or 0)
+        if metric == SAVED_STORIES:
+            return int(db.scalar(select(func.count()).select_from(SavedStory).where(SavedStory.user_id == user_id)) or 0)
         if metric == ALERT_RULES:
             row = db.get(AccountPreferences, user_id)
             return len(row.alert_rules or []) if row else 0

@@ -73,6 +73,15 @@ class FollowedNarrative(Base):
     __table_args__ = (UniqueConstraint("user_id", "narrative_level", "narrative_key"),)
 
 
+class SavedStory(Base):
+    __tablename__ = "saved_stories"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), index=True)
+    story_slug: Mapped[str] = mapped_column(String(120), nullable=False)
+    tracked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    __table_args__ = (UniqueConstraint("user_id", "story_slug"),)
+
+
 class SavedHistoricalView(Base):
     __tablename__ = "saved_historical_views"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

@@ -12,6 +12,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any
 
 from config import get_data_dir
+from mne.story_registry import StoryRegistryError, load_story_registry
 
 PREFERENCES_SCHEMA_VERSION = 1
 """Schema version for the anonymous local preference profile."""
@@ -48,6 +49,7 @@ def build_default_preferences() -> dict[str, Any]:
         "profile_type": "anonymous_local_single_profile",
         "enabled": True,
         "followed_narratives": [],
+        "saved_stories": [],
         "saved_historical_views": [],
         "preferred_alert_types": list(SUPPORTED_ALERT_TYPES),
         "alert_thresholds": {},
@@ -79,6 +81,26 @@ def validate_preferences(value: Any) -> dict[str, Any] | None:
         if record not in normalized_followed:
             normalized_followed.append(record)
     result["followed_narratives"] = normalized_followed
+
+    saved_stories = value.get("saved_stories")
+    if not isinstance(saved_stories, list):
+        return None
+    try:
+        valid_story_slugs = {story.slug for story in load_story_registry().stories}
+    except (StoryRegistryError, OSError, ValueError):
+        return None
+    normalized_stories = []
+    seen_story_slugs = set()
+    for item in saved_stories:
+        if not isinstance(item, dict):
+            return None
+        story_slug, tracked = item.get("story_slug"), item.get("tracked")
+        if story_slug not in valid_story_slugs or not isinstance(tracked, bool):
+            return None
+        if story_slug not in seen_story_slugs:
+            normalized_stories.append({"story_slug": story_slug, "tracked": tracked})
+            seen_story_slugs.add(story_slug)
+    result["saved_stories"] = normalized_stories
 
     views = value.get("saved_historical_views")
     if not isinstance(views, list):
@@ -144,6 +166,38 @@ def unfollow_narrative(profile: dict, narrative_level: str, narrative_key: str) 
         item for item in result["followed_narratives"]
         if not (item["narrative_level"] == narrative_level and item["narrative_key"] == narrative_key)
     ]
+    return result
+
+
+def save_story(profile: dict, story_slug: str) -> dict:
+    try:
+        valid_story_slugs = {story.slug for story in load_story_registry().stories}
+    except (StoryRegistryError, OSError, ValueError) as exc:
+        raise ValueError("Story registry is unavailable.") from exc
+    if story_slug not in valid_story_slugs:
+        raise ValueError("Invalid story selection.")
+    result = deepcopy(profile)
+    if not any(item["story_slug"] == story_slug for item in result["saved_stories"]):
+        result["saved_stories"].append({"story_slug": story_slug, "tracked": False})
+    return result
+
+
+def unsave_story(profile: dict, story_slug: str) -> dict:
+    result = deepcopy(profile)
+    result["saved_stories"] = [
+        item for item in result["saved_stories"] if item["story_slug"] != story_slug
+    ]
+    return result
+
+
+def set_story_tracked(profile: dict, story_slug: str, tracked: bool) -> dict:
+    if not isinstance(tracked, bool):
+        raise ValueError("Invalid tracked state.")
+    result = deepcopy(profile)
+    for item in result["saved_stories"]:
+        if item["story_slug"] == story_slug:
+            item["tracked"] = tracked
+            break
     return result
 
 

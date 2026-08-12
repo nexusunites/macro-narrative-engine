@@ -7,7 +7,7 @@ from sqlalchemy import select
 from mne.alert_engine import build_default_alert_state
 from mne.database import session_scope
 from mne.entitlements import PLANS
-from mne.models import AccountPreferences, AlertState, AnonymousProfileDecision, AuditLog, FollowedNarrative, HistoricalRequestOwner, SavedHistoricalView, User
+from mne.models import AccountPreferences, AlertState, AnonymousProfileDecision, AuditLog, FollowedNarrative, HistoricalRequestOwner, SavedHistoricalView, SavedStory, User
 from mne.personalization import SUPPORTED_ALERT_TYPES, build_default_preferences, validate_preferences
 
 
@@ -60,12 +60,14 @@ def load_preferences(user_id: str) -> dict:
             settings = AccountPreferences(user_id=user_id, preferred_alert_types=list(SUPPORTED_ALERT_TYPES))
             db.add(settings); db.flush()
         followed = db.scalars(select(FollowedNarrative).where(FollowedNarrative.user_id == user_id).order_by(FollowedNarrative.id)).all()
+        saved = db.scalars(select(SavedStory).where(SavedStory.user_id == user_id).order_by(SavedStory.id)).all()
         views = db.scalars(select(SavedHistoricalView).where(SavedHistoricalView.user_id == user_id).order_by(SavedHistoricalView.id)).all()
         result = build_default_preferences()
         result["profile_type"] = "account"
         result.update(enabled=settings.enabled, preferred_alert_types=list(settings.preferred_alert_types or []),
                       alert_thresholds=dict(settings.alert_thresholds or {}), alert_rules=list(settings.alert_rules or []),
                       followed_narratives=[{"narrative_level": x.narrative_level, "narrative_key": x.narrative_key} for x in followed],
+                      saved_stories=[{"story_slug": x.story_slug, "tracked": bool(x.tracked)} for x in saved],
                       saved_historical_views=[{"view_type": x.view_type, "replay_ids": list(x.replay_ids), "label": x.label} for x in views])
         return result
 
@@ -82,6 +84,15 @@ def save_preferences(user_id: str, profile: dict) -> dict:
         for key,row in existing.items():
             if key not in wanted: db.delete(row)
         for level,key in wanted-existing.keys(): db.add(FollowedNarrative(user_id=user_id,narrative_level=level,narrative_key=key))
+        existing_stories = {x.story_slug:x for x in db.scalars(select(SavedStory).where(SavedStory.user_id==user_id))}
+        wanted_stories = {x["story_slug"]:x for x in normalized["saved_stories"]}
+        for slug,row in existing_stories.items():
+            if slug not in wanted_stories: db.delete(row)
+        for slug,item in wanted_stories.items():
+            if slug not in existing_stories:
+                db.add(SavedStory(user_id=user_id,story_slug=slug,tracked=item["tracked"]))
+            elif existing_stories[slug].tracked != item["tracked"]:
+                existing_stories[slug].tracked = item["tracked"]
         old = {x.identity_key:x for x in db.scalars(select(SavedHistoricalView).where(SavedHistoricalView.user_id==user_id))}
         wanted_views = {f'{x["view_type"]}:{"|".join(x["replay_ids"])}':x for x in normalized["saved_historical_views"]}
         for key,row in old.items():

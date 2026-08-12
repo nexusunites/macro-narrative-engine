@@ -106,11 +106,23 @@
               {% if narrative.stories %}
                 <div class="nrv-stories">
                   {% for story in narrative.stories %}
-                    <span class="story-chip" data-story data-search="{{ story.search_text }}" data-theme="{{ story.theme }}">
+                    <div class="story-chip" data-story data-slug="{{ story.slug }}" data-search="{{ story.search_text }}" data-theme="{{ story.theme }}">
                       <span class="sc-glyph direction-{{ story.direction }}" aria-hidden="true">{{ '▲' if story.direction == 'up' else '▼' if story.direction == 'down' else '→' }}</span>
                       <span>{{ story.display_name }}</span>
-                      <button type="button" class="sc-star" aria-disabled="true" aria-label="{{ research_finder_copy.story_star }}" title="{{ research_finder_copy.story_star }}">☆</button>
-                    </span>
+                      {% if current_user and can_save_stories %}
+                        <form method="post" action="/preferences/stories" class="story-save-form">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                          <input type="hidden" name="story_slug" value="{{ story.slug }}">
+                          <input type="hidden" name="return_to" value="/research">
+                          <button class="sc-star{% if story.saved %} on{% endif %}" name="action" value="{{ 'unsave' if story.saved else 'save' }}" aria-pressed="{{ 'true' if story.saved else 'false' }}" aria-label="{{ research_finder_copy.story_saved if story.saved else research_finder_copy.story_save }}" title="{{ research_finder_copy.story_saved if story.saved else research_finder_copy.story_save }}">{{ '★' if story.saved else '☆' }}</button>
+                          {% if story.saved %}<button class="story-track-toggle{% if story.tracked %} on{% endif %}" name="action" value="{{ 'untrack' if story.tracked else 'track' }}">{{ research_finder_copy.story_tracked if story.tracked else research_finder_copy.story_track }}</button>{% endif %}
+                        </form>
+                      {% elif not current_user %}
+                        <a class="sc-star" href="/login?next=/research" aria-label="{{ research_finder_copy.sign_in_to_save }}" title="{{ research_finder_copy.sign_in_to_save }}">☆</a>
+                      {% else %}
+                        <a class="sc-star" href="/account" aria-label="{{ research_finder_copy.story_save_unavailable }}" title="{{ research_finder_copy.story_save_unavailable }}">☆</a>
+                      {% endif %}
+                    </div>
                   {% endfor %}
                 </div>
               {% endif %}
@@ -124,9 +136,7 @@
           {% endfor %}
         </div>
         <p class="index-empty hidden" id="indexEmpty">{{ research_finder_copy.empty }}</p>
-        <p class="chip-hint" id="studioHint" aria-live="polite"></p>
         <span id="cryptoHintCopy" hidden>{{ research_finder_copy.crypto_hint }}</span>
-        <span id="studioHintCopy" hidden>{{ research_finder_copy.studio_hint }}</span>
       </section>
     {% endif %}
   </main>

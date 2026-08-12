@@ -100,8 +100,11 @@ from mne.personalization import (
     load_preferences,
     remove_historical_view,
     save_historical_view,
+    save_story,
     save_preferences,
+    set_story_tracked,
     unfollow_narrative,
+    unsave_story,
 )
 from mne.alert_engine import (
     build_default_alert_state,
@@ -128,10 +131,10 @@ from mne.auth import (AUTH_ERROR, SESSION_ABSOLUTE_EXPIRY, SESSION_COOKIE_NAME, 
                       create_account, create_session, invalidate_session, secure_cookies)
 from mne.database import Base, engine
 from mne.security import csrf_token, get_current_user, require_admin, require_authenticated_user, validate_csrf
-from mne.entitlements import EntitlementDenied, HISTORICAL_COMPARISON, HISTORICAL_REQUEST, HISTORICAL_RESEARCH, FOLLOWED_NARRATIVES as FOLLOWED_NARRATIVES_FEATURE, SAVED_HISTORICAL_VIEWS as SAVED_HISTORICAL_VIEWS_FEATURE, check_entitlement, require_entitlement
+from mne.entitlements import EntitlementDenied, HISTORICAL_COMPARISON, HISTORICAL_REQUEST, HISTORICAL_RESEARCH, FOLLOWED_NARRATIVES as FOLLOWED_NARRATIVES_FEATURE, SAVED_HISTORICAL_VIEWS as SAVED_HISTORICAL_VIEWS_FEATURE, SAVED_STORIES as SAVED_STORIES_FEATURE, check_entitlement, require_entitlement
 from mne.usage_limits import (FOLLOWED_NARRATIVES, HISTORICAL_COMPARISONS, HISTORICAL_INVESTIGATION_VIEWS,
                               HISTORICAL_REQUESTS, SAVED_HISTORICAL_VIEWS, build_entitlement_context,
-                              consume_usage, require_capacity)
+                              SAVED_STORIES, consume_usage, require_capacity)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -2275,6 +2278,7 @@ def build_research_context(request: Request):
         "research_index": {"narratives": [], "stories": {}},
         "research_finder_copy": copy,
         "can_follow_narratives": False,
+        "can_save_stories": False,
     }
     if not run:
         context["message"] = copy["no_run_title"]
@@ -2290,11 +2294,20 @@ def build_research_context(request: Request):
     context["can_follow_narratives"] = check_entitlement(
         user, FOLLOWED_NARRATIVES_FEATURE
     )
+    context["can_save_stories"] = check_entitlement(user, SAVED_STORIES_FEATURE)
     try:
         context["research_index"] = build_research_index(
             run,
             followed_narratives=preferences.get("followed_narratives", ()),
         )
+        saved_by_slug = {
+            item["story_slug"]: item for item in preferences.get("saved_stories", ())
+        }
+        for narrative in context["research_index"]["narratives"]:
+            for story in narrative.get("stories", ()):
+                saved = saved_by_slug.get(story["slug"])
+                story["saved"] = saved is not None
+                story["tracked"] = bool(saved and saved["tracked"])
     except StoryRegistryError:
         context["message"] = copy["no_run_title"]
     return context
@@ -2335,6 +2348,20 @@ def build_investigation_context(request: Request, key: str, admin: bool = False)
         admin=admin,
         event_definitions=event_definitions,
     )
+    user = get_current_user(request)
+    preferences = (
+        account_repository.load_preferences(user.user_id)
+        if user
+        else build_default_preferences()
+    )
+    saved_by_slug = {
+        item["story_slug"]: item for item in preferences.get("saved_stories", ())
+    }
+    for story in context["investigation"].get("stories", ()):
+        saved = saved_by_slug.get(story["slug"])
+        story["saved"] = saved is not None
+        story["tracked"] = bool(saved and saved["tracked"])
+    context["can_save_stories"] = check_entitlement(user, SAVED_STORIES_FEATURE)
     context["lead_instrument_candle"] = _build_lead_instrument_candle(
         context["investigation"], key
     )
@@ -2755,6 +2782,12 @@ def preferences_page(request: Request):
     selection = select_latest_meaningful_run(list_all_result_files(), load_result)
     personalization = build_personalization_context(selection.run, selection.path, user.user_id)
     selector = build_narrative_selector(selection.run) if selection.run else []
+    try:
+        story_names = {
+            story.slug: story.display_name for story in load_story_registry().stories
+        }
+    except StoryRegistryError:
+        story_names = {}
     return templates.TemplateResponse(
         "preferences.html",
         {
@@ -2763,6 +2796,7 @@ def preferences_page(request: Request):
             "narratives": selector,
             "supported_alert_types": SUPPORTED_ALERT_TYPES,
             "display_name": narrative_display_name,
+            "story_names": story_names,
             "migration": anonymous_profile_status(user.user_id),
         },
     )
@@ -2791,6 +2825,35 @@ async def change_followed_narrative(request: Request):
         )
         account_repository.save_preferences(user.user_id, profile)
     except ValueError:
+        pass
+    return RedirectResponse(return_to, status_code=303)
+
+
+@app.post("/preferences/stories")
+async def change_saved_story(request: Request):
+    user = require_authenticated_user(request)
+    form = _form(await request.body()); _csrf(request, form)
+    story_slug = (form.get("story_slug") or [""])[0]
+    action = (form.get("action") or [""])[0]
+    return_to = (form.get("return_to") or ["/preferences"])[0]
+    if return_to not in {"/preferences", "/research", "/studio"}:
+        return_to = "/preferences"
+    profile = account_repository.load_preferences(user.user_id)
+    try:
+        existing = {item["story_slug"] for item in profile["saved_stories"]}
+        if action == "save" and story_slug not in existing:
+            require_entitlement(user, SAVED_STORIES_FEATURE)
+            require_capacity(user, SAVED_STORIES)
+        if action == "save":
+            profile = save_story(profile, story_slug)
+        elif action == "unsave":
+            profile = unsave_story(profile, story_slug)
+        elif action in {"track", "untrack"}:
+            profile = set_story_tracked(profile, story_slug, action == "track")
+        else:
+            raise ValueError("Invalid saved story action.")
+        account_repository.save_preferences(user.user_id, profile)
+    except (EntitlementDenied, ValueError):
         pass
     return RedirectResponse(return_to, status_code=303)
 

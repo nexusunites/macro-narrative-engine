@@ -269,6 +269,12 @@ RESEARCH_FINDER_COPY = {
     "follow_unavailable": "Following is unavailable for this account",
     "story_star": "Story saving is coming with Studio",
     "studio_hint": "Story saving is coming with Studio and is not available yet.",
+    "story_save": "Save story",
+    "story_saved": "Saved story",
+    "story_track": "Track story",
+    "story_tracked": "Tracked story",
+    "sign_in_to_save": "Sign in to save",
+    "story_save_unavailable": "Story saving is unavailable for this account",
     "empty": "No narrative or story matches that. Try a different word, or clear the filters.",
     "no_run_eyebrow": "Research",
     "no_run_title": "No narratives are ready to explore",
@@ -321,6 +327,12 @@ RESEARCH_INVESTIGATION_COPY = {
     "stories_empty": "No matched stories are available for this narrative in the latest read.",
     "story_matches": "{count} matched headline{suffix}",
     "story_star": "Story saving is coming with Studio",
+    "story_save": "Save story",
+    "story_saved": "Saved story",
+    "story_track": "Track story",
+    "story_tracked": "Tracked story",
+    "sign_in_to_save": "Sign in to save",
+    "story_save_unavailable": "Story saving is unavailable for this account",
 }
 
 
@@ -1222,6 +1234,13 @@ PERSONALIZATION_COPY = {
     "intro": "Choose the narratives and meaningful changes you want to keep close.",
     "local_notice": "Preferences are stored locally on this machine in one anonymous profile. They are not tied to an account, are not account-secured, and do not sync across devices.",
     "alerts_heading": "In-app alerts",
+    "saved_stories_heading": "Saved stories",
+    "saved_stories_intro": "Stories you save in Research appear here. Track the ones you want to keep especially close.",
+    "saved_stories_empty": "Star stories in Research to build your collection.",
+    "story_name_unavailable": "Saved story",
+    "story_remove": "Remove",
+    "story_track": "Track",
+    "story_untrack": "Untrack",
     "alert_descriptions": {
         "NARRATIVE_BECAME_DOMINANT": "Tell me when a narrative becomes dominant",
         "NARRATIVE_BUILDING_AGAIN": "Tell me when a narrative starts building again",
@@ -1270,6 +1289,7 @@ ENTITLEMENT_COPY = {
     "AI_ANALYST_QUESTIONS": "Analyst questions",
     "SAVED_HISTORICAL_VIEWS": "saved historical views",
     "FOLLOWED_NARRATIVES": "followed narratives",
+    "SAVED_STORIES": "saved stories",
     "ALERT_RULES": "alert rules",
 }
 

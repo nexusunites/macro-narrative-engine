@@ -7,7 +7,6 @@
   var crypto = document.getElementById("chipCrypto");
   var chipHint = document.getElementById("chipHint");
   var empty = document.getElementById("indexEmpty");
-  var studioHint = document.getElementById("studioHint");
   if (!input || !clear || !chipRow || !empty) { return; }
 
   var activeThemes = [];
@@ -76,10 +75,4 @@
       chipHint.textContent = document.getElementById("cryptoHintCopy").textContent;
     });
   }
-
-  Array.prototype.forEach.call(document.querySelectorAll(".sc-star"), function (star) {
-    star.addEventListener("click", function () {
-      studioHint.textContent = document.getElementById("studioHintCopy").textContent;
-    });
-  });
 }());

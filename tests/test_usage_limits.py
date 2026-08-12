@@ -6,10 +6,11 @@ from mne import account_repository
 from mne.auth import create_account
 from mne.database import session_scope
 from mne.entitlements import EntitlementDenied, FREE, PRO
-from mne.models import AccountPreferences, FollowedNarrative, SavedHistoricalView, UsageEvent, User
+from mne.models import AccountPreferences, FollowedNarrative, SavedHistoricalView, SavedStory, UsageEvent, User
 from mne.usage_limits import (
     ALERT_RULES, FOLLOWED_NARRATIVES, HISTORICAL_COMPARISONS,
     HISTORICAL_INVESTIGATION_VIEWS, HISTORICAL_REQUESTS, SAVED_HISTORICAL_VIEWS,
+    SAVED_STORIES,
     can_consume_usage, consume_usage, get_usage_consumed, get_usage_limit,
     get_usage_remaining, monthly_period, require_capacity,
 )
@@ -66,11 +67,14 @@ class UsageLimitTests(unittest.TestCase):
                 db.add(FollowedNarrative(user_id=self.user.user_id, narrative_level="theme", narrative_key=f"theme_{index}"))
             for index in range(2):
                 db.add(SavedHistoricalView(user_id=self.user.user_id, view_type="investigation", replay_ids=[f"replay_{index}"], label="Saved", identity_key=f"view:{index}"))
+            for slug in ("ai_chips", "cloud_spending", "data_center_power"):
+                db.add(SavedStory(user_id=self.user.user_id, story_slug=slug))
             db.add(AccountPreferences(user_id=self.user.user_id, preferred_alert_types=[], alert_rules=[{"id": "one"}]))
         self.assertEqual(get_usage_consumed(self.user, FOLLOWED_NARRATIVES), 3)
         self.assertEqual(get_usage_consumed(self.user, SAVED_HISTORICAL_VIEWS), 2)
+        self.assertEqual(get_usage_consumed(self.user, SAVED_STORIES), 3)
         self.assertEqual(get_usage_consumed(self.user, ALERT_RULES), 1)
-        for metric in (FOLLOWED_NARRATIVES, SAVED_HISTORICAL_VIEWS, ALERT_RULES):
+        for metric in (FOLLOWED_NARRATIVES, SAVED_HISTORICAL_VIEWS, SAVED_STORIES, ALERT_RULES):
             self.assertFalse(can_consume_usage(self.user, metric))
             with self.assertRaises(EntitlementDenied): require_capacity(self.user, metric)
 

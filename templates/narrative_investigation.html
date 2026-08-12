@@ -344,7 +344,19 @@
                 <div class="inv-story-head">
                   <span class="story-direction" aria-hidden="true">{% if story.direction == 'up' %}▲{% elif story.direction == 'down' %}▼{% else %}→{% endif %}</span>
                   <h4>{{ story.display_name }}</h4>
-                  <button class="story-studio-star" type="button" disabled title="{{ investigation_copy.story_star }}" aria-label="{{ investigation_copy.story_star }}">☆</button>
+                  {% if current_user and can_save_stories %}
+                    <form method="post" action="/preferences/stories" class="investigation-story-form">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                      <input type="hidden" name="story_slug" value="{{ story.slug }}">
+                      <input type="hidden" name="return_to" value="/research">
+                      <button class="story-studio-star{% if story.saved %} on{% endif %}" name="action" value="{{ 'unsave' if story.saved else 'save' }}" aria-pressed="{{ 'true' if story.saved else 'false' }}" title="{{ investigation_copy.story_saved if story.saved else investigation_copy.story_save }}" aria-label="{{ investigation_copy.story_saved if story.saved else investigation_copy.story_save }}">{{ '★' if story.saved else '☆' }}</button>
+                      {% if story.saved %}<button class="story-track-toggle{% if story.tracked %} on{% endif %}" name="action" value="{{ 'untrack' if story.tracked else 'track' }}">{{ investigation_copy.story_tracked if story.tracked else investigation_copy.story_track }}</button>{% endif %}
+                    </form>
+                  {% elif not current_user %}
+                    <a class="story-studio-star" href="/login?next=/research" title="{{ investigation_copy.sign_in_to_save }}" aria-label="{{ investigation_copy.sign_in_to_save }}">☆</a>
+                  {% else %}
+                    <a class="story-studio-star" href="/account" title="{{ investigation_copy.story_save_unavailable }}" aria-label="{{ investigation_copy.story_save_unavailable }}">☆</a>
+                  {% endif %}
                 </div>
                 <p class="inv-story-direction">{{ story.direction_label }}</p>
                 {% if story.example %}

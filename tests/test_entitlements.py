@@ -7,7 +7,7 @@ from mne.auth import SESSION_COOKIE_NAME, create_account, create_session
 from mne.database import session_scope
 from mne.entitlements import (
     ADMIN_DIAGNOSTICS, AI_ANALYST_PROVIDER, API_ACCESS, EXPORTS, FREE,
-    HISTORICAL_RESEARCH, LIVE_DASHBOARD, PRO, TEAM, TEAM_WORKSPACE,
+    HISTORICAL_RESEARCH, LIVE_DASHBOARD, PRO, SAVED_STORIES, TEAM, TEAM_WORKSPACE,
     check_entitlement, get_plan_entitlements,
 )
 from mne.models import AuditLog, User
@@ -32,6 +32,7 @@ class EntitlementTests(unittest.TestCase):
     def test_free_pro_and_team_matrices(self):
         self.assertIn(LIVE_DASHBOARD, get_plan_entitlements(FREE))
         self.assertIn(HISTORICAL_RESEARCH, get_plan_entitlements(FREE))
+        self.assertIn(SAVED_STORIES, get_plan_entitlements(FREE))
         self.assertNotIn(AI_ANALYST_PROVIDER, get_plan_entitlements(FREE))
         self.assertIn(AI_ANALYST_PROVIDER, get_plan_entitlements(PRO))
         self.assertNotIn(API_ACCESS, get_plan_entitlements(PRO))

@@ -44,5 +44,22 @@
         </form>
       {% else %}<p class="section-empty">No historical investigations or comparisons are saved yet.</p>{% endfor %}
     </section>
+
+    <section class="content-section"><h2>{{ personalization.personalization_copy.saved_stories_heading }}</h2><p>{{ personalization.personalization_copy.saved_stories_intro }}</p>
+      <div class="preference-list">
+      {% for story in personalization.preferences.saved_stories %}
+        <form method="post" action="/preferences/stories">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="story_slug" value="{{ story.story_slug }}">
+          <input type="hidden" name="return_to" value="/preferences">
+          <strong>{{ story_names.get(story.story_slug, personalization.personalization_copy.story_name_unavailable) }}</strong>
+          <span>
+            <button name="action" value="{{ 'untrack' if story.tracked else 'track' }}">{{ personalization.personalization_copy.story_untrack if story.tracked else personalization.personalization_copy.story_track }}</button>
+            <button name="action" value="unsave">{{ personalization.personalization_copy.story_remove }}</button>
+          </span>
+        </form>
+      {% else %}<p class="section-empty">{{ personalization.personalization_copy.saved_stories_empty }}</p>{% endfor %}
+      </div>
+    </section>
   </main>
 </body></html>

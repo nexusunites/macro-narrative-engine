@@ -4159,7 +4159,10 @@ input:focus-visible,
 .story-direction { color:var(--muted-strong); font-size:10px; line-height:1.8; }
 .direction-up .story-direction,.direction-up .inv-story-direction { color:var(--teal-bright); }
 .direction-down .story-direction,.direction-down .inv-story-direction { color:var(--amber); }
-.story-studio-star { min-width:28px; min-height:28px; padding:0; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--muted); cursor:not-allowed; opacity:.75; }
+.story-studio-star { display:inline-grid; place-items:center; min-width:28px; min-height:28px; padding:0; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--muted); cursor:pointer; text-decoration:none; }
+.story-studio-star.on,.story-track-toggle.on { color:var(--teal-bright); }
+.investigation-story-form,.story-save-form { display:inline-flex; align-items:center; gap:4px; margin:0; }
+.story-track-toggle { padding:3px 7px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--muted-strong); font-size:11px; }
 .inv-story-direction { margin:8px 0 0; color:var(--muted-strong); font-size:12px; }
 .inv-story-example { margin:10px 0 0; color:var(--muted-strong); font-size:13px; line-height:1.45; }
 .inv-story-card small { display:block; margin-top:5px; color:var(--muted); }
@@ -5644,6 +5647,7 @@ input:focus-visible,
 .research-finder-page .sc-glyph { font-size: 10px; font-weight: 700; }
 .research-finder-page .sc-star { padding: 3px 5px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font-size: 14px; line-height: 1; }
 .research-finder-page .sc-star:hover { background: transparent; color: var(--muted-strong); }
+.research-finder-page .sc-star.on { color: var(--teal-bright); }
 .research-finder-page .nrv-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
 .research-finder-page .investigate-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--text); font-size: 13px; font-weight: 600; text-decoration: none; transition: color 150ms ease, border-color 150ms ease, transform 150ms ease; }
 .research-finder-page .investigate-btn:hover { transform: translateY(-1px); border-color: rgba(45, 212, 191, 0.4); color: var(--teal-bright); }

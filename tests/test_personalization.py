@@ -9,8 +9,12 @@ from mne.personalization import (
     load_preferences,
     remove_historical_view,
     save_historical_view,
+    save_story,
     save_preferences,
+    set_story_tracked,
     unfollow_narrative,
+    unsave_story,
+    validate_preferences,
 )
 
 
@@ -41,6 +45,33 @@ class PersonalizationTests(unittest.TestCase):
         self.assertEqual(len(load_preferences(self.data_dir)["saved_historical_views"]), 2)
         profile = remove_historical_view(profile, "investigation", ["replay_2024-03-15_macro"])
         self.assertEqual(len(profile["saved_historical_views"]), 1)
+
+    def test_saved_stories_validate_dedupe_and_mutate_without_side_effects(self):
+        original = build_default_preferences()
+        saved = save_story(original, "ai_chips")
+        self.assertEqual(original["saved_stories"], [])
+        saved["saved_stories"].append({"story_slug": "ai_chips", "tracked": True})
+        normalized = validate_preferences(saved)
+        self.assertEqual(normalized["saved_stories"], [{"story_slug": "ai_chips", "tracked": False}])
+        tracked = set_story_tracked(normalized, "ai_chips", True)
+        self.assertFalse(normalized["saved_stories"][0]["tracked"])
+        self.assertTrue(tracked["saved_stories"][0]["tracked"])
+        self.assertEqual(unsave_story(tracked, "ai_chips")["saved_stories"], [])
+
+    def test_saved_stories_fail_closed_for_malformed_values(self):
+        cases = [
+            "not-a-list",
+            [{"story_slug": "unknown_story", "tracked": False}],
+            [{"story_slug": "ai_chips", "tracked": 1}],
+            ["ai_chips"],
+        ]
+        for value in cases:
+            with self.subTest(value=value):
+                profile = build_default_preferences()
+                profile["saved_stories"] = value
+                self.assertIsNone(validate_preferences(profile))
+        with self.assertRaises(ValueError):
+            save_story(build_default_preferences(), "unknown_story")
 
     def test_invalid_or_raw_ids_are_rejected(self):
         for value in ("../result.json", "/tmp/replay.json", "raw_id"):

@@ -340,7 +340,8 @@ class ResearchWorkspaceTests(unittest.TestCase):
         self.assertIn("AI Chips", html)
         self.assertIn("Investigate →", html)
         self.assertIn("Crypto · not tracked yet", html)
-        self.assertIn("Story saving is coming with Studio", html)
+        self.assertIn("Sign in to save", html)
+        self.assertIn('data-slug="ai_chips"', html)
         self.assertIn("Defined, not currently scored", html)
 
     def test_research_selector_template_renders_calm_empty_state(self):
@@ -963,7 +964,7 @@ class ResearchWorkspaceTests(unittest.TestCase):
         html = render_template("narrative_investigation.html", investigation=investigation)
         self.assertIn("Stories in this narrative", html)
         self.assertIn("Chip demand rises", html)
-        self.assertIn("Story saving is coming with Studio", html)
+        self.assertIn("Sign in to save", html)
         self.assertNotIn("inflation_fears", html)
 
     def test_sprint_m_story_and_sector_empty_states_are_explicit(self):
