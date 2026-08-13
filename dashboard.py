@@ -3,7 +3,7 @@ import hashlib
 import math
 import os
 from urllib.parse import parse_qs, urlencode
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -127,7 +127,7 @@ from mne.research_workspace import (
 from mne.source_registry import SourceRegistryError, load_source_registry
 from mne.storage import get_recent_daily_runs, load_daily_snapshots
 from mne import account_repository
-from mne.studio_board import CONNECTION_LABELS, empty_board, load_board, save_board, validate_board
+from mne.studio_board import CONNECTION_LABELS, create_board, delete_board, list_boards, load_board, save_board, validate_board
 from mne.accounts import anonymous_profile_status, decline_anonymous_profile, import_anonymous_profile
 from mne.auth import (AUTH_ERROR, SESSION_ABSOLUTE_EXPIRY, SESSION_COOKIE_NAME, authenticate, consume_password_reset,
                       create_account, create_session, invalidate_session, secure_cookies)
@@ -2316,7 +2316,41 @@ def build_research_context(request: Request):
     return context
 
 
-def build_studio_context(request: Request):
+def _studio_updated_label(value, copy: dict) -> str:
+    if not isinstance(value, datetime):
+        return copy["library_updated_unknown"]
+    observed = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    seconds = max(0, int((datetime.now(timezone.utc) - observed.astimezone(timezone.utc)).total_seconds()))
+    if seconds < 60:
+        return copy["library_updated_now"]
+    if seconds < 3600:
+        return copy["library_updated_minutes"].format(count=seconds // 60)
+    if seconds < 86400:
+        return copy["library_updated_hours"].format(count=seconds // 3600)
+    return copy["library_updated_days"].format(count=seconds // 86400)
+
+
+def build_studio_library_context(request: Request):
+    user = get_current_user(request)
+    entitled = check_entitlement(user, SAVED_STORIES_FEATURE)
+    copy = studio_copy()
+    boards = list_boards(user.user_id) if user and entitled else []
+    for board in boards:
+        board["updated_label"] = _studio_updated_label(board["updated_at"], copy)
+        for point in board["preview_nodes"]:
+            point["left"] = round((point["x"] / 1800) * 100, 2)
+            point["top"] = round((point["y"] / 1200) * 100, 2)
+    return {
+        "request": request,
+        "active_tier": "studio",
+        "copy": copy,
+        "boards": boards,
+        "signed_in": user is not None,
+        "can_use_studio": entitled,
+    }
+
+
+def build_studio_context(request: Request, board_id: str):
     """Build the presentation-only Studio shell context from persisted saved stories."""
     user = get_current_user(request)
     saved_preferences = (
@@ -2325,18 +2359,19 @@ def build_studio_context(request: Request):
         else ()
     )
     try:
-        registry_stories = load_story_registry().stories
+        registry = load_story_registry()
+        registry_stories = registry.stories
     except StoryRegistryError:
+        registry = None
         registry_stories = ()
     registry_by_slug = {story.slug: story for story in registry_stories}
 
     selection = select_latest_meaningful_run(list_all_result_files(), load_result)
-    selector = build_narrative_selector(selection.run) if selection.run else ()
-    current_by_slug = {
-        story["slug"]: story
-        for narrative in selector
-        for story in narrative.get("stories", ())
-    }
+    current_by_slug = (
+        build_research_index(selection.run, story_registry=registry).get("stories", {})
+        if selection.run and registry
+        else {}
+    )
 
     saved = []
     for item in saved_preferences:
@@ -2357,14 +2392,18 @@ def build_studio_context(request: Request):
             }
         )
 
-    board = load_board(user.user_id) if user and check_entitlement(user, SAVED_STORIES_FEATURE) else empty_board()
-    saved_by_slug = {item["slug"]: item for item in saved}
+    if not user:
+        raise HTTPException(status_code=404, detail=studio_copy()["thesis_not_found"])
+    board = load_board(user.user_id, board_id)
+    if board is None:
+        raise HTTPException(status_code=404, detail=studio_copy()["thesis_not_found"])
+    require_entitlement(user, SAVED_STORIES_FEATURE)
     board_nodes = []
     for node in board["nodes"]:
         story = registry_by_slug.get(node["slug"])
         if not story:
             continue
-        current = saved_by_slug.get(node["slug"], {})
+        current = current_by_slug.get(node["slug"], {})
         board_nodes.append({
             **node,
             "display_name": story.display_name,
@@ -2380,6 +2419,7 @@ def build_studio_context(request: Request):
         "saved": saved,
         "watchlist": [item for item in saved if item["tracked"]],
         "signed_in": user is not None,
+        "board_id": board_id,
         "board": {**board, "nodes": board_nodes},
         "connection_labels": {key: studio_copy()[f"connection_{key}"] for key in CONNECTION_LABELS},
     }
@@ -2435,10 +2475,11 @@ def build_studio_node_intelligence(run: dict | None, slug: str) -> dict:
 
 def build_studio_compare_context(
     request: Request,
+    board_id: str,
     replay_a: str = "",
     replay_b: str = "",
 ):
-    context = build_studio_context(request)
+    context = build_studio_context(request, board_id)
     historical = build_user_historical_comparison_context(request, replay_a, replay_b)
     context.update(
         {
@@ -3044,11 +3085,29 @@ def research_selector(request: Request):
 
 @app.get("/studio", response_class=HTMLResponse)
 def studio_page(request: Request):
-    return templates.TemplateResponse("studio.html", build_studio_compare_context(request))
+    return templates.TemplateResponse("studio_library.html", build_studio_library_context(request))
 
 
-@app.post("/studio/board")
-async def studio_board_save(request: Request):
+@app.post("/studio/board/new")
+async def studio_board_new(request: Request):
+    user = require_authenticated_user(request)
+    form = _form(await request.body())
+    _csrf(request, form)
+    require_entitlement(user, SAVED_STORIES_FEATURE)
+    try:
+        board_id = create_board(user.user_id)
+    except ValueError:
+        return HTMLResponse(studio_copy()["library_capacity"], status_code=409)
+    return RedirectResponse(f"/studio/board/{board_id}", status_code=303)
+
+
+@app.get("/studio/board/{board_id}", response_class=HTMLResponse)
+def studio_board_page(request: Request, board_id: str):
+    return templates.TemplateResponse("studio.html", build_studio_compare_context(request, board_id))
+
+
+@app.post("/studio/board/{board_id}")
+async def studio_board_save(request: Request, board_id: str):
     copy = studio_copy()
     user = get_current_user(request)
     if not user:
@@ -3060,14 +3119,27 @@ async def studio_board_save(request: Request):
         raw_payload = (form.get("payload") or [""])[0]
         payload = json.loads(raw_payload)
         normalized = validate_board(payload)
-        save_board(user.user_id, normalized)
+        save_board(user.user_id, board_id, normalized)
     except HTTPException as error:
         return JSONResponse({"error": str(error.detail)}, status_code=error.status_code)
     except EntitlementDenied as error:
         return JSONResponse({"error": entitlement_denial(error.reason, error.metric)}, status_code=403)
+    except KeyError:
+        return JSONResponse({"error": copy["board_invalid"]}, status_code=404)
     except (ValueError, TypeError, json.JSONDecodeError):
         return JSONResponse({"error": copy["board_invalid"]}, status_code=400)
     return Response(status_code=204)
+
+
+@app.post("/studio/board/{board_id}/delete")
+async def studio_board_delete(request: Request, board_id: str):
+    user = require_authenticated_user(request)
+    form = _form(await request.body())
+    _csrf(request, form)
+    require_entitlement(user, SAVED_STORIES_FEATURE)
+    if not delete_board(user.user_id, board_id):
+        raise HTTPException(status_code=404, detail=studio_copy()["thesis_not_found"])
+    return RedirectResponse("/studio", status_code=303)
 
 
 @app.get("/studio/node/{slug}")
@@ -3086,13 +3158,14 @@ def studio_node_intelligence(request: Request, slug: str):
         return JSONResponse({"error": copy["intelligence_unavailable"]}, status_code=404)
 
 
-@app.get("/studio/compare", response_class=HTMLResponse)
+@app.get("/studio/board/{board_id}/compare", response_class=HTMLResponse)
 def studio_compare(
     request: Request,
+    board_id: str,
     replay_a: str = Query(default=""),
     replay_b: str = Query(default=""),
 ):
-    context = build_studio_compare_context(request, replay_a, replay_b)
+    context = build_studio_compare_context(request, board_id, replay_a, replay_b)
     if context.get("comparison"):
         user = get_current_user(request)
         if user:
@@ -3103,6 +3176,20 @@ def studio_compare(
                 object_reference="|".join(sorted((replay_a, replay_b))),
             )
     return templates.TemplateResponse("studio.html", context)
+
+
+@app.get("/studio/compare")
+def studio_compare_entry(request: Request):
+    user = require_authenticated_user(request)
+    require_entitlement(user, SAVED_STORIES_FEATURE)
+    boards = list_boards(user.user_id)
+    if not boards:
+        return RedirectResponse("/studio", status_code=307)
+    query = request.url.query
+    target = f"/studio/board/{boards[0]['board_id']}/compare"
+    if query:
+        target += f"?{query}"
+    return RedirectResponse(target, status_code=307)
 
 
 @app.post("/api/ai-analyst")

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ copy.eyebrow }} · MNE</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body class="app-topbar-page studio-page studio-library-page">
+  {% include "_partials/app_topbar.html" %}
+
+  <main class="page-shell studio-shell studio-library-shell">
+    <header class="studio-heading studio-library-heading">
+      <div class="studio-eyebrow-row">
+        <span class="eyebrow">{{ copy.eyebrow }}</span>
+        <span class="studio-concept-tag">{{ copy.concept_tag }}</span>
+      </div>
+      <h1>{{ copy.library_headline }}</h1>
+      <p>{{ copy.library_subtitle }}</p>
+    </header>
+
+    {% if not signed_in or not can_use_studio %}
+      <section class="studio-library-gate">
+        <p>{{ copy.library_sign_in }}</p>
+        <a href="/login?next=/studio">{{ copy.sign_in_action }}</a>
+      </section>
+    {% elif boards %}
+      <section class="studio-library-grid" aria-label="{{ copy.library_headline }}">
+        <form class="studio-new-card" method="post" action="/studio/board/new">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit">{{ copy.library_new }}</button>
+        </form>
+        {% for thesis in boards %}
+          <article class="studio-thesis-card">
+            <div class="studio-thesis-preview" aria-hidden="true">
+              {% for point in thesis.preview_nodes %}
+                <span style="left:{{ point.left }}%;top:{{ point.top }}%"></span>
+              {% endfor %}
+            </div>
+            <div class="studio-thesis-card-body">
+              <p class="studio-thesis-meta">{{ thesis.node_count }} {{ copy.library_evidence }} · {{ thesis.connection_count }} {{ copy.library_link if thesis.connection_count == 1 else copy.library_links }}</p>
+              <h2>{{ thesis.thesis or copy.library_untitled }}</h2>
+              <p class="studio-thesis-updated">{{ thesis.updated_label }}</p>
+              <div class="studio-thesis-actions">
+                <a href="/studio/board/{{ thesis.board_id }}">{{ copy.library_open }}</a>
+                <form method="post" action="/studio/board/{{ thesis.board_id }}/delete" onsubmit="return confirm('{{ copy.library_delete_confirm }}')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                  <button type="submit">{{ copy.library_delete }}</button>
+                </form>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="studio-library-empty">
+        <span class="eyebrow">{{ copy.eyebrow }}</span>
+        <h2>{{ copy.library_empty_title }}</h2>
+        <p>{{ copy.library_empty_body }}</p>
+        <form method="post" action="/studio/board/new">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit">{{ copy.library_new }}</button>
+        </form>
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>

@@ -9,6 +9,7 @@ from mne.database import session_scope
 from mne.entitlements import EntitlementDenied
 from mne.models import User
 from mne.presentation_language import HISTORICAL_COPY
+from mne.studio_board import create_board
 from tests.auth_test_support import fresh_database
 
 
@@ -62,25 +63,26 @@ class StudioCompareTests(unittest.TestCase):
         auth_session = create_session(self.user.user_id)
         self.client = TestClient(dashboard.app)
         self.client.cookies.set(SESSION_COOKIE_NAME, auth_session.session_id)
+        self.board_id = create_board(self.user.user_id)
 
     def tearDown(self):
         self.tmp.cleanup()
 
     def test_studio_lists_point_pickers_and_initial_prompt(self):
         with patch("dashboard.build_user_historical_comparison_context", return_value=historical_context(replays=REPLAYS)):
-            response = self.client.get("/studio")
+            response = self.client.get(f"/studio/board/{self.board_id}")
         self.assertEqual(response.status_code, 200)
-        self.assertIn('action="/studio/compare"', response.text)
+        self.assertIn(f'action="/studio/board/{self.board_id}/compare"', response.text)
         self.assertIn("Point A", response.text)
         self.assertIn("Point B", response.text)
         self.assertIn("Pick two points in time to compare", response.text)
 
     def test_no_replays_and_invalid_selection_render_honestly(self):
         with patch("dashboard.build_user_historical_comparison_context", return_value=historical_context()):
-            self.assertIn("No saved reconstructions to compare yet", self.client.get("/studio").text)
+            self.assertIn("No saved reconstructions to compare yet", self.client.get(f"/studio/board/{self.board_id}").text)
         invalid = historical_context(replays=REPLAYS, invalid=True, replay_a="replay_a")
         with patch("dashboard.build_user_historical_comparison_context", return_value=invalid):
-            response = self.client.get("/studio/compare?replay_a=replay_a")
+            response = self.client.get(f"/studio/board/{self.board_id}/compare?replay_a=replay_a")
         self.assertIn("This historical comparison isn", response.text)
         self.assertNotIn("Leadership moved toward", response.text)
 
@@ -96,11 +98,12 @@ class StudioCompareTests(unittest.TestCase):
             patch("dashboard.require_entitlement") as entitlement,
             patch("dashboard.consume_usage") as consume,
         ):
-            response = self.client.get("/studio/compare?replay_a=replay_a&replay_b=replay_b")
+            response = self.client.get(f"/studio/board/{self.board_id}/compare?replay_a=replay_a&replay_b=replay_b")
         self.assertEqual(response.status_code, 200)
         self.assertIn("Leadership moved toward AI / Tech Growth", response.text)
         self.assertIn("The leading narrative changed", response.text)
-        entitlement.assert_called_once_with(ANY, dashboard.HISTORICAL_COMPARISON)
+        entitlement.assert_any_call(ANY, dashboard.SAVED_STORIES_FEATURE)
+        entitlement.assert_any_call(ANY, dashboard.HISTORICAL_COMPARISON)
         consume.assert_called_once_with(
             ANY,
             dashboard.HISTORICAL_COMPARISONS,
@@ -112,7 +115,7 @@ class StudioCompareTests(unittest.TestCase):
             patch("dashboard.build_user_historical_comparison_context", return_value=historical_context(replays=REPLAYS, invalid=True)),
             patch("dashboard.consume_usage") as consume,
         ):
-            response = self.client.get("/studio/compare?replay_a=bad&replay_b=replay_b")
+            response = self.client.get(f"/studio/board/{self.board_id}/compare?replay_a=bad&replay_b=replay_b")
         self.assertEqual(response.status_code, 200)
         consume.assert_not_called()
 
@@ -127,7 +130,7 @@ class StudioCompareTests(unittest.TestCase):
             patch("dashboard.build_user_historical_comparison_context", return_value=context),
             patch("dashboard.get_current_user", return_value=disabled_user),
         ):
-            response = self.client.get("/studio/compare?replay_a=replay_a&replay_b=replay_b")
+            response = self.client.get(f"/studio/board/{self.board_id}/compare?replay_a=replay_a&replay_b=replay_b")
         self.assertEqual(response.status_code, 403)
 
         with session_scope() as db:
@@ -140,7 +143,7 @@ class StudioCompareTests(unittest.TestCase):
             patch("dashboard.get_current_user", return_value=active_user),
             patch("dashboard.consume_usage", side_effect=EntitlementDenied("monthly_allowance_used")),
         ):
-            response = self.client.get("/studio/compare?replay_a=replay_a&replay_b=replay_b")
+            response = self.client.get(f"/studio/board/{self.board_id}/compare?replay_a=replay_a&replay_b=replay_b")
         self.assertEqual(response.status_code, 403)
 
     def test_history_compare_redirects_to_studio_with_selection(self):

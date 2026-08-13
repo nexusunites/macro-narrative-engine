@@ -1,10 +1,14 @@
-"""Validated persistence for the one-per-account Studio board."""
+"""Validated, account-owned persistence for Studio thesis boards."""
 
 from __future__ import annotations
 
 import re
+import uuid
 from copy import deepcopy
+from datetime import datetime, timezone
 from typing import Any
+
+from sqlalchemy import func, select
 
 from mne.database import session_scope
 from mne.models import StudioBoard
@@ -17,6 +21,7 @@ MAX_CONNECTIONS = 80
 BOARD_MAX_X = 1800
 BOARD_MAX_Y = 1200
 CONNECTION_LABELS = ("moves_with", "moves_against", "drives", "depends_on")
+MAX_BOARDS = 25
 _MARKUP = re.compile(r"<[^>]*>")
 _CONTROLS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$")
@@ -105,21 +110,79 @@ def validate_board(payload: Any) -> dict:
     }
 
 
-def load_board(user_id: str) -> dict:
+def _owned_board(db, user_id: str, board_id: str) -> StudioBoard | None:
+    return db.scalar(
+        select(StudioBoard).where(
+            StudioBoard.board_id == board_id,
+            StudioBoard.user_id == user_id,
+        )
+    )
+
+
+def list_boards(user_id: str) -> list[dict]:
+    """Return card-sized projections for one account, newest first."""
     with session_scope() as db:
-        row = db.get(StudioBoard, user_id)
+        rows = db.execute(
+            select(StudioBoard.board_id, StudioBoard.payload, StudioBoard.updated_at)
+            .where(StudioBoard.user_id == user_id)
+            .order_by(StudioBoard.updated_at.desc(), StudioBoard.board_id.desc())
+        ).all()
+    boards = []
+    for board_id, payload, updated_at in rows:
+        try:
+            normalized = validate_board(deepcopy(payload))
+        except ValueError:
+            normalized = empty_board()
+        boards.append({
+            "board_id": board_id,
+            "thesis": normalized["thesis"],
+            "node_count": len(normalized["nodes"]),
+            "connection_count": len(normalized["connections"]),
+            "updated_at": updated_at,
+            "preview_nodes": [
+                {"x": node["x"], "y": node["y"]}
+                for node in normalized["nodes"][:8]
+            ],
+        })
+    return boards
+
+
+def create_board(user_id: str) -> str:
+    with session_scope() as db:
+        count = db.scalar(select(func.count()).select_from(StudioBoard).where(StudioBoard.user_id == user_id))
+        if count >= MAX_BOARDS:
+            raise ValueError("Thesis capacity exceeded.")
+        board_id = str(uuid.uuid4())
+        db.add(StudioBoard(board_id=board_id, user_id=user_id, payload=empty_board()))
+    return board_id
+
+
+def load_board(user_id: str, board_id: str) -> dict | None:
+    with session_scope() as db:
+        row = _owned_board(db, user_id, board_id)
         if not row:
-            return empty_board()
+            return None
         try:
             return validate_board(deepcopy(row.payload))
         except ValueError:
             return empty_board()
 
 
-def save_board(user_id: str, payload: Any) -> dict:
+def save_board(user_id: str, board_id: str, payload: Any) -> dict:
     normalized = validate_board(payload)
     with session_scope() as db:
-        row = db.get(StudioBoard, user_id) or StudioBoard(user_id=user_id)
+        row = _owned_board(db, user_id, board_id)
+        if not row:
+            raise KeyError(board_id)
         row.payload = deepcopy(normalized)
-        db.add(row)
+        row.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     return normalized
+
+
+def delete_board(user_id: str, board_id: str) -> bool:
+    with session_scope() as db:
+        row = _owned_board(db, user_id, board_id)
+        if not row:
+            return False
+        db.delete(row)
+    return True

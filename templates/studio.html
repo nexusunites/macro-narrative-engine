@@ -62,6 +62,7 @@
 
       <section class="studio-main" aria-labelledby="studio-title">
         <header class="studio-heading">
+          <a class="studio-back-link" href="/studio">{{ copy.all_theses }}</a>
           <div class="studio-eyebrow-row">
             <span class="eyebrow">{{ copy.eyebrow }}</span>
             <span class="studio-concept-tag">{{ copy.concept_tag }}</span>
@@ -70,7 +71,7 @@
           <p>{{ copy.subtitle }}</p>
         </header>
 
-        <section class="studio-workbench" aria-labelledby="studio-board-title" data-studio-board data-save-url="/studio/board" data-intelligence-url="/studio/node/" data-board='{{ board|tojson }}' data-labels='{{ connection_labels|tojson }}' data-copy='{{ copy|tojson }}'>
+        <section class="studio-workbench" aria-labelledby="studio-board-title" data-studio-board data-save-url="/studio/board/{{ board_id }}" data-intelligence-url="/studio/node/" data-board='{{ board|tojson }}' data-labels='{{ connection_labels|tojson }}' data-copy='{{ copy|tojson }}'>
           <input type="hidden" data-board-csrf value="{{ csrf_token or '' }}">
           <div class="studio-thesis">
             <label for="studioThesis">{{ copy.thesis_label }}</label>

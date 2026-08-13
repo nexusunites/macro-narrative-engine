@@ -1,7 +1,7 @@
 import unittest
 
 from mne.auth import create_account
-from mne.studio_board import BOARD_MAX_X, BOARD_MAX_Y, empty_board, load_board, save_board, validate_board
+from mne.studio_board import BOARD_MAX_X, BOARD_MAX_Y, MAX_BOARDS, create_board, delete_board, empty_board, list_boards, load_board, save_board, validate_board
 from tests.auth_test_support import fresh_database
 
 
@@ -50,13 +50,33 @@ class StudioBoardTests(unittest.TestCase):
         payload = self.payload(); payload["thesis"] = "<i>" + "x" * 300 + "</i>"
         self.assertEqual(len(validate_board(payload)["thesis"]), 240)
 
-    def test_repo_empty_and_full_replace_round_trip(self):
-        self.assertEqual(load_board(self.user.user_id), empty_board())
-        first = save_board(self.user.user_id, self.payload())
-        self.assertEqual(load_board(self.user.user_id), first)
+    def test_repo_create_list_and_full_replace_round_trip(self):
+        board_id = create_board(self.user.user_id)
+        self.assertEqual(load_board(self.user.user_id, board_id), empty_board())
+        first = save_board(self.user.user_id, board_id, self.payload())
+        self.assertEqual(load_board(self.user.user_id, board_id), first)
         replacement = empty_board(); replacement["thesis"] = "A different view"
-        self.assertEqual(save_board(self.user.user_id, replacement), replacement)
-        self.assertEqual(load_board(self.user.user_id), replacement)
+        self.assertEqual(save_board(self.user.user_id, board_id, replacement), replacement)
+        self.assertEqual(load_board(self.user.user_id, board_id), replacement)
+        projection = list_boards(self.user.user_id)
+        self.assertEqual(projection[0]["board_id"], board_id)
+        self.assertEqual(projection[0]["thesis"], "A different view")
+        self.assertEqual((projection[0]["node_count"], projection[0]["connection_count"]), (0, 0))
+        self.assertTrue(delete_board(self.user.user_id, board_id))
+        self.assertIsNone(load_board(self.user.user_id, board_id))
+
+    def test_repo_enforces_cap_and_ownership(self):
+        other = create_account("other-board@example.com", "long-password-other", "Other", accepted_terms=True, accepted_privacy=True)
+        board_id = create_board(other.user_id)
+        self.assertIsNone(load_board(self.user.user_id, board_id))
+        with self.assertRaises(KeyError):
+            save_board(self.user.user_id, board_id, empty_board())
+        self.assertFalse(delete_board(self.user.user_id, board_id))
+        self.assertEqual(load_board(other.user_id, board_id), empty_board())
+        for _ in range(MAX_BOARDS):
+            create_board(self.user.user_id)
+        with self.assertRaises(ValueError):
+            create_board(self.user.user_id)
 
 
 if __name__ == "__main__":

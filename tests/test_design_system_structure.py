@@ -137,7 +137,7 @@ class DesignSystemStructureTests(unittest.TestCase):
             self.assertIn(marker, source + styles)
         for marker in ("studio-compare-form", "studio-picker", "studio-compare-result"):
             self.assertIn(marker, compare + styles)
-        self.assertIn('action="/studio/compare"', compare)
+        self.assertIn('action="/studio/board/{{ board_id }}/compare"', compare)
         self.assertIn("data-studio-board", source)
         self.assertIn("artboard.js", source)
         for excluded in ("dropzone", "connectors", "draggable"):

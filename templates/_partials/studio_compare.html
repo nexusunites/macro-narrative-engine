@@ -7,7 +7,7 @@
   <p class="studio-compare-description">{{ copy.compare_description }}</p>
 
   {% if replays %}
-    <form class="studio-compare-form" method="get" action="/studio/compare">
+    <form class="studio-compare-form" method="get" action="/studio/board/{{ board_id }}/compare">
       <label class="studio-picker">
         <span>{{ copy.compare_point_a }}</span>
         <span class="studio-picker-value">
