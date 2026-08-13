@@ -6,6 +6,8 @@
   <title>{{ copy.eyebrow }} · MNE</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+  <script src="{{ url_for('static', path='artboard.js') }}" defer></script>
+  <noscript><style>body.studio-page .studio-thesis input,body.studio-page .studio-link-handle,body.studio-page .studio-item-remove,body.studio-page .studio-connection-menu{display:none!important}body.studio-page .studio-thesis .studio-thesis-fallback{display:block!important}</style></noscript>
 </head>
 <body class="app-topbar-page studio-page">
   {% include "_partials/app_topbar.html" %}
@@ -27,7 +29,7 @@
             <p class="studio-rail-note">{{ copy.watchlist_note }}</p>
             <div class="studio-rail-list">
               {% for story in watchlist %}
-                <div class="studio-rail-row">
+                <div class="studio-rail-row" data-board-story data-story-slug="{{ story.slug }}" data-direction-label="{{ story.direction_label }}" tabindex="0">
                   <span class="studio-rail-glyph direction-{{ story.direction }}" aria-hidden="true">{{ '▲' if story.direction == 'up' else '▼' if story.direction == 'down' else '→' }}</span>
                   <span class="studio-rail-name">{{ story.display_name }}</span>
                 </div>
@@ -45,7 +47,7 @@
             <p class="studio-rail-note">{{ copy.saved_note }}</p>
             <div class="studio-rail-list">
               {% for story in saved %}
-                <div class="studio-rail-row">
+                <div class="studio-rail-row" data-board-story data-story-slug="{{ story.slug }}" data-direction-label="{{ story.direction_label }}" tabindex="0">
                   <span class="studio-rail-glyph direction-{{ story.direction }}" aria-hidden="true">{{ '▲' if story.direction == 'up' else '▼' if story.direction == 'down' else '→' }}</span>
                   <span class="studio-rail-name">{{ story.display_name }}</span>
                   {% if story.tracked %}<span class="studio-tracked-mark">{{ copy.tracked }}</span>{% endif %}
@@ -68,13 +70,55 @@
           <p>{{ copy.subtitle }}</p>
         </header>
 
-        {# Sprint Q: artboard canvas #}
-        <section class="studio-artboard-placeholder" aria-labelledby="studio-placeholder-title">
-          <div>
-            <span class="studio-concept-tag">{{ copy.concept_tag }}</span>
-            <h2 id="studio-placeholder-title">{{ copy.placeholder_title }}</h2>
-            <p>{{ copy.placeholder_body }}</p>
+        <section class="studio-workbench" aria-labelledby="studio-board-title" data-studio-board data-save-url="/studio/board" data-intelligence-url="/studio/node/" data-board='{{ board|tojson }}' data-labels='{{ connection_labels|tojson }}' data-copy='{{ copy|tojson }}'>
+          <input type="hidden" data-board-csrf value="{{ csrf_token or '' }}">
+          <div class="studio-thesis">
+            <label for="studioThesis">{{ copy.thesis_label }}</label>
+            {% if signed_in %}
+              <input id="studioThesis" data-board-thesis maxlength="240" value="{{ board.thesis }}" placeholder="{{ copy.thesis_placeholder }}">
+              <p class="studio-thesis-fallback hidden">{{ board.thesis or copy.thesis_placeholder }}</p>
+            {% else %}
+              <p id="studioThesis">{{ board.thesis or copy.thesis_placeholder }}</p>
+            {% endif %}
+            <span class="studio-save-state" data-board-save-state aria-live="polite"></span>
           </div>
+          <div class="studio-board-head">
+            <div><span class="eyebrow">{{ copy.eyebrow }}</span><h2 id="studio-board-title">{{ copy.board_title }}</h2></div>
+            <p>{{ copy.board_hint }}</p>
+          </div>
+          <div class="studio-board-stage" data-board-stage>
+            <svg class="studio-board-links" data-board-links aria-hidden="true">
+              <defs><marker id="studioArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z"></path></marker></defs>
+              {% for connection in board.connections %}
+                {% set source = board.nodes|selectattr('id', 'equalto', connection.from)|first %}
+                {% set target = board.nodes|selectattr('id', 'equalto', connection.to)|first %}
+                {% if source and target %}<g class="connection-{{ connection.label }}" data-connection-id="{{ connection.id }}"><line x1="{{ source.x + 95 }}" y1="{{ source.y + 48 }}" x2="{{ target.x + 95 }}" y2="{{ target.y + 48 }}"></line><text x="{{ (source.x + target.x) / 2 + 95 }}" y="{{ (source.y + target.y) / 2 + 42 }}">{{ connection_labels[connection.label] }}</text></g>{% endif %}
+              {% endfor %}
+            </svg>
+            <div class="studio-board-items" data-board-items>
+              {% for item in board.nodes %}
+                <article class="studio-evidence direction-{{ item.direction }}" style="left:{{ item.x }}px;top:{{ item.y }}px" data-board-item data-item-id="{{ item.id }}" data-story-slug="{{ item.slug }}" tabindex="0">
+                  <a class="studio-evidence-main" href="{{ item.research_url }}" data-board-open>
+                    <span class="studio-evidence-direction" aria-hidden="true">{{ '▲' if item.direction == 'up' else '▼' if item.direction == 'down' else '→' }}</span>
+                    <strong>{{ item.display_name }}</strong><small>{{ item.direction_label }}</small>
+                  </a>
+                  <button type="button" class="studio-link-handle" data-board-link title="{{ copy.connect_evidence }}" aria-label="{{ copy.connect_evidence }}">＋</button>
+                  <button type="button" class="studio-item-remove" data-board-remove title="{{ copy.remove_evidence }}" aria-label="{{ copy.remove_evidence }}">×</button>
+                </article>
+              {% endfor %}
+            </div>
+            <div class="studio-board-empty{% if board.nodes %} hidden{% endif %}" data-board-empty>
+              <strong>{{ copy.board_empty }}</strong><p>{{ copy.board_empty_body }}</p><a href="/research">{{ copy.board_empty_action }}</a>
+            </div>
+            <div class="studio-connection-menu hidden" data-connection-menu role="dialog" aria-label="{{ copy.connection_prompt }}">
+              <strong>{{ copy.connection_prompt }}</strong>
+              {% for value, label in connection_labels.items() %}<button type="button" data-connection-label="{{ value }}">{{ label }}</button>{% endfor %}
+            </div>
+          </div>
+          <aside class="studio-intelligence" data-board-intelligence aria-live="polite">
+            <span class="eyebrow">{{ copy.intelligence_title }}</span>
+            <p>{{ copy.intelligence_empty }}</p>
+          </aside>
         </section>
 
         {% include "_partials/studio_compare.html" %}

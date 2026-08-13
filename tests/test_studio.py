@@ -1,4 +1,5 @@
 import unittest
+from html.parser import HTMLParser
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -40,10 +41,21 @@ class StudioShellTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Star stories in Research to build your collection", response.text)
         self.assertIn('class="active" aria-current="page" href="/studio"', response.text)
-        self.assertIn("Your artboard is coming next", response.text)
+        self.assertIn("The case you are building", response.text)
+        self.assertIn('data-board-thesis', response.text)
         self.assertIn("Compare over time", response.text)
         self.assertNotIn("dropzone", response.text)
         self.assertNotIn("connectors", response.text)
+
+        class VisibleText(HTMLParser):
+            def __init__(self): super().__init__(); self.parts=[]; self.hidden=0
+            def handle_starttag(self, tag, attrs): self.hidden += tag in {"script", "style"}
+            def handle_endtag(self, tag): self.hidden -= tag in {"script", "style"}
+            def handle_data(self, data):
+                if not self.hidden: self.parts.append(data)
+        parser=VisibleText(); parser.feed(response.text); visible=" ".join(parser.parts).lower()
+        for forbidden in ("node", "edge", "graph", "canvas"):
+            self.assertNotIn(forbidden, visible)
 
     def test_saved_rail_and_tracked_subset_use_current_directions(self):
         profile = save_story(account_repository.load_preferences(self.user.user_id), "ai_chips")

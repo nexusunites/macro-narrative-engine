@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from mne.database import Base
@@ -80,6 +80,13 @@ class SavedStory(Base):
     story_slug: Mapped[str] = mapped_column(String(120), nullable=False)
     tracked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     __table_args__ = (UniqueConstraint("user_id", "story_slug"),)
+
+
+class StudioBoard(Base):
+    __tablename__ = "studio_boards"
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, server_default=func.now(), onupdate=utcnow)
 
 
 class SavedHistoricalView(Base):

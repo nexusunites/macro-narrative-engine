@@ -9,7 +9,7 @@ from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -127,6 +127,7 @@ from mne.research_workspace import (
 from mne.source_registry import SourceRegistryError, load_source_registry
 from mne.storage import get_recent_daily_runs, load_daily_snapshots
 from mne import account_repository
+from mne.studio_board import CONNECTION_LABELS, empty_board, load_board, save_board, validate_board
 from mne.accounts import anonymous_profile_status, decline_anonymous_profile, import_anonymous_profile
 from mne.auth import (AUTH_ERROR, SESSION_ABSOLUTE_EXPIRY, SESSION_COOKIE_NAME, authenticate, consume_password_reset,
                       create_account, create_session, invalidate_session, secure_cookies)
@@ -2348,12 +2349,29 @@ def build_studio_context(request: Request):
             direction = "steady"
         saved.append(
             {
+                "slug": registry_story.slug,
                 "display_name": registry_story.display_name,
                 "direction": direction,
                 "direction_label": current.get("direction_label") or dashboard_parity_copy("steady"),
                 "tracked": bool(item.get("tracked")),
             }
         )
+
+    board = load_board(user.user_id) if user and check_entitlement(user, SAVED_STORIES_FEATURE) else empty_board()
+    saved_by_slug = {item["slug"]: item for item in saved}
+    board_nodes = []
+    for node in board["nodes"]:
+        story = registry_by_slug.get(node["slug"])
+        if not story:
+            continue
+        current = saved_by_slug.get(node["slug"], {})
+        board_nodes.append({
+            **node,
+            "display_name": story.display_name,
+            "direction": current.get("direction", "steady"),
+            "direction_label": current.get("direction_label", dashboard_parity_copy("steady")),
+            "research_url": f"/research/{narrative_key('group', story.group)}",
+        })
 
     return {
         "request": request,
@@ -2362,6 +2380,56 @@ def build_studio_context(request: Request):
         "saved": saved,
         "watchlist": [item for item in saved if item["tracked"]],
         "signed_in": user is not None,
+        "board": {**board, "nodes": board_nodes},
+        "connection_labels": {key: studio_copy()[f"connection_{key}"] for key in CONNECTION_LABELS},
+    }
+
+
+def build_studio_node_intelligence(run: dict | None, slug: str) -> dict:
+    """Project current, public-safe intelligence for one saved story."""
+    copy = studio_copy()
+    try:
+        stories = load_story_registry().stories
+    except StoryRegistryError:
+        stories = ()
+    registry_by_slug = {story.slug: story for story in stories}
+    story = registry_by_slug.get(slug)
+    if not story:
+        raise ValueError("Unknown story.")
+    investigation = build_narrative_investigation(run or {}, "group", story.group)
+    current = next((item for item in investigation.get("stories", ()) if item.get("slug") == slug), {})
+    headlines = []
+    for item in investigation.get("supporting_evidence_display", ())[:3]:
+        title = item.get("title") if isinstance(item, dict) else None
+        if isinstance(title, str) and title.strip():
+            headlines.append({"title": title.strip(), "source": str(item.get("source_name") or "").strip()})
+    catalyst = None
+    for event in investigation.get("events", ()):
+        if not isinstance(event, dict):
+            continue
+        name = event.get("event_name") or event.get("name")
+        if isinstance(name, str) and name.strip():
+            catalyst = {"name": name.strip(), "timing": str(event.get("lifecycle_state") or "").strip()}
+            break
+    relationships = []
+    for relationship in get_relationships_for_group(story.group):
+        related_slugs = [candidate.slug for candidate in stories if candidate.group == relationship["related_group"]]
+        relationships.append({
+            "name": relationship["related_display_name"],
+            "label": relationship["label"],
+            "explanation": relationship["explanation"],
+            "story_slugs": related_slugs,
+        })
+    return {
+        "story": story.display_name,
+        "direction": current.get("direction") if current.get("direction") in {"up", "down", "steady"} else "steady",
+        "direction_label": current.get("direction_label") or dashboard_parity_copy("steady"),
+        "related": [{"name": item["name"], "label": item["label"]} for item in relationships[:3]],
+        "headlines": headlines,
+        "catalyst": catalyst,
+        "relationship_hints": relationships,
+        "empty_message": copy["intelligence_empty"],
+        "research_url": f"/research/{narrative_key('group', story.group)}",
     }
 
 
@@ -2977,6 +3045,45 @@ def research_selector(request: Request):
 @app.get("/studio", response_class=HTMLResponse)
 def studio_page(request: Request):
     return templates.TemplateResponse("studio.html", build_studio_compare_context(request))
+
+
+@app.post("/studio/board")
+async def studio_board_save(request: Request):
+    copy = studio_copy()
+    user = get_current_user(request)
+    if not user:
+        return JSONResponse({"error": copy["authentication_required"]}, status_code=401)
+    try:
+        require_entitlement(user, SAVED_STORIES_FEATURE)
+        form = _form(await request.body())
+        _csrf(request, form)
+        raw_payload = (form.get("payload") or [""])[0]
+        payload = json.loads(raw_payload)
+        normalized = validate_board(payload)
+        save_board(user.user_id, normalized)
+    except HTTPException as error:
+        return JSONResponse({"error": str(error.detail)}, status_code=error.status_code)
+    except EntitlementDenied as error:
+        return JSONResponse({"error": entitlement_denial(error.reason, error.metric)}, status_code=403)
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return JSONResponse({"error": copy["board_invalid"]}, status_code=400)
+    return Response(status_code=204)
+
+
+@app.get("/studio/node/{slug}")
+def studio_node_intelligence(request: Request, slug: str):
+    copy = studio_copy()
+    user = get_current_user(request)
+    if not user:
+        return JSONResponse({"error": copy["authentication_required"]}, status_code=401)
+    try:
+        require_entitlement(user, SAVED_STORIES_FEATURE)
+        selection = select_latest_meaningful_run(list_all_result_files(), load_result)
+        return JSONResponse(build_studio_node_intelligence(selection.run, slug))
+    except EntitlementDenied as error:
+        return JSONResponse({"error": entitlement_denial(error.reason, error.metric)}, status_code=403)
+    except (ValueError, StoryRegistryError, NarrativeRelationshipError):
+        return JSONResponse({"error": copy["intelligence_unavailable"]}, status_code=404)
 
 
 @app.get("/studio/compare", response_class=HTMLResponse)
