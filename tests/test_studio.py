@@ -109,6 +109,29 @@ class StudioShellTests(unittest.TestCase):
         self.assertIn("Strengthening", response.text)
         self.assertIn("← All theses", response.text)
 
+    def test_editor_server_renders_headline_catalyst_and_supports(self):
+        payload = empty_board()
+        payload["nodes"] = [
+            {"id": "story", "kind": "story", "slug": "ai_chips", "x": 10, "y": 20},
+            {"id": "headline", "kind": "headline", "title": "Chip demand expands", "source": "Wire", "source_story": "story", "x": 230, "y": 20},
+            {"id": "catalyst", "kind": "catalyst", "name": "Developer conference", "timing": "Upcoming", "source_story": "story", "x": 230, "y": 132},
+        ]
+        payload["connections"] = [
+            {"id": "headline-link", "from": "headline", "to": "story", "label": "supports"},
+            {"id": "catalyst-link", "from": "catalyst", "to": "story", "label": "supports"},
+        ]
+        save_board(self.user.user_id, self.board_id, payload)
+        with patch("dashboard.select_latest_meaningful_run", return_value=SimpleNamespace(run=None, path=None)):
+            response = self.client.get(f"/studio/board/{self.board_id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("studio-evidence-headline", response.text)
+        self.assertIn("studio-evidence-catalyst", response.text)
+        self.assertIn("Chip demand expands", response.text)
+        self.assertIn("Developer conference", response.text)
+        self.assertEqual(response.text.count('class="connection-supports"'), 2)
+        self.assertIn("Headline evidence", response.text)
+        self.assertIn("Catalyst evidence", response.text)
+
 
 if __name__ == "__main__":
     unittest.main()

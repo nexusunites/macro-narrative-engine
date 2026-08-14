@@ -98,12 +98,26 @@
             </svg>
             <div class="studio-board-items" data-board-items>
               {% for item in board.nodes %}
-                <article class="studio-evidence direction-{{ item.direction }}" style="left:{{ item.x }}px;top:{{ item.y }}px" data-board-item data-item-id="{{ item.id }}" data-story-slug="{{ item.slug }}" tabindex="0">
-                  <a class="studio-evidence-main" href="{{ item.research_url }}" data-board-open>
-                    <span class="studio-evidence-direction" aria-hidden="true">{{ '▲' if item.direction == 'up' else '▼' if item.direction == 'down' else '→' }}</span>
-                    <strong>{{ item.display_name }}</strong><small>{{ item.direction_label }}</small>
-                  </a>
-                  <button type="button" class="studio-link-handle" data-board-link title="{{ copy.connect_evidence }}" aria-label="{{ copy.connect_evidence }}">＋</button>
+                <article class="studio-evidence{% if item.kind == 'story' %} direction-{{ item.direction }}{% else %} studio-evidence-leaf studio-evidence-{{ item.kind }}{% endif %}" style="left:{{ item.x }}px;top:{{ item.y }}px" data-board-item data-item-id="{{ item.id }}" data-item-kind="{{ item.kind }}"{% if item.kind == 'story' %} data-story-slug="{{ item.slug }}"{% endif %} tabindex="0">
+                  {% if item.kind == 'story' %}
+                    <a class="studio-evidence-main" href="{{ item.research_url }}" data-board-open>
+                      <span class="studio-evidence-direction" aria-hidden="true">{{ '▲' if item.direction == 'up' else '▼' if item.direction == 'down' else '→' }}</span>
+                      <strong>{{ item.display_name }}</strong><small>{{ item.direction_label }}</small>
+                    </a>
+                    <button type="button" class="studio-link-handle" data-board-link title="{{ copy.connect_evidence }}" aria-label="{{ copy.connect_evidence }}">＋</button>
+                  {% elif item.kind == 'headline' %}
+                    <div class="studio-evidence-main studio-evidence-leaf-main">
+                      <span class="studio-evidence-leaf-glyph" aria-hidden="true">“</span>
+                      <span class="studio-evidence-kind-label">{{ copy.headline_evidence }}</span>
+                      <strong>{{ item.title }}</strong><small>{{ item.source }}</small>
+                    </div>
+                  {% else %}
+                    <div class="studio-evidence-main studio-evidence-leaf-main">
+                      <span class="studio-evidence-leaf-glyph" aria-hidden="true">◷</span>
+                      <span class="studio-evidence-kind-label">{{ copy.catalyst_evidence }}</span>
+                      <strong>{{ item.name }}</strong><small>{{ item.timing }}</small>
+                    </div>
+                  {% endif %}
                   <button type="button" class="studio-item-remove" data-board-remove title="{{ copy.remove_evidence }}" aria-label="{{ copy.remove_evidence }}">×</button>
                 </article>
               {% endfor %}
@@ -113,7 +127,7 @@
             </div>
             <div class="studio-connection-menu hidden" data-connection-menu role="dialog" aria-label="{{ copy.connection_prompt }}">
               <strong>{{ copy.connection_prompt }}</strong>
-              {% for value, label in connection_labels.items() %}<button type="button" data-connection-label="{{ value }}">{{ label }}</button>{% endfor %}
+              {% for value, label in connection_labels.items() %}{% if value != 'supports' %}<button type="button" data-connection-label="{{ value }}">{{ label }}</button>{% endif %}{% endfor %}
             </div>
           </div>
           <aside class="studio-intelligence" data-board-intelligence aria-live="polite">

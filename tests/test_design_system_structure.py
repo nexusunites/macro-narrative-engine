@@ -132,6 +132,7 @@ class DesignSystemStructureTests(unittest.TestCase):
         source = Path("templates/studio.html").read_text(encoding="utf-8")
         compare = Path("templates/_partials/studio_compare.html").read_text(encoding="utf-8")
         styles = Path("static/styles.css").read_text(encoding="utf-8")
+        script = Path("static/artboard.js").read_text(encoding="utf-8")
         self.assertIn('_partials/app_topbar.html', source)
         for marker in ("studio-grid", "studio-rail", "studio-rail-row", "studio-tracked-mark", "studio-workbench"):
             self.assertIn(marker, source + styles)
@@ -140,6 +141,11 @@ class DesignSystemStructureTests(unittest.TestCase):
         self.assertIn('action="/studio/board/{{ board_id }}/compare"', compare)
         self.assertIn("data-studio-board", source)
         self.assertIn("artboard.js", source)
+        self.assertIn("studio-evidence-{{ item.kind }}", source)
+        self.assertIn("item.kind == 'headline'", source)
+        self.assertIn("source_story:node.source_story", script)
+        self.assertIn('label:"supports"', script)
+        self.assertIn("data-add-evidence", script)
         for excluded in ("dropzone", "connectors", "draggable"):
             self.assertNotIn(excluded, source)
         self.assertIn("background: var(--teal)", styles)

@@ -50,6 +50,61 @@ class StudioBoardTests(unittest.TestCase):
         payload = self.payload(); payload["thesis"] = "<i>" + "x" * 300 + "</i>"
         self.assertEqual(len(validate_board(payload)["thesis"]), 240)
 
+    def test_evidence_kinds_normalize_sanitize_and_validate_sources(self):
+        payload = empty_board()
+        payload["nodes"] = [
+            {"id": "story", "kind": "story", "slug": "ai_chips", "x": 10, "y": 20},
+            {"id": "headline", "kind": "headline", "title": "<b>Chip demand</b>\x00 " + "x" * 250, "source": "<i>Wire</i>", "source_story": "story", "x": -4, "y": 22},
+            {"id": "catalyst", "kind": "catalyst", "name": "<b>Developer conference</b>", "timing": "<i>Next week</i>", "source_story": "story", "x": 30, "y": 40},
+            {"id": "orphan", "kind": "headline", "title": "Still valid", "source": "Desk", "source_story": "missing", "x": 1, "y": 2},
+            {"id": "non-story-source", "kind": "catalyst", "name": "Valid leaf", "source_story": "headline", "x": 1, "y": 2},
+            {"id": "empty-headline", "kind": "headline", "title": "<b></b>", "x": 1, "y": 2},
+            {"id": "empty-catalyst", "kind": "catalyst", "name": "", "x": 1, "y": 2},
+            {"id": "unknown", "kind": "asset", "name": "QQQ", "x": 1, "y": 2},
+        ]
+        board = validate_board(payload)
+        by_id = {node["id"]: node for node in board["nodes"]}
+        self.assertEqual(set(by_id), {"story", "headline", "catalyst", "orphan", "non-story-source"})
+        self.assertEqual(len(by_id["headline"]["title"]), 200)
+        self.assertTrue(by_id["headline"]["title"].startswith("Chip demand"))
+        self.assertEqual(by_id["headline"]["source"], "Wire")
+        self.assertEqual(by_id["headline"]["source_story"], "story")
+        self.assertEqual(by_id["catalyst"]["name"], "Developer conference")
+        self.assertEqual(by_id["catalyst"]["timing"], "Next week")
+        self.assertNotIn("source_story", by_id["orphan"])
+        self.assertNotIn("source_story", by_id["non-story-source"])
+
+    def test_supports_requires_evidence_to_its_source_story(self):
+        payload = empty_board()
+        payload["nodes"] = [
+            {"id": "story", "kind": "story", "slug": "ai_chips", "x": 10, "y": 20},
+            {"id": "other", "kind": "story", "slug": "natural_gas", "x": 20, "y": 20},
+            {"id": "headline", "kind": "headline", "title": "Chip demand expands", "source": "Wire", "source_story": "story", "x": 30, "y": 20},
+        ]
+        payload["connections"] = [
+            {"id": "valid", "from": "headline", "to": "story", "label": "supports"},
+            {"id": "wrong-target", "from": "headline", "to": "other", "label": "supports"},
+            {"id": "wrong-source", "from": "story", "to": "other", "label": "supports"},
+            {"id": "invalid-label", "from": "headline", "to": "story", "label": "proves"},
+            {"id": "dangling", "from": "headline", "to": "missing", "label": "supports"},
+        ]
+        self.assertEqual(validate_board(payload)["connections"], [{"id": "valid", "from": "headline", "to": "story", "label": "supports"}])
+
+    def test_repo_round_trips_story_headline_catalyst_and_supports(self):
+        board_id = create_board(self.user.user_id)
+        payload = empty_board()
+        payload["nodes"] = [
+            {"id": "story", "kind": "story", "slug": "ai_chips", "x": 10, "y": 20},
+            {"id": "headline", "kind": "headline", "title": "Chip demand expands", "source": "Wire", "source_story": "story", "x": 230, "y": 20},
+            {"id": "catalyst", "kind": "catalyst", "name": "Developer conference", "timing": "Upcoming", "source_story": "story", "x": 230, "y": 132},
+        ]
+        payload["connections"] = [
+            {"id": "headline-link", "from": "headline", "to": "story", "label": "supports"},
+            {"id": "catalyst-link", "from": "catalyst", "to": "story", "label": "supports"},
+        ]
+        saved = save_board(self.user.user_id, board_id, payload)
+        self.assertEqual(load_board(self.user.user_id, board_id), saved)
+
     def test_repo_create_list_and_full_replace_round_trip(self):
         board_id = create_board(self.user.user_id)
         self.assertEqual(load_board(self.user.user_id, board_id), empty_board())

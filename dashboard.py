@@ -2400,6 +2400,9 @@ def build_studio_context(request: Request, board_id: str):
     require_entitlement(user, SAVED_STORIES_FEATURE)
     board_nodes = []
     for node in board["nodes"]:
+        if node["kind"] in {"headline", "catalyst"}:
+            board_nodes.append(dict(node))
+            continue
         story = registry_by_slug.get(node["slug"])
         if not story:
             continue

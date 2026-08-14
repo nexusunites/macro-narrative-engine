@@ -20,8 +20,10 @@ MAX_NODES = 40
 MAX_CONNECTIONS = 80
 BOARD_MAX_X = 1800
 BOARD_MAX_Y = 1200
-CONNECTION_LABELS = ("moves_with", "moves_against", "drives", "depends_on")
+CONNECTION_LABELS = ("moves_with", "moves_against", "drives", "depends_on", "supports")
 MAX_BOARDS = 25
+MAX_EVIDENCE_PRIMARY_LENGTH = 200
+MAX_EVIDENCE_META_LENGTH = 120
 _MARKUP = re.compile(r"<[^>]*>")
 _CONTROLS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$")
@@ -31,9 +33,9 @@ def empty_board() -> dict:
     return {"schema_version": SCHEMA_VERSION, "thesis": "", "nodes": [], "connections": []}
 
 
-def _plain_text(value: Any) -> str:
+def _plain_text(value: Any, maximum: int = MAX_THESIS_LENGTH) -> str:
     text = _CONTROLS.sub("", _MARKUP.sub("", str(value or "")))
-    return " ".join(text.split())[:MAX_THESIS_LENGTH]
+    return " ".join(text.split())[:maximum]
 
 
 def _coordinate(value: Any, maximum: int) -> int:
@@ -65,22 +67,47 @@ def validate_board(payload: Any) -> dict:
 
     nodes = []
     seen_ids = set()
+    requested_source_stories = {}
     for item in raw_nodes:
         if not isinstance(item, dict):
             continue
         node_id, kind, slug = item.get("id"), item.get("kind"), item.get("slug")
-        if kind != "story" or slug not in valid_slugs:
-            continue
         if not isinstance(node_id, str) or not _SAFE_ID.fullmatch(node_id) or node_id in seen_ids:
             continue
-        seen_ids.add(node_id)
-        nodes.append({
+        node = {
             "id": node_id,
-            "kind": "story",
-            "slug": slug,
+            "kind": kind,
             "x": _coordinate(item.get("x"), BOARD_MAX_X),
             "y": _coordinate(item.get("y"), BOARD_MAX_Y),
-        })
+        }
+        if kind == "story":
+            if slug not in valid_slugs:
+                continue
+            node["slug"] = slug
+        elif kind == "headline":
+            title = _plain_text(item.get("title"), MAX_EVIDENCE_PRIMARY_LENGTH)
+            if not title:
+                continue
+            node["title"] = title
+            node["source"] = _plain_text(item.get("source"), MAX_EVIDENCE_META_LENGTH)
+            requested_source_stories[node_id] = item.get("source_story")
+        elif kind == "catalyst":
+            name = _plain_text(item.get("name"), MAX_EVIDENCE_PRIMARY_LENGTH)
+            if not name:
+                continue
+            node["name"] = name
+            node["timing"] = _plain_text(item.get("timing"), MAX_EVIDENCE_META_LENGTH)
+            requested_source_stories[node_id] = item.get("source_story")
+        else:
+            continue
+        seen_ids.add(node_id)
+        nodes.append(node)
+
+    story_ids = {node["id"] for node in nodes if node["kind"] == "story"}
+    nodes_by_id = {node["id"]: node for node in nodes}
+    for node_id, source_story in requested_source_stories.items():
+        if isinstance(source_story, str) and source_story in story_ids:
+            nodes_by_id[node_id]["source_story"] = source_story
 
     connections = []
     seen_connections = set()
@@ -99,6 +126,10 @@ def validate_board(payload: Any) -> dict:
             or label not in CONNECTION_LABELS
         ):
             continue
+        if label == "supports":
+            source_node = nodes_by_id[source]
+            if source_node["kind"] not in {"headline", "catalyst"} or source_node.get("source_story") != target:
+                continue
         seen_connections.add(connection_id)
         connections.append({"id": connection_id, "from": source, "to": target, "label": label})
 
