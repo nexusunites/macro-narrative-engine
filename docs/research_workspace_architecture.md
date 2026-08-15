@@ -149,6 +149,8 @@ A research session is the container for a single investigation -- bounded by a u
 
 This document does not specify how sessions are stored, how long they persist, or what technology maintains them -- those are implementation questions properly deferred to future, separately scoped work (Section 18). What matters architecturally is the *concept*: a session is a coherent, continuous investigative context, not a sequence of disconnected page views. Future capabilities like saved investigations (Section 16) are natural extensions of this concept once it exists, not separate architectures of their own.
 
+**Status note (2026-08-15):** Studio now persists a bounded thesis artifact, while the general Research Session-persistence concept described here remains future; see `docs/project_status.md` and `docs/product_backlog.md` for current state.
+
 ---
 
 ## 11. Integration With Existing Engines
@@ -229,6 +231,8 @@ The following are explicitly **reserved for architectural compatibility, not imp
 - Custom workspaces
 - Shared workspaces
 
+**Status note (2026-08-15):** The phrase "not implemented by this document" above describes this architecture document's scope at its authoring time; it is not a current repository-state claim. Since then, a bounded, single-user Studio thesis workspace (Sprints N–Q plus evidence types) has implemented a constrained realization of some concepts named here: a persisted thesis artifact, a story-level Saved store, a Watchlist rail, and a Compare-over-time tool. General saved-investigation and Research Session persistence and unrestricted custom workspaces remain future. Collaborative/shared workspaces, annotations/research journals, portfolio overlays, and trade journals remain unimplemented. For current state, see `docs/project_status.md` and `docs/product_backlog.md`; precedence is current status, backlog, implemented handoffs, then this historical architecture document.
+
 Each of these is a natural extension of the concepts already established here -- a saved investigation is a persisted Research Session (Section 10); an annotation is a natural companion to the future Research Notes component (Section 8); a shared workspace extends the session model to multiple users. None require this document's architecture to be redesigned when they're eventually built -- they require only that this architecture continue to be respected as they're added: intelligence still comes from intelligence systems, the workspace still only orchestrates, and AI still only assists.
 
 ---
@@ -254,3 +258,5 @@ This document is an architecture reference, not an implementation plan -- but fo
 6. **Integrate Platform Observability (Section 14)** as the admin-oriented Observability component, independently of the narrative-research components above.
 7. **Introduce AI assistance within the established boundaries (Section 15)**, only once the underlying components and flow are stable enough that AI has real deterministic output to explain, summarize, compare, and organize rather than being built ahead of the system it's meant to assist with.
 8. **Stop.** Collaborative research, saved investigations, watchlists, annotations, portfolio overlays, trade journals, and custom/shared workspaces (Section 16) remain explicitly reserved, not built, until separately and deliberately scoped.
+
+   **Status note (2026-08-15):** A bounded Studio thesis workspace has since been built within these boundaries; general saved investigations and unrestricted custom workspaces remain future, and the reserved collaborative/shared-workspace, annotation/research-journal, portfolio-overlay, and trade-journal capabilities remain deferred.

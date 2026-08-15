@@ -33,6 +33,7 @@ Implementation work follows written handoffs in `docs/handoffs/`. If a task has 
 6. **User dashboard color budget.** Neutral black/white base plus exactly two hues: `--up` green (also the brand accent, via the scoped `--brand-accent` repoint) and `--down` red-orange (strictly directional). States convey meaning through typography, never color. Any other hue on `/` is a defect.
 7. **Registry-owned configuration.** Thresholds live in `config/source_registry.json`; runs persist `thresholds_used`.
 8. **Honest empty states.** Zero matches, zero backfilled, or missing history can be correct outcomes, not bugs. Verify before "fixing."
+9. **Verify before negative claims.** Before asserting that a feature does not exist, check `docs/project_status.md`, `docs/product_backlog.md`, handoffs/specs, routes, templates/static assets, models/migrations, tests, and recent git history. Treat "not implemented by this document" as a scoped historical statement, not a repository-wide current-state fact; when sources conflict, report the conflict and prefer verified code plus newer approved handoffs. Never conclude "not implemented" from an architecture document alone.
 
 ## Verification standard
 

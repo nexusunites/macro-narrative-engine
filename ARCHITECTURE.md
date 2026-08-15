@@ -99,6 +99,11 @@ Future symbols:
 
 The purpose is to compare narrative strength against market confirmation.
 
+Research Sectors and Asset views present persisted market context for configured
+instruments as deterministic, bounded context. They do not compute narrative
+scores, outcomes, forecasts, recommendations, or trade signals; their detailed
+presentation contracts live in the sector and asset handoffs referenced below.
+
 Examples:
 
 - AI narrative rising while QQQ/SMH are green and VIX is down suggests narrative support.
@@ -118,6 +123,14 @@ dashboard Market Expression summary and Research detail. Asset Exploration and
 Sector Isolation retain their separate structural and participation behavior.
 These layers remain descriptive context, not signals, forecasts, or
 recommendations.
+
+The Research Sectors, Asset Exploration, and per-asset execution surfaces present
+these existing or adjacent deterministic outputs as a bounded
+narrative-to-sector-to-instrument path; they do not add narrative scoring or
+taxonomy logic. Their implementation contracts are documented in
+`docs/handoffs/cross_sector_heatmap_sector_isolation_handoff.md`,
+`docs/handoffs/asset_exploration_view_handoff.md`, and
+`docs/handoffs/asset_execution_view_handoff.md`.
 
 The former `mne/narrative_market_map.py` theme lookup and its persisted
 `market_expression` run field were retired after the repository-wide consumer
@@ -215,6 +228,14 @@ definitions.
 - `mne/theme_analysis.py`
 - `mne/narrative_signals.py`
 - `mne/market_context.py`
+- `mne/story_registry.py` — validates and exposes the curated sub-narrative story registry.
+- `mne/story_extraction.py` — deterministically extracts registered stories from accepted, theme-attributed headlines.
+- `mne/sector_isolation.py` — validates configured narrative-to-sector structure for Research drill-down.
+- `mne/sector_market_context.py` — maps sector instruments and classifies persisted sector participation context.
+- `mne/asset_participation.py` — classifies observed asset participation from persisted market data.
+- `mne/asset_exploration.py` — builds the validated narrative-to-asset exploration read model.
+- `mne/asset_price_history.py` — validates and persists daily OHLC history for registry assets.
+- `mne/asset_events.py` — validates and persists macro-calendar and company-news events for asset charts.
 - `mne/reporting.py`
 
 ## Future Features
