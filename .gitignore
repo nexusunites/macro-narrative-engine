@@ -23,3 +23,7 @@ data/
 .vscode/
 .claude/
 .claude/
+
+# Playwright local artifacts
+.playwright-cli/
+.playwright-mcp/
