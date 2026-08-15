@@ -40,7 +40,10 @@ class MarketContextTests(unittest.TestCase):
     def test_expansion_fetch_order_timestamp_and_failure_isolation(self, ticker):
         class GoodTicker:
             def history(self, period): return _History([100, 101])
-        ticker.side_effect = [GoodTicker(), RuntimeError("missing"), GoodTicker(), GoodTicker(), GoodTicker(), GoodTicker()]
+        ticker.side_effect = [
+            GoodTicker(), GoodTicker(), GoodTicker(), RuntimeError("missing"),
+            GoodTicker(), GoodTicker(), GoodTicker(), GoodTicker(),
+        ]
         result = get_market_snapshot(ASSET_EXPANSION_TICKERS, observed_at="stamp")
         self.assertEqual(list(ASSET_EXPANSION_TICKERS), list(result))
         self.assertIsNone(result["XOM"])

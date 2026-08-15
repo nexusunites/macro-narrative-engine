@@ -5636,6 +5636,93 @@ input:focus-visible,
   padding-inline: 0;
 }
 
+.user-dashboard .overview-markets-panel {
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.user-dashboard .overview-market-candle {
+  display: grid;
+  gap: 12px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.user-dashboard .overview-market-candle-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.user-dashboard .overview-market-candle-head strong {
+  font-size: var(--text-size-title);
+}
+
+.user-dashboard .overview-market-candle-head span {
+  color: var(--text-tertiary);
+  font-size: var(--text-size-label);
+}
+
+.user-dashboard .overview-market-candle-frame {
+  display: block;
+  height: 220px;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-1);
+  transition: border-color 150ms ease, transform 150ms ease;
+}
+
+.user-dashboard .overview-market-candle:hover .overview-market-candle-frame {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+}
+
+.user-dashboard .overview-market-candle-frame .candle-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.user-dashboard .overview-market-candle-frame .candle-up {
+  fill: var(--up);
+}
+
+.user-dashboard .overview-market-candle-frame .candle-down {
+  fill: var(--down);
+}
+
+.user-dashboard .market-status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.user-dashboard .market-expression-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-raised);
+  color: var(--text-tertiary);
+  font-size: var(--text-size-label);
+  line-height: 1;
+}
+
+.user-dashboard .market-expression-chip strong {
+  color: var(--text-primary);
+}
+
+.user-dashboard .overview-markets-panel .market-footer {
+  margin-top: 0;
+}
+
 .user-dashboard .tone-neutral,
 .user-dashboard .direction-flat,
 .user-dashboard .delta-flat {

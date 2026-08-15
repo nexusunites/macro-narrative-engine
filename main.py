@@ -120,6 +120,8 @@ NASDAQ_TICKERS = {
 }
 
 ASSET_EXPANSION_TICKERS = {
+    "VIX": "^VIX",
+    "DXY": "DX-Y.NYB",
     "MSFT": "MSFT",
     "XOM": "XOM",
     "CVX": "CVX",

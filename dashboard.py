@@ -2020,6 +2020,19 @@ def build_view_model(run, current_file):
     market_expression_explanation = explain_market_expression(
         evaluated_market_expression
     )
+    dominant_narrative_key = (
+        narrative_key("group", run["dominant_group"])
+        if run.get("dominant_group")
+        else None
+    )
+    markets_candle = build_overview_markets_candle(
+        (
+            evaluated_market_expression.get("instruments")
+            if isinstance(evaluated_market_expression, dict)
+            else None
+        ),
+        dominant_narrative_key,
+    )
 
     return {
         "run": run,
@@ -2043,6 +2056,7 @@ def build_view_model(run, current_file):
         },
         "market_environment_card": market_environment_card,
         "market_expression_context": evaluated_market_expression,
+        "markets_candle": markets_candle,
         "market_expression_sentence": (
             market_expression_explanation.get("headline")
             if market_expression_explanation
@@ -2601,10 +2615,8 @@ def build_investigation_context(request: Request, key: str, admin: bool = False)
     return context
 
 
-def _build_lead_instrument_candle(investigation, narrative_key):
-    """Build a compact, read-only candle teaser from the persisted price store."""
-    expression = investigation.get("market_expression") if isinstance(investigation, dict) else None
-    instruments = expression.get("instruments") if isinstance(expression, dict) else None
+def _build_candle_geometry(instruments, href):
+    """Build shared, server-rendered candle geometry for a primary instrument."""
     lead = next(
         (
             item for item in (instruments or ())
@@ -2629,9 +2641,7 @@ def _build_lead_instrument_candle(investigation, narrative_key):
         "label": lead.get("label") or ticker,
         "symbol": symbol,
         "available": bool(candles),
-        # Market Expression does not own a unique sector. The sector index is the
-        # honest route until that relationship is explicitly carried by the model.
-        "href": f"/research/{narrative_key}/sectors",
+        "href": href,
         "candles": (),
     }
     if not candles:
@@ -2665,6 +2675,28 @@ def _build_lead_instrument_candle(investigation, narrative_key):
         )
     result["candles"] = tuple(rows)
     return result
+
+
+def _build_lead_instrument_candle(investigation, narrative_key):
+    """Build the investigation candle without changing its established output."""
+    expression = investigation.get("market_expression") if isinstance(investigation, dict) else None
+    instruments = expression.get("instruments") if isinstance(expression, dict) else None
+    # Market Expression does not own a unique sector. The sector index is the
+    # honest route until that relationship is explicitly carried by the model.
+    return _build_candle_geometry(
+        instruments,
+        href=f"/research/{narrative_key}/sectors",
+    )
+
+
+def build_overview_markets_candle(instruments, dominant_narrative_key):
+    """Build the Overview candle for the dominant narrative's reachable drill path."""
+    href = (
+        f"/research/{dominant_narrative_key}/sectors"
+        if dominant_narrative_key
+        else "/research"
+    )
+    return _build_candle_geometry(instruments, href=href)
 
 
 def build_narrative_history_context(request: Request, key: str):

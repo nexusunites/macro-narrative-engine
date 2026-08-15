@@ -196,14 +196,28 @@
         <header class="dashboard-section-heading">
           <div><p class="eyebrow">{{ view.presentation.metrics["Market Reaction"].question }}</p><h2>{{ view.presentation.metrics["Market Snapshot"].label }}</h2></div>
         </header>
-        <div class="market-list market-expression-preview">
+        <div class="market-list market-expression-preview overview-markets-panel">
           {% if view.market_expression_context and view.market_expression_context.instruments %}
-            {% for role, label in [("primary", "Primary expression"), ("secondary", "Secondary expression"), ("offset", "Offset or contradiction")] %}
-              {% set rows = view.market_expression_context.instruments|selectattr("role", "equalto", role)|list %}
-              {% if rows %}<section class="market-role-group"><h3>{{ label }}</h3>
-              {% for row in rows %}<div class="market-row expression-row"><strong class="market-symbol">{{ row.asset }}</strong><span class="market-name">{{ row.label }}</span><span class="market-status tone-{{ 'good' if row.status in ['CONFIRMING', 'ALIGNED'] else 'caution' if row.status in ['DIVERGING', 'PRESSURE'] else 'neutral' }}">{{ row.status|replace('_', ' ')|title }}</span></div>{% endfor %}
-              </section>{% endif %}
-            {% endfor %}
+            {% if view.markets_candle and view.markets_candle.available %}
+              <a class="overview-market-candle" href="{{ view.markets_candle.href }}" aria-label="{{ view.markets_candle.label }}">
+                <span class="overview-market-candle-head"><strong>{{ view.markets_candle.ticker }}</strong><span>{{ view.markets_candle.label }}</span></span>
+                <span class="overview-market-candle-frame">
+                  <svg class="candle-svg" viewBox="0 0 480 140" preserveAspectRatio="none" role="img" aria-label="{{ view.markets_candle.label }}">
+                    {% for candle in view.markets_candle.candles %}
+                      <rect class="candle-{{ candle.direction }}" x="{{ candle.x - 1 }}" y="{{ candle.wick_y }}" width="2" height="{{ candle.wick_height }}"></rect>
+                      <rect class="candle-{{ candle.direction }}" x="{{ candle.body_x }}" y="{{ candle.body_y }}" width="{{ candle.body_width }}" height="{{ candle.body_height }}" rx="1"></rect>
+                    {% endfor %}
+                  </svg>
+                </span>
+              </a>
+            {% endif %}
+            <div class="market-status-strip">
+              {% for row in view.market_expression_context.instruments %}
+                <span class="market-expression-chip tone-{{ 'good' if row.status in ['CONFIRMING', 'ALIGNED'] else 'caution' if row.status in ['DIVERGING', 'PRESSURE'] else 'neutral' }}">
+                  <strong>{{ row.asset }}</strong><span aria-hidden="true">&middot;</span><span>{{ row.status|replace('_', ' ')|title }}</span>
+                </span>
+              {% endfor %}
+            </div>
           {% else %}
             <div class="section-empty">The current story is not yet being clearly reflected in the available market indicators.</div>
           {% endif %}

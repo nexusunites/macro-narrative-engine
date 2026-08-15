@@ -18,12 +18,24 @@ class DesignSystemStructureTests(unittest.TestCase):
         self.assertIn("Explore in Research", Path("mne/presentation_language.py").read_text(encoding="utf-8"))
         self.assertIn("data-attention-cloud", constellation)
 
-    def test_market_preview_uses_expression_roles_not_price_table(self):
+    def test_market_preview_uses_candle_and_compact_expression_strip(self):
         source = Path("templates/dashboard.html").read_text(encoding="utf-8")
         market = source[source.index('id="markets"'):source.index('id="events"')]
-        for role in ("primary", "secondary", "offset"):
-            self.assertIn(role, market)
+        self.assertIn("view.markets_candle.available", market)
+        self.assertIn('class="candle-svg"', market)
+        self.assertIn('class="market-status-strip"', market)
+        self.assertIn("view.market_expression_context.instruments", market)
+        self.assertNotIn("market-role-group", market)
         self.assertNotIn("latest_close", market)
+
+    def test_research_finder_has_no_undefined_resource_target(self):
+        source = "\n".join(
+            Path(path).read_text(encoding="utf-8")
+            for path in ("templates/research_selector.html", "static/research_finder.js")
+        )
+        self.assertNotIn('src="undefined"', source)
+        self.assertNotIn('href="undefined"', source)
+        self.assertNotIn("/undefined", source)
 
     def test_xray_and_locked_components_use_native_and_shared_structures(self):
         xray = Path("templates/_partials/xray_disclosure.html").read_text(encoding="utf-8")
